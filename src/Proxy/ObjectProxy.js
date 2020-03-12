@@ -259,6 +259,9 @@ function getHandler(obj, definition, prop) {
     else if (prop === 'create') {
         return function (...args) {
             // Call the method if it exists
+            if(!definition.methods) {
+                definition.methods = {};
+            }
             if (definition.methods.hasOwnProperty('create')) {
                 return funcHandler.run(definition.methods.create, this, args[0]);
             } else {
