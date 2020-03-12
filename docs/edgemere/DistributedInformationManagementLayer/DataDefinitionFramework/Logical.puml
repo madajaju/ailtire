@@ -1,0 +1,28 @@
+@startuml
+
+package "User" #ffffcc {
+
+}
+
+package "Used" #ffffcc {
+
+}
+
+package "Data Definition Framework" #lightblue {
+
+    interface "Data Definition Framework" as i {
+    
+    }
+
+
+    CLI ()-- i
+    REST ()-- i
+    Web ()-- i
+    
+
+
+}
+User --> i
+"Data Definition Framework" --> Used
+
+@enduml

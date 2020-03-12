@@ -1,0 +1,24 @@
+@startuml
+
+class "DataSource" as Model {
+ string name
+ string type
+
+ 
+}
+
+rectangle "Resource" as Resource {
+}
+
+Model o--> "1" Resource : resource
+
+
+rectangle "Data" as Data {
+}
+
+Model *--> "n" Data : data
+
+
+
+
+@enduml

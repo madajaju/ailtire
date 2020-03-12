@@ -1,0 +1,18 @@
+@startuml
+
+class "MetaData" as Model {
+ string name
+ string value
+
+ 
+}
+
+rectangle "DataInstance" as DataInstance {
+}
+
+Model o--> "1" DataInstance : metadata
+
+
+
+
+@enduml

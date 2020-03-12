@@ -1,0 +1,47 @@
+@startuml
+
+class "DataInstance" as Model {
+ string name
+
+ 
+}
+
+rectangle "Data" as Data {
+}
+
+Model o--> "1" Data : data
+
+
+rectangle "DataReference" as DataReference {
+}
+
+Model o--> "1" DataReference : reference
+
+
+rectangle "ServiceInstance" as ServiceInstance {
+}
+
+Model o--> "1" ServiceInstance : service
+
+
+rectangle "SourceMetaData" as SourceMetaData {
+}
+
+Model o--> "n" SourceMetaData : source
+
+
+rectangle "MetaData" as MetaData {
+}
+
+Model o--> "n" MetaData : metadata
+
+
+rectangle "LineageMetaData" as LineageMetaData {
+}
+
+Model o--> "n" LineageMetaData : lineage
+
+
+
+
+@enduml

@@ -1,0 +1,14 @@
+@startuml
+
+class "PhysicalProfile" as Model {
+ json capabilities
+ json available
+ json reserved
+ json metrics
+
+ 
+}
+
+
+
+@enduml

@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+
+const program = require('commander');
+require('./lib/subcommander');
+
+program
+    .version('0.0.1')
+    .command('create --name <string> --short <string>', 'Create a bouquet project')
+    .parse(process.argv);
+

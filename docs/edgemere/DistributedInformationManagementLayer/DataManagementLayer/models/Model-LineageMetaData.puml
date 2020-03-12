@@ -1,0 +1,17 @@
+@startuml
+
+class "LineageMetaData" as Model {
+ string creationAction
+
+ 
+}
+
+rectangle "DataInstance" as DataInstance {
+}
+
+Model o--> "n" DataInstance : parents
+
+
+
+
+@enduml

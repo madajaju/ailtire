@@ -1,0 +1,153 @@
+<div class="modelActionBar">
+   <%- partial('./src/views/model/_actionBar.ejs', {definition: definition, obj:obj, className:className}) %>
+</div>
+<script src="/js/socket.io.js"></script>
+<div class="modelDetail">
+   <h3>Create <%= className %> </h3>
+   <table>
+      <% for(let name in definition.attributes) {
+         let attr = definition.attributes[name];
+      %>
+      <tr>
+         <td align="right"><%= name %></td>
+          <% if(attr.type === 'json') { %>
+              <td><%- partial('./src/views/model/_json.ejs', {json: obj[name]}) %></td>
+          <% } else { %>
+             <td><%= obj[name] %></td>
+          <% } %>
+      </tr>
+      <% } %>
+      <% for(let name in definition.associations) {
+      let assoc = definition.associations[name];
+      %>
+      <tr>
+         <td align="right"><%= name %></td>
+         <% if(obj[name]) { %>
+            <% if(assoc.cardinality === 1) { %>
+               <td><a href="/<%= assoc.type %>/show?id=<%= obj[name].id %>">Single:<%= obj[name].toString() %></a></td>
+            <% } else { %>
+                <td><ul>
+                <% for(let ai in obj[name]) {
+                    %>
+                        <li><a href="/<%= assoc.type %>/show?id=<%= obj[name][ai].id %>"><%= obj[name][ai].toString() %></a></li>
+                <% } %>
+                </ul></td>
+            <% } %>
+         <% } else { %>
+            <td>NA</td>
+         <% } %>
+      </tr>
+      <% } %>
+   </table>
+</div>
+
+<div class="modelGraph">
+    <svg width="960" height="600" id="DrawingArea"></svg>
+
+    <script src="/js/d3.js"></script>
+    <script src="/js/Graph.js"></script>
+    <script src="/js/socket.io.js"></script>
+    <script type="module">
+        const socket = io('http://localhost:8080');
+        let graph = new Graph("DrawingArea");
+        let data = {nodes: {}, links: [ ]};
+        <%
+            let oid = className + '-' + obj.id;
+            let otype = className;
+            if(obj.type) {
+                otype += obj.type;
+            }
+            let level = obj.package.name.replace(/ /g, '');
+        %>
+            data.nodes["<%= oid %>"] = {id:"<%= oid %>", name:"<%= obj.name %>", group: "<%= otype %>", level:'<%= level %>'};
+        <%
+        console.log("DEFINITION:", definition);
+        console.log("DEFINITION.ASSOC:", definition.associations);
+        for (let aname in definition.associations) {
+                console.log("ANAME:", aname);
+                console.log("ANAME.OBJ:", obj);
+            if(obj[aname]) {
+                    console.log("OBJ.ANAME:", obj[aname]);
+                    if(definition.associations[aname].cardinality === 1) {
+                        console.log("ASSOC:", aname);
+                        let aoid = definition.associations[aname].type + '-' + obj[aname].id;
+                        let otype = definition.associations[aname].type;
+                        if(obj[aname]['type']) {
+                            otype += obj[aname].type;
+                        }
+                        let level = obj[aname].definition.package.name.replace(/ /g, '');
+                    %>
+                        data.nodes["<%= aoid %>"] = {id:"<%= aoid  %>", name:"<%= obj[aname].name %>", group: '<%= otype %>', level:'<%= level %>'};
+                        data.links.push({source:"<%= oid %>", target:"<%= aoid %>"});
+                    <% } else {
+                        // Iterate over the map/array of associations with this relationship.
+                        for(let j in obj[aname]) {
+                            console.log("ASSOC:", j);
+                            console.log("ASSOC:", obj[aname][j]);
+                            if (obj[aname][j]) {
+                                let aoid = definition.associations[aname].type + '-' + obj[aname][j].id;
+                                let otype = definition.associations[aname].type;
+                                if (obj[aname][j].definition.associations.type) {
+                                    otype += obj[aname][j].type;
+                                }
+                                let level = obj[aname][j].definition.package.name.replace(/ /g, '');
+                            %>
+                                data.nodes["<%= aoid %>"] = {
+                                    id: "<%= aoid  %>",
+                                    name: "<%= obj[aname][j].name %>",
+                                    group: '<%= otype %>',
+                                    level: '<%= level %>'
+                                };
+                                data.links.push({source: "<%= oid %>", target: "<%= aoid %>"});
+                            <%
+                            }
+                        }
+                    }
+                }
+            }
+         %>
+        graph.simulate(data);
+
+        socket.on('<%= className %>.update', (res) => {
+            let obj = res.obj;
+            let oid = "<%= className %>-" + obj._attributes.id;
+            let level = obj.package;
+            data.nodes[oid] = {id: oid, name: obj._attributes.name, group:"<%= className %>", level:'<%= level %>' };
+            let aname = "";
+            let aoid = "";
+            let otype = "";
+            let aobj = null;
+        <% for (let aname in definition.associations) { %>
+                aname = "<%= aname %>";
+                if(obj._associations[aname]) {
+                <%
+                    if(definition.associations[aname].cardinality === 1) {
+                    %>
+                        otype = "<%= definition.associations[aname.type] %>";
+                        aobj = obj._associations[aname];
+                        if(aobj._attributes.hasOwnProperty('type')) {
+                            otype += aobj._attributes.type;
+                        }
+                        aoid = '<%= definition.associations[aname].type %>-' + obj._associations[aname].id;
+                        let level = aobj.package;
+                        data.nodes[aoid] = {id: aoid, name:obj._associations[aname].name, group: otype, level:level};
+                        data.links.push({source:oid, target:aoid});
+                    <% } else { %>
+                        for(let j in obj._associations[aname]) {
+                            otype = "<%= definition.associations[aname].type %>";
+                            aobj = obj._associations[aname][j];
+                            if(aobj._attributes.hasOwnProperty('type')) {
+                                otype += aobj._attributes.type;
+                            }
+                            let level = aobj.package;
+                            aoid = '<%= definition.associations[aname].type %>-' + aobj._attributes.id;
+                            data.nodes[aoid] = {id: aoid, name: obj._associations[aname][j]._attributes.name, group: otype, level:level};
+                            data.links.push({source:oid, target:aoid});
+                        }
+                    <% } %>
+                }
+            <% } %>
+            graph.simulate(data);
+        });
+    </script>
+</div>

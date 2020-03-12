@@ -1,0 +1,14 @@
+@startuml
+
+
+Actor "Data Analyst" as DataAnalyst
+
+
+rectangle "Common Data Services" as CDS  #lightblue {
+        usecase "Manage Data" as ManageData
+    DataAnalyst --> ManageData
+
+}
+
+
+@enduml

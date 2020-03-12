@@ -1,0 +1,7 @@
+<ul>
+    <li><a href="/<%= className %>/new">New</a></li>
+    <li><a href="/<%= className %>/list">List</a></li>
+    <% if(obj) { %>
+    <li><a href="/<%= className %>/destroy?id=<%= obj.id %>">Destroy</a></li>
+    <% } %>
+</ul>

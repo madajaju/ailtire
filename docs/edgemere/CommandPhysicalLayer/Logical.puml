@@ -1,0 +1,78 @@
+@startuml
+
+package "User" #ffffcc {
+
+}
+
+package "Used" #ffffcc {
+
+}
+
+package "Command Physical Layer" #lightblue {
+
+    interface "Command Physical Layer" as i {
+    
+    }
+
+
+    CLI ()-- i
+    REST ()-- i
+    Web ()-- i
+        class "AggregatedDevice" {
+                 string name
+                 string ename
+                    }
+                    AggregatedDevice *--> "1" PhysicalProfile : profile
+                            AggregatedDevice *--> "n" Device : devices
+                            AggregatedDevice *--> "n" AggregatedDevice : adevices
+                            AggregatedDevice o--> "1" DataCenter : datacenter
+            
+
+    class "DataCenter" {
+                 string name
+                             getReservations()
+            }
+                    DataCenter o--> "1" PhysicalProfile : profile
+                            DataCenter *--> "n" Device : devices
+                            DataCenter *--> "n" AggregatedDevice : adevices
+            
+
+    class "Device" {
+                 string name
+                 string ename
+                 string type
+                             create()
+                     getReservations()
+            }
+                    Device o--> "1" PhysicalProfile : profile
+                            Device *--> "n" Hardware : hardware
+                            Device o--> "1" DataCenter : datacenter
+                            Device o--> "1" AggregatedDevice : parent
+            
+
+    class "Hardware" {
+                 string name
+                 string ename
+                 string type
+                    }
+                    Hardware o--> "1" PhysicalProfile : profile
+                            Hardware o--> "1" Device : device
+                            Hardware o--> "n" Resource : resources
+            
+
+    class "PhysicalProfile" {
+                 json capabilities
+                 json available
+                 json reserved
+                 json metrics
+                    }
+    
+
+
+
+
+}
+User --> i
+"Command Physical Layer" --> Used
+
+@enduml

@@ -1,0 +1,16 @@
+@startuml
+
+
+usecase "Manage Data Procedures" as ManageDataProcedures
+
+Actor "Chief Data Officer" as ChiefDataOfficer
+
+ChiefDataOfficer --> ManageDataProcedures
+
+Actor "Data Engineer" as DataEngineer
+
+DataEngineer --> ManageDataProcedures
+
+
+
+@enduml

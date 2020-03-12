@@ -1,0 +1,36 @@
+@startuml
+
+class "AggregatedDevice" as Model {
+ string name
+ string ename
+
+ 
+}
+
+rectangle "PhysicalProfile" as PhysicalProfile {
+}
+
+Model *--> "1" PhysicalProfile : profile
+
+
+rectangle "Device" as Device {
+}
+
+Model *--> "n" Device : devices
+
+
+rectangle "AggregatedDevice" as AggregatedDevice {
+}
+
+Model *--> "n" AggregatedDevice : adevices
+
+
+rectangle "DataCenter" as DataCenter {
+}
+
+Model o--> "1" DataCenter : datacenter
+
+
+
+
+@enduml

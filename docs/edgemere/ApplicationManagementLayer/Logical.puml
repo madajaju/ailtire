@@ -1,0 +1,28 @@
+@startuml
+
+package "User" #ffffcc {
+
+}
+
+package "Used" #ffffcc {
+
+}
+
+package "Application Management Layer" #lightblue {
+
+    interface "Application Management Layer" as i {
+    
+    }
+
+
+    CLI ()-- i
+    REST ()-- i
+    Web ()-- i
+    
+
+
+}
+User --> i
+"Application Management Layer" --> Used
+
+@enduml

@@ -1,0 +1,19 @@
+@startuml
+
+class "DataReference" as Model {
+ string name
+ string connection
+
+ load()
+ 
+}
+
+rectangle "DataInstance" as DataInstance {
+}
+
+Model o--> "n" DataInstance : instances
+
+
+
+
+@enduml

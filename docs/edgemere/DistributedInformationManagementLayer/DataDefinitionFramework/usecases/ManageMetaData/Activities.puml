@@ -1,0 +1,12 @@
+@startuml
+
+
+usecase "Manage Meta Data" as ManageMetaData
+
+Actor "Data Scientist" as DataScientist
+
+DataScientist --> ManageMetaData
+
+
+
+@enduml

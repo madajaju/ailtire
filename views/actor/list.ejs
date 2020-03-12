@@ -1,0 +1,12 @@
+<table>
+    <thead>
+    <th>Name</th>
+    <th>NickName</th>
+    </thead>
+    <% for(let name in actors) { %>
+    <tr>
+        <td><a href='/actor/show?name=<%= name %>'><%= name %></a></td>
+        <td><%= actors[name].shortName %></td>
+    </tr>
+    <% } %>
+</table>
