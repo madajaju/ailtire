@@ -208,9 +208,12 @@ const checkPackage = (package) => {
         if (actionName[0] !== '/') {
             actionName = package.prefix + '/' + actionName;
         }
+        let prefix = package.prefix;
+        if(!prefix) { console.error("Package Error:", package); prefix = "NA"; }
+        prefix = prefix.toLowerCase();
         actionName = actionName.toLowerCase();
         if (!actionName.includes(package.prefix.toLowerCase())) {
-            console.warn("Method is not part of the intreface!", actionName);
+            // console.warn("Method is not part of the intreface!", actionName);
         } else {
             if (!global.actions.hasOwnProperty(actionName)) {
                 console.warn("Action does not exist creating:", actionName, usecase.method);

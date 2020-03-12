@@ -90,9 +90,9 @@ const setAction = (route, action) => {
     if(!global.actions.hasOwnProperty(route)) {
         global.actions[route] = action;
     }
-    else {
+    /*else {
         console.log('Action', route, 'already exists');
-    }
+    }*/
 };
 
 const loadActions = (prefix, mDir) => {
