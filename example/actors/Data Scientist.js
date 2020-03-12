@@ -1,6 +1,6 @@
 module.exports = {
     name: 'Data Scientist',
-    shortName: 'datascientist',
+    shortname: 'datascientist',
     description: 'Long description' +
         ' Continued on next line',
 };
