@@ -8,6 +8,7 @@
     "test": "node ./node_modules/mocha/bin/mocha test/**/*.test.js"
   },
   "keywords": [],
+  "bin": "bin/ailtire",
   "author": "Darren W Pulsipher - darren@pulsipher.org",
   "license": "ISC",
   "dependencies": {
