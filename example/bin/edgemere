@@ -8,9 +8,9 @@ program
     .version('0.0.1')
     .command('init', 'Initalize the connection');
 try {
-    global.bouquet = { config: require('../.bouquet.js') };
+    global.ailtire = { config: require('../.ailtire.js') };
     let topCommands = {};
-    for(let path in global.bouquet.config.actions) {
+    for(let path in global.ailtire.config.actions) {
         let cmds = path.split('\/');
         if(!topCommands.hasOwnProperty(cmds[1])) {
             program.command(cmds[1] + " [cmds]", 'Top command for ' + cmds[1]);

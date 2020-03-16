@@ -1,14 +1,14 @@
 {
-  "name": "bouquet",
-  "version": "1.0.0",
-  "description": "",
+  "name": "ailtire",
+  "version": "0.0.1",
+  "description": "UML Architecture by coding and simulating the system architecture.",
   "main": "index.js",
   "scripts": {
     "run": " node index.js",
     "test": "node ./node_modules/mocha/bin/mocha test/**/*.test.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Darren W Pulsipher darren@pulsipher.org",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.19.0",
