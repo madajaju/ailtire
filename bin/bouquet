@@ -15,4 +15,3 @@ program
     .command('model --name <name>', 'Create a model')
     .command('method --name <name>', 'Create a model')
     .parse(process.argv);
-

@@ -59,13 +59,13 @@ commander.executeSubCommand = function (argv, args, unknown) {
             found = findHelp(args, baseDir);
             args = ['help'];
             if (!found.bin) {
-                //    this.help();
+                this.help();
                 console.error('error: "%s" does not exist, try --help', args.join(' '));
                 return;
             }
         }
     }
-    runCommand(found, args);
+    runCommand(found, found.args);
 };
 
 function exists(file) {
@@ -129,11 +129,13 @@ const _findHelpCommand = (args, baseDir) => {
 };
 
 const findCommand = (args, baseDir) => {
-    console.log("FindCOMMAND:", args, baseDir);;
     let found = _findCommand(args, baseDir);
     if (!found.bin) {
         // Look for the bin in the interface definitions.
         let interfaceDir = path.resolve(baseDir + "/../src/interface");
+        let serverDir = path.resolve(baseDir + "/../src/Server");
+        serverDir = serverDir.replace(/\\/g,'\\\\');
+        serverDir = serverDir.replace(/\//g,'\\\\');
         let isAction = _findCommand(args, interfaceDir);
         if (isAction.bin) {
             var tdir = './.tmp/';
@@ -143,17 +145,25 @@ const findCommand = (args, baseDir) => {
             actionPath = actionPath.replace(/\\/g, '\\\\');
             actionPath = actionPath.replace(/\//g, '\\\\');
             tempString += `const action = require('${actionPath}');\n`;
+            tempString += `const ActionHandler = require('${serverDir}/Action.js');\n`;
             tempString += "global.bouquet = { config: require('" + __dirname.replace(/\\/g, '\\\\') + "/../../.bouquet.js') };\n";
             let action = require(path.resolve(isAction.bin));
-            tempString += `program.command('${action.friendlyName} [options]', '${action.description}')`;
+            tempString += `program`;
+            tempString += `\n\t.storeOptionsAsProperties(false)`;
+            tempString += `\n\t.passCommandToAction(false);\n`;
+            tempString += `program`;
             for (let iname in action.inputs) {
                 let input = action.inputs[iname];
-                tempString += `\n\t.option('--${iname} <${input.type}>', '${input.description}')`;
+                if(!input.required) {
+                    tempString += `\n\t.option('--${iname} <${input.type}>', '${input.description}')`;
+                } else {
+                    tempString += `\n\t.requiredOption('--${iname} <${input.type}>', '${input.description}')`;
+                }
             }
             tempString += ';\n';
             tempString += 'program.parse(process.argv);\n';
-            tempString += 'let results = action.fn(program);\n';
-            tempString += 'console.log(results);';
+            tempString += 'let results = ActionHandler.execute(action,program.opts(), {});\n';
+            tempString += 'console.log(results);\n';
 
             tfile = path.resolve(tfile);
             let dirname = path.dirname(tfile);
