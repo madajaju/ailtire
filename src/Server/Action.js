@@ -8,6 +8,9 @@ const getDirectories = source => fs.readdirSync(source).map(name => path.join(so
 const getFiles = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isFile);
 
 module.exports = {
+    execute: (action, inputs, env) => {
+        execute(action,inputs, env);
+    },
     load: (server, prefix, mDir) => {
         loadActions(prefix, mDir);
         mapToServices();
@@ -166,7 +169,7 @@ const execute = (action, inputs, env) => {
             if (typeof inputs[i] === action.inputs[i].type) {
                 finputs[i] = inputs[i];
             } else {
-                console.error("Type Mismatch for: ", i, "expecting", input.type, "got", typeof inputs[i]);
+                console.error("Type Mismatch for: ", i, "expecting", inputs.type, "got", typeof inputs[i]);
             }
         } else {
             finputs[i] = inputs[i];

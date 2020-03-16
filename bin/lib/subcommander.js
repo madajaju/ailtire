@@ -59,13 +59,13 @@ commander.executeSubCommand = function (argv, args, unknown) {
             found = findHelp(args, baseDir);
             args = ['help'];
             if (!found.bin) {
-                //    this.help();
+                this.help();
                 console.error('error: "%s" does not exist, try --help', args.join(' '));
                 return;
             }
         }
     }
-    runCommand(found, args);
+    runCommand(found, found.args);
 };
 
 function exists(file) {
@@ -129,11 +129,13 @@ const _findHelpCommand = (args, baseDir) => {
 };
 
 const findCommand = (args, baseDir) => {
-    console.log("FindCOMMAND:", args, baseDir);;
     let found = _findCommand(args, baseDir);
     if (!found.bin) {
         // Look for the bin in the interface definitions.
         let interfaceDir = path.resolve(baseDir + "/../src/interface");
+        let serverDir = path.resolve(baseDir + "/../src/Server");
+        serverDir = serverDir.replace(/\\/g,'\\\\');
+        serverDir = serverDir.replace(/\//g,'\\\\');
         let isAction = _findCommand(args, interfaceDir);
         if (isAction.bin) {
             var tdir = './.tmp/';
@@ -143,17 +145,25 @@ const findCommand = (args, baseDir) => {
             actionPath = actionPath.replace(/\\/g, '\\\\');
             actionPath = actionPath.replace(/\//g, '\\\\');
             tempString += `const action = require('${actionPath}');\n`;
-            tempString += "global.bouquet = { config: require('" + __dirname.replace(/\\/g, '\\\\') + "/../../.bouquet.js') };\n";
+            tempString += `const ActionHandler = require('${serverDir}/Action.js');\n`;
+            tempString += "global.ailtire = { config: require('" + __dirname.replace(/\\/g, '\\\\') + "/../../.ailtire.js') };\n";
             let action = require(path.resolve(isAction.bin));
-            tempString += `program.command('${action.friendlyName} [options]', '${action.description}')`;
+            tempString += `program`;
+            tempString += `\n\t.storeOptionsAsProperties(false)`;
+            tempString += `\n\t.passCommandToAction(false);\n`;
+            tempString += `program`;
             for (let iname in action.inputs) {
                 let input = action.inputs[iname];
-                tempString += `\n\t.option('--${iname} <${input.type}>', '${input.description}')`;
+                if(!input.required) {
+                    tempString += `\n\t.option('--${iname} <${input.type}>', '${input.description}')`;
+                } else {
+                    tempString += `\n\t.requiredOption('--${iname} <${input.type}>', '${input.description}')`;
+                }
             }
             tempString += ';\n';
             tempString += 'program.parse(process.argv);\n';
-            tempString += 'let results = action.fn(program);\n';
-            tempString += 'console.log(results);';
+            tempString += 'let results = ActionHandler.execute(action,program.opts(), {});\n';
+            tempString += 'console.log(results);\n';
 
             tfile = path.resolve(tfile);
             let dirname = path.dirname(tfile);
@@ -242,7 +252,7 @@ const findAction = (args, localBin) => {
         tempString += "const YAML = require('yamljs');\n";
         tempString += "const Client = require('node-rest-client').Client;\n";
         tempString += "const client = new Client();\n";
-        tempString += "global.bouquet = { config: require('" + __dirname.replace(/\\/g, '\\\\') + "/../../.bouquet.js') };\n";
+        tempString += "global.ailtire = { config: require('" + __dirname.replace(/\\/g, '\\\\') + "/../../.ailtire.js') };\n";
         let action = found.action;
         tempString += `program.command('${action.friendlyName} [options]', '${action.description}')`;
         for (let iname in action.inputs) {
@@ -252,7 +262,7 @@ const findAction = (args, localBin) => {
         tempString += ';\n';
         tempString += 'program.parse(process.argv);\n';
         // Call the client call here
-        tempString += "let url = global.bouquet.config.host + '" + found.action.path + "?';\n";
+        tempString += "let url = global.ailtire.config.host + '" + found.action.path + "?';\n";
         tempString += "url += 'mode=json';\n";
         tempString += "let args = {headers: {'Content-Type': 'application/json'}, data: {}};\n";
         for (key in action.inputs) {
@@ -279,7 +289,7 @@ const findAction = (args, localBin) => {
 };
 const _findAction = (args, localBin) => {
 
-    if (!global.hasOwnProperty('bouquet')) {
+    if (!global.hasOwnProperty('ailtire')) {
         return {action: null, args: args};
     }
 
@@ -306,11 +316,11 @@ const _findHelpAction = (args, localBin) => {
     let action = 0;
     let i = 0;
     let testString = '';
-    if (!global.hasOwnProperty('bouquet')) {
+    if (!global.hasOwnProperty('ailtire')) {
         return {action: null, args: args};
     }
     let actions = {};
-    for (let path in global.bouquet.config.actions) {
+    for (let path in global.ailtire.config.actions) {
         let cmds = path.split('/');
         let act = actions;
         cmds.shift();
@@ -322,7 +332,7 @@ const _findHelpAction = (args, localBin) => {
             }
             act = act[cmds[i]];
         }
-        act.action = global.bouquet.config.actions[path];
+        act.action = global.ailtire.config.actions[path];
     }
     let act = actions;
     for (let i in args) {
@@ -371,7 +381,7 @@ const _helpCommand = (found) => {
 
 const actionMap = () => {
     let actions = {};
-    for (let path in global.bouquet.config.actions) {
+    for (let path in global.ailtire.config.actions) {
         let cmds = path.split('/');
         let act = actions;
         cmds.shift();
@@ -383,7 +393,7 @@ const actionMap = () => {
             }
             act = act[cmds[i]];
         }
-        act.action = global.bouquet.config.actions[path];
+        act.action = global.ailtire.config.actions[path];
     }
     return actions;
 }

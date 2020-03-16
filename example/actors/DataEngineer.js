@@ -1,6 +1,6 @@
 module.exports = {
     name: 'Data Engineer',
-    shortName: 'dataengineer',
+    shortname: 'dataengineer',
     description: 'The Data Engineer prepares data infrastructure for analysis. They are typically' +
         ' software engineers or system administrators that have a knack for large distributed systems' +
         ' that contain large amounts of data. They are primarily repsonsible for automating the' +

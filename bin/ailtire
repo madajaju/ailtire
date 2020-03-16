@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+
+const program = require('commander');
+require('./lib/subcommander');
+
+program
+    .version('0.0.1')
+    .command('create --name <string> --short <string>', 'Create a ailtire project')
+    .command('actor create --name <name> --short <string>', 'Create actor with name')
+    .command('app create --name <name> --short <string>', 'Create app with name')
+    .command('action create --name <name> --path <string> --subsystem <name>', 'Create action in the subsystem')
+    .command('package --name <name>', 'Create a package')
+    .command('usecase --name <name>', 'Create a usecase')
+    .command('scenario --name <name>', 'Create a scenario')
+    .command('model --name <name>', 'Create a model')
+    .command('method --name <name>', 'Create a model')
+    .parse(process.argv);

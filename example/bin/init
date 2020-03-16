@@ -22,6 +22,6 @@ client.get(url, (data,response) => {
             host: program.host,
             actions: data
         };
-        fs.writeFileSync('.bouquet.js', "module.exports = " + JSON.stringify(config));
+        fs.writeFileSync('.ailtire.js', "module.exports = " + JSON.stringify(config));
     }
 });

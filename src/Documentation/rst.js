@@ -52,7 +52,7 @@ const packageGenerator = (package, output) => {
             package: package,
             actors: actors,
             packageName: package.name,
-            shortName: package.shortName,
+            shortname: package.shortname,
             packageNameNoSpace: package.name.replace(/ /g, ''),
         },
         targets: {

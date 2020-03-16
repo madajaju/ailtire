@@ -100,19 +100,19 @@ const packageGenerator = (pkg, output) => {
     for (let i in packageArray) {
         let packageItem = packageArray[i];
         let packageItemName = packageItem.replace(/ /g, '');
-        let shortName = '';
+        let shortname = '';
         let nameArray = packageItem.split(/\s/);
         for (let j in nameArray) {
-            shortName += nameArray[j][0];
+            shortname += nameArray[j][0];
         }
-        shortName = shortName.toUpperCase();
+        shortname = shortname.toUpperCase();
         if (!existsDir(output + '/' + packageItemName)) {
             console.log("Create PackageL", packageItemName);
             let files = {
                 context: {
                     name: packageItem,
                     nameNoSpace: packageItemName,
-                    shortName: shortName
+                    shortname: shortname
                 },
                 targets: {
                     ':nameNoSpace:/index.js': {template: '/templates/Package/index.js'},

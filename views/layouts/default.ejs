@@ -42,8 +42,8 @@
                     for(let name in global.actors) {
                         let actor = global.actors[name];
                     %>
-                        <li class="sub-action-bar-list"><a onclick=toggleMenu('<%= actor.shortName %>-sub-list');><%= name %></a></li>
-                        <div class="sub-action-bar-div" id="<%= actor.shortName %>-sub-list">
+                        <li class="sub-action-bar-list"><a onclick=toggleMenu('<%= actor.shortname %>-sub-list');><%= name %></a></li>
+                        <div class="sub-action-bar-div" id="<%= actor.shortname %>-sub-list">
                             <ul class="sub-action-bar">
                                 <%
                                 for(let ucname in actor.usecases) {

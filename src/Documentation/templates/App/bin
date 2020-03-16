@@ -5,6 +5,6 @@ require('./lib/subcommander');
 
 program
     .version('0.0.1')
-    .command('create --name <string> --short <string>', 'Create a bouquet project')
+    .command('create --name <string> --short <string>', 'Create a ailtire project')
     .parse(process.argv);
 
