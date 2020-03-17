@@ -1,4 +1,4 @@
-const server = require('./src/Server');
+const server = require('aitire').Server;
 
 server.start( {
     baseDir: '.',
