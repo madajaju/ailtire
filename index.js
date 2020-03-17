@@ -1,3 +1,3 @@
-const Server = require('src/Server');
+const Server = require('./src/Server');
 
-modeule.exports = Server;
+module.exports = Server;
