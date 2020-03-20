@@ -1,10 +1,9 @@
-const server = require('./src/Server');
+const server = require('ailtire');
 
-server.start( {
+server.listen( {
     baseDir: '.',
     prefix: '',
     routes: {
-        "/model": "/edgemere/diml/dump",
         "/document": "/model/document"
     },
     listenPort: 8080

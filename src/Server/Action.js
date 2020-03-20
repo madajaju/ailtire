@@ -30,7 +30,7 @@ module.exports = {
                     execute(global.actions[routes[i]], req.query, {req: req, res: res});
                 });
             } else {
-                console.error("Could not find the path: ", i);
+                console.error("Could not find the route: ", i, routes[i]);
             }
         }
     }

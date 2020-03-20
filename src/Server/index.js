@@ -18,7 +18,8 @@ module.exports = {
         let topPackage = sLoader.processPackage(apath);
 
         Action.defaults(server);
-        Action.load(server, '', path.resolve('./interface'));
+        let ailPath = __dirname + "/../../interface";
+        Action.load(server, '', path.resolve(ailPath)); // Load the ailtire defaults from the interface directory.
         Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'));
         Action.mapRoutes(server, config.routes);
 
@@ -51,7 +52,7 @@ module.exports = {
             });
         });
 
-
+        console.log("Listening on Port:", config.listenPort);
         http.listen(config.listenPort);
     },
     start: (config) => {
@@ -59,7 +60,8 @@ module.exports = {
         let topPackage = sLoader.processPackage(apath);
 
         Action.defaults();
-        Action.load(server, '', path.resolve('./interface'));
+        let ailPath = __dirname + "/../../interface";
+        Action.load(server, '', path.resolve(ailPath)); // Load the ailtire defaults from the interface directory.
         Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'));
         Action.defaults(server);
         Action.mapRoutes(server, config.routes);
