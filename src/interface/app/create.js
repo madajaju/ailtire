@@ -30,9 +30,10 @@ module.exports = {
             api.app(inputs.name, inputs.path);
         }
         else {
-            api.app(inputs.name, './' + inputs.name);
+            inputs.path = './' + inputs.name;
+            api.app(inputs.name, inputs.path);
         }
-        return { name: inputs.name, path: inputs.path};
+        return `Application ${inputs.name} has been created at ${inputs.path}.\nType 'npm install' to populate dependencies.\nThen 'npm start' to start the application.`;
     }
 };
 

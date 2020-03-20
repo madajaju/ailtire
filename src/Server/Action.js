@@ -9,7 +9,7 @@ const getFiles = source => fs.readdirSync(source).map(name => path.join(source, 
 
 module.exports = {
     execute: (action, inputs, env) => {
-        execute(action,inputs, env);
+        return execute(action,inputs, env);
     },
     load: (server, prefix, mDir) => {
         loadActions(prefix, mDir);
@@ -177,5 +177,5 @@ const execute = (action, inputs, env) => {
         }
     }
     // run the function
-    action.fn(finputs, env);
+    return action.fn(finputs, env);
 };
