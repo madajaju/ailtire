@@ -179,8 +179,39 @@ const checkPackage = (pkg) => {
                     parentCls.definition.subClasses =[];
                 }
                 parentCls.definition.subClasses.push(cls.definition.name);
-            }
-            else {
+                if(!cls.definition.hasOwnProperty('methods')) {
+                    cls.definition.methods = {}; 
+                }
+                if(!cls.definition.hasOwnProperty('attributes')) {
+                    cls.definition.methods = {};
+                }
+                if(!cls.definition.hasOwnProperty('associations')) {
+                    cls.definition.methods = {};
+                }
+                while(parentCls) {
+                    for (let fname in parentCls.definition.methods) {
+                        if (!cls.definition.methods.hasOwnProperty(fname)) {
+                            cls.definition.methods[fname] = parentCls.definition.methods[fname];
+                        }
+                    }
+                    for (let fname in parentCls.definition.attributes) {
+                        if (!cls.definition.attributes.hasOwnProperty(fname)) {
+                            cls.definition.attributes[fname] = parentCls.definition.attributes[fname];
+                        }
+                    }
+                    for (let fname in parentCls.definition.associations) {
+                        if (!cls.definition.associations.hasOwnProperty(fname)) {
+                            cls.definition.associations[fname] = parentCls.definition.associations[fname];
+                        }
+                    }
+                    if(parentCls.definition.hasOwnProperty('extends')) {
+                        parentCls = global.classes[parentCls.definition.extends];
+                    }
+                    else {
+                        parentCls = null;
+                    }
+                }
+            } else {
                 console.error(`Parent Class ${cls.definition.extends} is not defined!`);
             }
         }

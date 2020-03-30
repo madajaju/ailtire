@@ -310,7 +310,7 @@ const _findAction = (args, localBin) => {
         }
         i++;
     }
-    return {action: action, args: args.slice(i)};
+    return {action: action, args: args.slice(i-1)};
 };
 const _findHelpAction = (args, localBin) => {
     let action = 0;

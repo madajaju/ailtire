@@ -310,7 +310,7 @@ const _findAction = (args, localBin) => {
         }
         i++;
     }
-    return {action: action, args: args.slice(i)};
+    return {action: action, args: args.slice(i-1)};
 };
 const _findHelpAction = (args, localBin) => {
     let action = 0;
@@ -367,11 +367,8 @@ const _helpCommand = (found) => {
         }
         tempString += '\n';
         tempString += 'program.parse(process.argv);\n';
-        console.log(tempString);
         tfile = path.resolve(tfile);
-        console.log("TFile:", tfile);
         let dirname = path.dirname(tfile);
-        console.log("TFile:", dirname);
         fs.mkdirSync(dirname, {recursive: true});
         fs.writeFileSync(tfile, tempString);
         found = {bin: tfile, args: ['help'], temp: true};

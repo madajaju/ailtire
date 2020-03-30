@@ -53,7 +53,17 @@ const appGenerator = (app, output) => {
             'views': {folder: true},
             'actors': {folder: true},
             'bin': {folder: true},
+            'views/layouts/default.ejs': {copy: '/templates/App/default.ejs'},
             'bin/:nameNoSpace:': {copy: '/templates/App/bin'},
+            'bin/init': {copy: '/templates/App/init'},
+            'assets/js/d3.js': {copy: '/templates/App/js/d3.js'},
+            'assets/js/Graph.js': {copy: '/templates/App/js/Graph.js'},
+            'assets/js/less.js': {copy: '/templates/App/js/less.js'},
+            'assets/js/socket.io.js': {copy: '/templates/App/js/socket.io.js'},
+            'assets/styles/color.less': {copy: '/templates/App/style/color.less'},
+            'assets/styles/graph.less': {copy: '/templates/App/style/graph.less'},
+            'assets/styles/importer.less': {copy: '/templates/App/style/importer.less'},
+            'assets/styles/top.less': {copy: '/templates/App/style/top.less'},
             'bin/lib/subcommander.js': {copy: '/templates/App/subcommander.js'},
             'docs/plantuml.jar': {copy: '/templates/App/plantuml.jar'}
         }
