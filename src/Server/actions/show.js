@@ -16,7 +16,12 @@ module.exports = {
         // inputs contains the obj for the this method.
         let modelName = env.req.baseUrl.split(/\//)[1];
         // Remove the cls  from the inputs so they are not passed down to the constructor
-        let apath = path.resolve(__dirname + '/../../views/model/show.ejs');
+        // look in the views path of the project for an override view first.
+        let apath = path.resolve(`./views/${modelName}/show.ejs`) 
+        if(!fs.existsSync(apath)) {
+            // If it is not found then go to the default.
+            apath = path.resolve(__dirname + '/../../views/model/show.ejs');
+        }
         let str = fs.readFileSync(apath, 'utf8');
         let obj = global.classes[modelName].find(env.req.query.id);
         obj.package = obj.definition.package.name.replace(/ /g, '');

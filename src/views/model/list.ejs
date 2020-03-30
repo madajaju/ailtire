@@ -1,5 +1,5 @@
 <div class="modelActionBar">
-    <%- partial('./src/views/model/_actionBar.ejs', {definition: definition, obj:null, className:className}) %>
+    <%- partial('_actionBar.ejs', {definition: definition, obj:null, className:className}) %>
 </div>
 
 <script src="/js/socket.io.js"></script>
@@ -25,7 +25,7 @@
                 <%
                 if(definition.associations[name].cardinality === 1) {
                 %>
-                innerHTML += '<td><a href="/<%= definition.associations[name].type %>/show?id=' + obj._associations[<%= name %>].id> + '">' + obj._associations[<%= name %>].name + '</a></td>\n';
+                innerHTML += '<td><a href="/' + obj._associations[<%= name %>].className + '/show?id=' + obj._associations[<%= name %>].id> + '">' + obj._associations[<%= name %>].name + '</a></td>\n';
                 <%
                 } else {
                 %>
@@ -62,7 +62,7 @@
         <% for(let i in objs) {
         let obj = objs[i];
         %>
-        <tr id="<%= className%>-<%=obj.id%>" onmouseover="window.graph.selectNode('<%= className %>-<%= obj.id %>');">
+        <tr id="<%=obj.id%>" class="hoverable" onmouseover="window.graph.selectNode('<%= obj.id %>');">
             <td><%= obj.id %></td>
             <td><a href="/<%= className %>?id=<%= obj.id %>"><%= obj.toString() %></a></td>
             <%
@@ -102,31 +102,22 @@
         let data = {nodes: {}, links: [ ]};
         <% for(let i in objs) {
             let obj = objs[i];
-            let oid = className + '-' + i;
-            let otype = className;
-            if(objs[i].type) {
-                otype += objs[i].type;
-            }
+            let oid = i;
+            let otype = obj.className;
         %>
             data.nodes["<%= oid %>"] = {id:"<%= oid %>", name:"<%= obj.name %>", group: "<%= otype %>", level:'<%= obj.package.name.replace(/ /g,'') %>'};
             <% for (let aname in definition.associations) {
                 if(obj[aname]) {
                     if(definition.associations[aname].cardinality === 1) {
-                        let aoid = definition.associations[aname].type + '-' + obj[aname].id;
-                        let otype = definition.associations[aname].type;
-                        if(obj[aname].definition.attributes.hasOwnProperty('type')) {
-                            otype += obj[aname].type;
-                        }
+                        let aoid = obj[aname].id;
+                        let otype = obj[aname].className;
                 %>
                     data.nodes["<%= aoid %>"] = {id:"<%= aoid  %>", name:"<%= obj[aname].name %>", group: '<%= otype %>', level:'<%= obj[aname].package.name.replace(/ /g,"") %>'};
                     data.links.push({source:"<%= oid %>", target:"<%= aoid %>"});
                     <% } else {
                         for(let j in obj[aname]) {
-                            let aoid = definition.associations[aname].type + '-' + obj[aname][j].id;
-                            let otype = definition.associations[aname].type;
-                            if(obj[aname][j].definition.attributes.hasOwnProperty('type')) {
-                                otype += obj[aname][j].type;
-                            }
+                            let aoid = obj[aname][j].id;
+                            let otype = obj[aname][j].className;
                         %>
                             data.nodes["<%= aoid %>"] = {id:"<%= aoid  %>", name:"<%= obj[aname][j].name %>", group: '<%= otype %>', level:'<%= obj[aname][j].package.name.replace(/ /g,"") %>'};
                             data.links.push({source:"<%= oid %>", target:"<%= aoid %>"});
@@ -139,7 +130,7 @@
 
         socket.on('<%= className %>.create', (res) => {
             let obj = res.obj;
-            let oid = "<%= className %>-" + obj._attributes.id;
+            let oid = obj._attributes.id;
             data.nodes[oid] = {id: oid, name: obj._attributes.name, group:"<%= className %>", level: obj.package };
             let aname = "";
             let aoid = "";
@@ -153,20 +144,14 @@
                     %>
                         otype = "<%= definition.associations[aname.type] %>";
                         aobj = obj._associations[aname];
-                        if(aobj._attributes.hasOwnProperty('type')) {
-                            otype += aobj._attributes.type;
-                        }
-                        aoid = '<%= definition.associations[aname].type %>-' + obj._associations[aname].id;
+                        aoid = obj._associations[aname].id;
                         data.nodes[aoid] = {id: aoid, name:obj._associations[aname].name, group: otype, level:obj.package};
                         data.links.push({source:oid, target:aoid});
                     <% } else { %>
                         for(let j in obj._associations[aname]) {
-                            otype = "<%= definition.associations[aname].type %>";
                             aobj = obj._associations[aname][j];
-                            if(aobj._attributes.hasOwnProperty('type')) {
-                                otype += aobj._attributes.type;
-                            }
-                            aoid = '<%= definition.associations[aname].type %>-' + aobj._attributes.id;
+                            otype = aobj.className;
+                            aoid = aobj._attributes.id;
                             data.nodes[aoid] = {id: aoid, name: obj._associations[aname][j]._attributes.name, group: otype, level:obj.package};
                             data.links.push({source:oid, target:aoid});
                         }

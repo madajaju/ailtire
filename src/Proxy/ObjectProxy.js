@@ -14,16 +14,9 @@ module.exports = {
             let definition = obj.definition;
             return getHandler(obj, definition, prop);
         } catch (e) {
-            if (obj.definition.hasOwnProperty('extends')) {
-                let definition = global.classes[obj.definition.extends].definition;
-                try {
-                    return getHandler(obj, definition, prop)
-                } catch (e) {
-                    return null;
-                }
-            } else {
-                return null;
-            }
+            console.error("Get cannot find ", prop);
+            console.error(e);
+            return null;
         }
     },
     set: (obj, prop, value) => {
@@ -43,7 +36,8 @@ module.exports = {
                 } else if (typeof value === 'object' && obj.definition.attributes[prop].type === 'json') {
                     obj._attributes[prop] = value;
                 } else {
-                    console.error("Data Type Mismatch: ", prop, " wants a ", obj.definition.attributes[prop.type], " but got ", typeof value);
+                    // console.error("Data Type Mismatch: ", prop, " wants a ", obj.definition.attributes[prop], " but got ", typeof value);
+                    obj._attributes[prop] = value;
                     return false;
                 }
                 return true;
@@ -144,8 +138,11 @@ function getHandler(obj, definition, prop) {
         if (obj._attributes.name) {
             return obj._attributes.name;
         } else {
-            return obj._attributes.id;
+            //return obj._attributes.id;
+            return "";
         }
+    } else if (prop === 'className') {
+        return obj.definition.name;
     } else if (prop === 'package') {
         return obj.definition.package;
     } else if (prop === 'state') {
@@ -202,7 +199,7 @@ function getHandler(obj, definition, prop) {
     } else if (addToRegex.test(prop)) {
         return function (...args) {
             const simpleProp = prop.replace(addToRegex, '').toLowerCase();
-            let retval = addToAssoc(simpleProp, obj, args[0]);
+            let retval = addToAssoc(simpleProp, obj, this, args[0]);
             if (definition.methods.hasOwnProperty('add')) {
                 retval = funcHandler.run(definition.methods['add'], this, args[0]);
             } else if (definition.methods.hasOwnProperty(prop)) {
@@ -215,7 +212,7 @@ function getHandler(obj, definition, prop) {
             const simpleProp = args[0];
             const upperProp = args[0][0].toUpperCase() + args[0].slice(1);
             const item = args[1];
-            let retval = addToAssoc(simpleProp, obj, item);
+            let retval = addToAssoc(simpleProp, obj, this, item);
             if (definition.methods.hasOwnProperty('add' + upperProp)) {
                 retval = funcHandler.run(definition.methods['add' + upperProp], this, {item: item});
             } else if (definition.methods.hasOwnProperty('add')) {
@@ -254,17 +251,30 @@ function getHandler(obj, definition, prop) {
     // give a method to return the definition of the class
     else if (prop === 'definition') {
         return obj.definition;
-    }
-    // create a destroy method to destroy the object.
-    else if (prop === 'create') {
+    } else if (prop === 'create') {
         return function (...args) {
             // Call the method if it exists
-            if(!definition.methods) {
+            if (!definition.methods) {
                 definition.methods = {};
             }
             if (definition.methods.hasOwnProperty('create')) {
                 return funcHandler.run(definition.methods.create, this, args[0]);
             } else {
+                let myDef = obj.definition;
+
+                while (myDef) {
+                    if (myDef.hasOwnProperty('extends')) {
+                        let parent = myDef.extends;
+                        let newObj = global.classes[parent];
+                        myDef = newObj.definition;
+                        if (myDef.methods.hasOwnProperty('create')) {
+                            return funcHandler.run(myDef.methods.create, this, args[0]);
+                        }
+                    } else {
+                        myDef = null;
+                    }
+                }
+                // If the while loop exits without returning the use a default create.
                 for (let name in args[0]) {
                     this[name] = args[0][name];
                 }
@@ -272,7 +282,8 @@ function getHandler(obj, definition, prop) {
                 return this;
             }
         }
-    } else if (prop === 'destroy') {
+
+    } else if (prop === 'destroy') { // create a destroy method to destroy the object.
         return function (...args) {
             // call destroy on all of the attributes
             let oid = obj._attributes.id;
@@ -317,10 +328,19 @@ function getHandler(obj, definition, prop) {
             // return an empty array
             return [];
         }
+    } else if (prop === 'toString') {
+        return function (...args) {
+            if (obj._attributes.hasOwnProperty('name')) {
+                return obj._attributes.name;
+            } else {
+                return obj._attributes.id;
+            }
+        }
+    } else if (definition.hasOwnProperty('statenet')) {
+        return function (...args) {
+            return stateNetHandler.processEvent(this, obj, prop, args);
+        }
     }
-
-
-
     // Now check for methods that are called.
     else if (definition.methods.hasOwnProperty(prop)) {
         return function (...args) {
@@ -335,24 +355,12 @@ function getHandler(obj, definition, prop) {
                 return undefined;
             }
         }
-    } else if (prop === 'toString') {
-        return function (...args) {
-            if (obj._attributes.hasOwnProperty('name')) {
-                return obj._attributes.name;
-            } else {
-                return obj._attributes.id;
-            }
-        }
-    } else if (definition.hasOwnProperty('statenet')) {
-        return function (...args) {
-            return stateNetHandler.processEvent(this, obj, prop, args);
-        }
     } else {
         throw new Error(`Could not find ${prop}! on ${obj.name}`);
     }
 }
 
-function addToAssoc(simpleProp, obj, item) {
+function addToAssoc(simpleProp, obj, proxy, item) {
     let child = null;
     // retrieve the object and add it to the array if a number is passed in.
     if (typeof item === 'number') {
@@ -387,6 +395,11 @@ function addToAssoc(simpleProp, obj, item) {
             obj._associations[simpleProp] = [];
         }
         obj._associations[simpleProp].push(child);
+    }
+    // Add the back link with via
+    if(obj.definition.associations[simpleProp].hasOwnProperty('via')) {
+        let via = obj.definition.associations[simpleProp].via;
+        child[via] = proxy;
     }
     return child;
 }
