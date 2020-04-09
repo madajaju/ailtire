@@ -47,9 +47,24 @@ module.exports = {
         global.io = io;
         io.on('connection', function (socket) {
             socket.emit('news', { hello: 'world' });
-            socket.on('list', function (data) {
-                console.log(data);
-            });
+            for(let event in global.handlers) {
+                socket.on(event, function(data) {
+                    for(let i in global.handlers[event].handlers) {
+                        let handler = global.handlers[event].handlers[i];
+                        if(typeof handler === 'string') {
+                            if(global.actions[handlers]) {
+                                global.actions[handlers](data);
+                            }
+                            else {
+                                console.error("Action not found, for event!", handler)
+                            }
+                        }
+                        else {
+                            handler(data);
+                        }
+                    }
+                });
+            }
         });
 
         console.log("Listening on Port:", config.listenPort);

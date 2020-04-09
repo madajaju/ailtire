@@ -8,6 +8,7 @@ module.exports = {
     processPackage: (dir) => {
         global.actors = {};
         global.actions = {};
+        global.handlers = {};
         global.classes = {};
         global.packages = {};
         global.topPackage = {};
@@ -39,6 +40,10 @@ const getDirectories = source => fs.readdirSync(source).map(name => path.join(so
 const getFiles = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isFile);
 
 let reservedDirs = {
+    handlers: function (pkg, prefix, dir) {
+        // The Interface directory can be multiple directories deep which map to routes A/B/C
+        pkg.handlers = loadHandlers(pkg, prefix, dir);
+    },
     interface: function (pkg, prefix, dir) {
         // The Interface directory can be multiple directories deep which map to routes A/B/C
         pkg.interfaceDir = dir;
@@ -83,6 +88,37 @@ let reservedDirs = {
         }
     }
 };
+const loadHandlers = (pkg, prefix, mDir) => {
+    let actions = {};
+    if (!pkg.prefix) {
+        pkg.prefix = prefix.toLowerCase();
+    }
+    let files = getFiles(mDir);
+    for (let i in files) {
+        let file = files[i].replace(/\\/g, '/');
+        let aname = path.basename(file).replace('.js', '');
+        let apath = prefix + '/' + aname;
+        apath = apath.toLowerCase();
+        if(!global.handlers.hasOwnProperty(aname)) {
+            global.handlers[aname] = {name:aname, handlers:[] };
+        }
+        let tempItem = require(file);
+        for(let j in tempItem.handlers) {
+            let action = null;
+            let handler = tempItem.handlers[j];
+            if(handler.hasOwnProperty('action')) {
+                let actionName = `${prefix.toLowerCase()}/${handler.action}`;
+                action = actionName;
+            }
+            else {
+                action = handler.fn;
+            }
+            global.handlers[aname].handlers.push(action);
+        }
+    }
+    let dirs = getDirectories(mDir);
+    return actions;
+};
 // These actions are from the models not the interface.
 const loadActions = (pkg, prefix, mDir) => {
     let actions = {};
@@ -101,7 +137,7 @@ const loadActions = (pkg, prefix, mDir) => {
     let dirs = getDirectories(mDir);
     for (let i in dirs) {
         let dirname = path.basename(dirs[i]);
-        if (dirname !== 'interface' && dirname !== 'models' && dirname !== 'usecases') {
+        if (dirname !== 'interface' && dirname !== 'models' && dirname !== 'usecases' && dirname !== 'handlers') {
             let apath = prefix + '/' + dirname;
             apath = apath.toLowerCase();
             sactions = loadActions(pkg, apath, dirs[i]);
@@ -180,7 +216,7 @@ const checkPackage = (pkg) => {
                 }
                 parentCls.definition.subClasses.push(cls.definition.name);
                 if(!cls.definition.hasOwnProperty('methods')) {
-                    cls.definition.methods = {}; 
+                    cls.definition.methods = {};
                 }
                 if(!cls.definition.hasOwnProperty('attributes')) {
                     cls.definition.methods = {};
