@@ -60,10 +60,10 @@ const appGenerator = (app, output) => {
             'assets/js/Graph.js': {copy: '/templates/App/js/Graph.js'},
             'assets/js/less.js': {copy: '/templates/App/js/less.js'},
             'assets/js/socket.io.js': {copy: '/templates/App/js/socket.io.js'},
-            'assets/styles/color.less': {copy: '/templates/App/style/color.less'},
-            'assets/styles/graph.less': {copy: '/templates/App/style/graph.less'},
-            'assets/styles/importer.less': {copy: '/templates/App/style/importer.less'},
-            'assets/styles/top.less': {copy: '/templates/App/style/top.less'},
+            'assets/styles/color.less': {copy: '/templates/App/styles/color.less'},
+            'assets/styles/graph.less': {copy: '/templates/App/styles/graph.less'},
+            'assets/styles/importer.less': {copy: '/templates/App/styles/importer.less'},
+            'assets/styles/top.less': {copy: '/templates/App/styles/top.less'},
             'bin/lib/subcommander.js': {copy: '/templates/App/subcommander.js'},
             'docs/plantuml.jar': {copy: '/templates/App/plantuml.jar'}
         }

@@ -4,7 +4,8 @@
   "description": "UML Architecture by coding and simulating the system architecture.",
   "main": "index.js",
   "scripts": {
-    "run": "node index.js",
+    "start": "node index.js",
+    "startTest": "node test.js",
     "test": "node ./node_modules/mocha/bin/mocha test/**/*.test.js"
   },
   "keywords": [],

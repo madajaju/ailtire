@@ -12,6 +12,6 @@ let url = global.ailtire.config.host + '/sdi?';
 url += 'mode=json';
 let args = {headers: {'Content-Type': 'application/json'}, data: {}};
 client.post(url, args, (data, response) => {
-if (data.error) { console.error('Error:' + data.error); } else {
+if (data.error) { console.error('Error:' + data.error); } else { 
 for(let item in data) { console.log(data[item].toString()); } }
 });
