@@ -1,12 +1,14 @@
 const express = require('express');
 const server = express();
 const sLoader = require('./Loader.js');
+const AEvent = require('./AEvent.js');
 const path = require('path');
 const Action = require('./Action.js');
 const fs = require('fs');
 const http = require('http').createServer(server);
 const io = require('socket.io')(http);
 const bodyParser = require("body-parser");
+const funcHandler = require('../Proxy/MethodProxy');
 
 // Here we are configuring express to use body-parser as middle-ware.
 server.use(bodyParser.urlencoded({ extended: false }));
@@ -46,10 +48,7 @@ module.exports = {
         });
         global.io = io;
         io.on('connection', function (socket) {
-            socket.emit('news', { hello: 'world' });
-            socket.on('list', function (data) {
-                console.log(data);
-            });
+            AEvent.addHandlers(socket);
         });
 
         console.log("Listening on Port:", config.listenPort);
