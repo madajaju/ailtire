@@ -1,4 +1,5 @@
 const path = require('path');
+const AEvent = require('../AEvent');
 
 module.exports = {
     friendlyName: 'new',
@@ -16,7 +17,7 @@ module.exports = {
         // Remove the cls  from the inputs so they are not passed down to the constructor
         delete inputs.cls;
         let newObj = new global.classes[modelName](inputs);
-        console.log("Made it here create:", newObj);
+        AEvent.emit(modelName + '.updated', { obj: newObj.toJSON });
         env.res.redirect(`/${modelName}?id=${newObj.id}`)
     }
 };

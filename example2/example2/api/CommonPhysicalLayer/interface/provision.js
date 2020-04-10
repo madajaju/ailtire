@@ -20,9 +20,12 @@ module.exports = {
         }
     },
 
-    fn: function (inputs, env) {
-        env.res.json(global.classes);
-        env.res.end("Done");
+    fn: function (obj, inputs, env) {
+        if(env) {
+            env.res.json(global.classes);
+            env.res.end("Done");
+        }
+        console.log(inputs);
     }
 };
 

@@ -1,4 +1,5 @@
 const path = require('path');
+const AEvent = require('../AEvent');
 
 module.exports = {
     friendlyName: 'create',
@@ -26,13 +27,13 @@ module.exports = {
         if(inputs.mode === 'json') {
             let newObj = new global.classes[modelName](env.req.body);
             let jobj = newObj.toJSON;
-            global.io.emit(modelName + '.create', { obj: jobj });
+            AEvent.emit(modelName + '.create', { obj: jobj });
             env.res.json({results: "Created Object"});
         }
         else {
             // Remove the cls  from the inputs so they are not passed down to the constructor
             let newObj = new global.classes[modelName](inputs);
-            global.io.emit(modelName + '.create', { obj: newObj.toJSON });
+            AEvent.emit(modelName + '.create', { obj: newObj.toJSON });
             env.res.redirect(`/${modelName}?id=${newObj.id}`)
         }
     }

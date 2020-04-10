@@ -1,4 +1,5 @@
 const path = require('path');
+const AEvent = require('../AEvent');
 
 module.exports = {
     friendlyName: 'new',
@@ -20,6 +21,7 @@ module.exports = {
         let modelName = env.req.originalUrl.split(/\//)[1];
         // Remove the cls  from the inputs so they are not passed down to the constructor
         delete inputs.cls;
+        AEvent.emit(modelName + '.destroy', { obj: newObj.toJSON });
         console.log("Made it here delete:", inputs.cls);
         env.res.redirect(`/${modelName}/list`);
     }
