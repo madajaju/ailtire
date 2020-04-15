@@ -1,0 +1,18 @@
+version: "3.7"
+services:
+  frontend:
+    image: madajaju/pingtest
+    networks:
+      sibling:
+        aliases:
+          - orchestrator
+      parent:
+        aliases:
+          - orchestrator
+
+networks:
+  sibling:
+    driver: overlay
+  parent:
+    external:
+      name: ${APPNAME}_sdi_family

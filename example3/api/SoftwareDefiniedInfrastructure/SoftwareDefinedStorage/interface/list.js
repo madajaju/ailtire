@@ -1,14 +1,14 @@
 const path = require('path');
-const api = require('../../Documentation/api');
+
 module.exports = {
-    friendlyName: 'create',
-    description: 'Create an package',
+    friendlyName: 'list',
+    description: 'list stuff',
     static: true,
     inputs: {
         name: {
-            description: 'The name of the package. sub packages created with / as separator',
+            description: 'Name of the list',
             type: 'string',
-            required: true
+            required: false
         },
     },
 
@@ -21,8 +21,9 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
-        api.package({name: inputs.name}, '.');
-        return `Package: ${inputs.name} created`;
+        env.res.end("SDS Done: " + inputs.name);
     }
 };
+
+
 
