@@ -49,6 +49,7 @@ const appGenerator = (app, output) => {
             'package.json': {template: '/templates/App/package.json'},
             'api/index.js': {template: '/templates/App/apiIndex.js'},
             'api/interface': {folder: true},
+            'api/handlers': {folder: true},
             'test': {folder: true},
             'views': {folder: true},
             'actors': {folder: true},
@@ -130,6 +131,7 @@ const packageGenerator = (pkg, output) => {
                 },
                 targets: {
                     ':nameNoSpace:/index.js': {template: '/templates/Package/index.js'},
+                    ':nameNoSpace:/handlers': {folder: true},
                     ':nameNoSpace:/interface': {folder: true},
                     ':nameNoSpace:/models': {folder: true},
                     ':nameNoSpace:/usecases': {folder: true},
