@@ -24,12 +24,23 @@ module.exports = {
 const processDirectory = dir => {
     // Check the actors first
     let actorDir = dir + '/actors';
-    loadActors(actorDir, '');
-
-    // Now check the system api directory
+    if (isDirectory(actorDir)) {
+        loadActors(actorDir, '');
+    }
+    let pkg = null;
     let apiDir = dir + '/api';
-    // const top = require(apiDir + '/index.js');
-    return loadDirectory(apiDir, '');
+    if (isDirectory(apiDir)) {
+        pkg = loadDirectory(apiDir, '');
+    } else {
+        pkg = loadDirectory(dir, '');
+    }
+    let deployDir = dir + '/deploy';
+    console.log("DeployDir:", deployDir);
+    if (isDirectory(deployDir)) {
+        console.log("DeployDir2:", deployDir);
+        loadDeploy(pkg, pkg.prefix, deployDir);
+    }
+    return pkg;
 };
 // First look load the index file as the name of the top subsystem.
 
@@ -40,16 +51,24 @@ const getDirectories = source => fs.readdirSync(source).map(name => path.join(so
 const getFiles = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isFile);
 
 let reservedDirs = {
+    actors: (pkg, prefix, dir) => {
+        loadActors(dir, prefix);
+    },
+    node_modules: (pkg, prefix, dir) => {
+    },
+    deploy: (pkg, prefix, dir) => {
+        loadDeploy(pkg, prefix, dir);
+    },
     handlers: function (pkg, prefix, dir) {
-        // The Interface directory can be multiple directories deep which map to routes A/B/C
+    // The Interface directory can be multiple directories deep which map to routes A/B/C
         pkg.handlers = loadHandlers(pkg, prefix, dir);
     },
-    interface: function (pkg, prefix, dir) {
+    interface: (pkg, prefix, dir) => {
         // The Interface directory can be multiple directories deep which map to routes A/B/C
         pkg.interfaceDir = dir;
         pkg.interface = loadActions(pkg, prefix, dir);
     },
-    models: function (pkg, prefix, dir) {
+    models: (pkg, prefix, dir) => {
         // This stores the pkg classes.
         pkg.classes = {};
         let models = getDirectories(dir);
@@ -63,7 +82,7 @@ let reservedDirs = {
             myClass.package = pkg;
             if (global.classes.hasOwnProperty(myClass.definition.name)) {
                 console.error('Class Already defined', myClass.definition.name, "in this model:", modelDir);
-                throw new Error('Class Already defined'+ myClass.definition.name+ "in this model:"+ modelDir);
+                throw new Error('Class Already defined' + myClass.definition.name + "in this model:" + modelDir);
             } else {
                 let myProxy = new Proxy(myClass, classProxy);
                 pkg.classes[myClass.definition.name] = myProxy;
@@ -73,7 +92,7 @@ let reservedDirs = {
             loadClassMethods(myClass, modelDir);
         }
     },
-    usecases: function (pkg, prefix, dir) {
+    usecases: (pkg, prefix, dir) => {
         pkg.usecases = {};
         let usecases = getDirectories(dir);
         for (let i in usecases) {
@@ -88,6 +107,15 @@ let reservedDirs = {
         }
     }
 };
+const loadDeploy = (pkg, prefix, dir) => {
+    console.log("LoadDeploy:", pkg);
+    pkg.deploy = {
+        dir: dir,
+        prefix: prefix
+    };
+    return pkg;
+};
+
 const loadHandlers = (pkg, prefix, mDir) => {
     let actions = {};
     if (!pkg.prefix) {
@@ -137,7 +165,7 @@ const loadActions = (pkg, prefix, mDir) => {
     let dirs = getDirectories(mDir);
     for (let i in dirs) {
         let dirname = path.basename(dirs[i]);
-        if (dirname !== 'interface' && dirname !== 'models' && dirname !== 'usecases' && dirname !== 'handlers') {
+        if (!reservedDirs.hasOwnProperty(dirname) && dirname[0] != '.') {
             let apath = prefix + '/' + dirname;
             apath = apath.toLowerCase();
             sactions = loadActions(pkg, apath, dirs[i]);
@@ -176,27 +204,25 @@ const loadDirectory = (dir, prefix) => {
     let dirs = getDirectories(dir);
     // Get the package definition from the index.js file.
     let pkg = require(dir + '/index.js');
+    if (pkg.shortname) {
+        prefix += '/' + pkg.shortname;
+    }
 
     for (let i in dirs) {
         let file = path.basename(dirs[i]);
-        if (reservedDirs.hasOwnProperty(file)) {
-            if(pkg.shortname) {
-                prefix += '/' + pkg.shortname;
+        if (file[0] != '.' && file != 'node_modules') {
+            if (reservedDirs.hasOwnProperty(file)) {
+                reservedDirs[file](pkg, prefix, path.join(dir, file));
+            } else {
+                let subpackage = loadDirectory(path.join(dir, file), prefix);
+                if (!pkg.hasOwnProperty('subpackages')) {
+                    pkg.subpackages = {};
+                }
+                pkg.subpackages[subpackage.shortname] = subpackage;
             }
-            reservedDirs[file](pkg, prefix, path.join(dir, file));
-        } else {
-            let myPrefix = prefix;
-            if(pkg.shortname) {
-                myPrefix += '/' + pkg.shortname;
-            }
-            let subpackage = loadDirectory(path.join(dir, file), myPrefix);
-            if (!pkg.hasOwnProperty('subpackages')) {
-                pkg.subpackages = {};
-            }
-            pkg.subpackages[subpackage.shortname] = subpackage;
         }
     }
-    let packageNameNoSpace = pkg.name.replace(/ /g, '');
+    let packageNameNoSpace = pkg.name.replace(/\s/g, '');
     global.packages[packageNameNoSpace] = new Proxy(pkg, packageProxy);
     return global.packages[packageNameNoSpace];
 };
@@ -206,25 +232,25 @@ const checkPackage = (pkg) => {
     // associations,
     // attributes.
     // Inheritance relationship check.
-    for(let i in pkg.classes) {
+    for (let i in pkg.classes) {
         let cls = pkg.classes[i];
-        if(cls.definition.hasOwnProperty('extends')) {
-            if(global.classes.hasOwnProperty(cls.definition.extends)) {
+        if (cls.definition.hasOwnProperty('extends')) {
+            if (global.classes.hasOwnProperty(cls.definition.extends)) {
                 let parentCls = global.classes[cls.definition.extends];
-                if(!parentCls.definition.hasOwnProperty('subClasses')) {
-                    parentCls.definition.subClasses =[];
+                if (!parentCls.definition.hasOwnProperty('subClasses')) {
+                    parentCls.definition.subClasses = [];
                 }
                 parentCls.definition.subClasses.push(cls.definition.name);
-                if(!cls.definition.hasOwnProperty('methods')) {
+                if (!cls.definition.hasOwnProperty('methods')) {
                     cls.definition.methods = {};
                 }
-                if(!cls.definition.hasOwnProperty('attributes')) {
+                if (!cls.definition.hasOwnProperty('attributes')) {
                     cls.definition.methods = {};
                 }
-                if(!cls.definition.hasOwnProperty('associations')) {
+                if (!cls.definition.hasOwnProperty('associations')) {
                     cls.definition.methods = {};
                 }
-                while(parentCls) {
+                while (parentCls) {
                     for (let fname in parentCls.definition.methods) {
                         if (!cls.definition.methods.hasOwnProperty(fname)) {
                             cls.definition.methods[fname] = parentCls.definition.methods[fname];
@@ -240,10 +266,9 @@ const checkPackage = (pkg) => {
                             cls.definition.associations[fname] = parentCls.definition.associations[fname];
                         }
                     }
-                    if(parentCls.definition.hasOwnProperty('extends')) {
+                    if (parentCls.definition.hasOwnProperty('extends')) {
                         parentCls = global.classes[parentCls.definition.extends];
-                    }
-                    else {
+                    } else {
                         parentCls = null;
                     }
                 }
@@ -261,7 +286,7 @@ const checkPackage = (pkg) => {
             if (!global.actors.hasOwnProperty(aname)) {
                 apiGenerator.actor({name: aname}, global.appBaseDir + '/actors');
             }
-            if(!global.actors[aname].hasOwnProperty('usecases')) {
+            if (!global.actors[aname].hasOwnProperty('usecases')) {
                 global.actors[aname].usecases = {};
             }
             global.actors[aname].usecases[usecase.name] = usecase;

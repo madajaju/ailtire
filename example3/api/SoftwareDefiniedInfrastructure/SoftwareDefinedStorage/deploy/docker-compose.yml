@@ -1,0 +1,24 @@
+version: "3.7"
+services:
+  frontend:
+    image: redis
+    networks:
+      - sibling
+  gw:
+    image: redis
+    networks:
+      children:
+        aliases:
+          - parent
+          - top
+      sibling:
+        aliases:
+          - gateway
+
+networks:
+  children:
+    driver: overlay
+    attachable: true
+    name: ${APPNAME}_family
+  sibling:
+    driver: overlay

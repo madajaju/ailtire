@@ -66,6 +66,10 @@ const appGenerator = (app, output) => {
             'assets/styles/importer.less': {copy: '/templates/App/styles/importer.less'},
             'assets/styles/top.less': {copy: '/templates/App/styles/top.less'},
             'bin/lib/subcommander.js': {copy: '/templates/App/subcommander.js'},
+            'deploy/docker-compose.yml': {template: '/templates/App/deploy/docker-compose.yml'},
+            'deploy/build.js': {template: '/templates/App/deploy/build.js'},
+            'deploy/web/Dockerfile': {template: '/templates/App/deploy/Dockerfile'},
+            'deploy/gateway/Dockerfile': {template: '/templates/App/deploy/Dockerfile'},
             'docs/plantuml.jar': {copy: '/templates/App/plantuml.jar'}
         }
     };

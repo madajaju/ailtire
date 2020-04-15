@@ -54,6 +54,38 @@ module.exports = {
         console.log("Listening on Port:", config.listenPort);
         http.listen(config.listenPort);
     },
+    micro: (config) => {
+        let apath = path.resolve(config.baseDir);
+        let topPackage = sLoader.processPackage(apath);
+
+        Action.defaults(server);
+        let ailPath = __dirname + "/../../interface";
+        Action.load(server, '', path.resolve(ailPath)); // Load the ailtire defaults from the interface directory.
+        Action.load(server, config.prefix, path.resolve(config.baseDir + '/interface'));
+        Action.mapRoutes(server, config.routes);
+
+        server.get('/init', (req, res) => {
+            let retval = {};
+            for(let path in global.actions) {
+                retval[path] = { name: path, inputs: global.actions[path].inputs,friendlyName: global.actions[path].friendlyName, description: global.actions[path].description };
+            }
+            res.json(retval);
+        });
+
+        server.get('/', (req,res) => {
+            console.error("Hello Error", req);
+        });
+        global.io = io;
+        io.on('connection', function (socket) {
+            socket.emit('news', { hello: 'world' });
+            socket.on('list', function (data) {
+                console.log(data);
+            });
+        });
+
+        console.log("Listening on Port:", config.listenPort);
+        http.listen(config.listenPort);
+    },
     start: (config) => {
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
