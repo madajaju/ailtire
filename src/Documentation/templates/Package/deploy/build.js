@@ -3,7 +3,7 @@ module.exports = {
     web: {
         dir: '..',
         file: 'web/Dockerfile',
-        tag: '<%= shortname %>_web',
+        tag: '<%= ancestors %>_<%= shortname %>_web',
         env: {
 
         }
@@ -11,7 +11,7 @@ module.exports = {
     gateway: {
         dir: '..',
         file: 'gateway/Dockerfile',
-        tag: '<%= shortname %>_gw',
+        tag: '<%= ancestors %>_<%= shortname %>_gw',
         env: {
 
         }

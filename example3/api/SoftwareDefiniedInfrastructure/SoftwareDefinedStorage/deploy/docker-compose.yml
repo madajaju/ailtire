@@ -1,16 +1,15 @@
 version: "3.7"
 services:
   frontend:
-    image: redis
+    image: sdi_sds_web
     networks:
       - sibling
   gw:
-    image: redis
+    image: sdi_sds_gw
     networks:
       children:
         aliases:
           - parent
-          - top
       sibling:
         aliases:
           - gateway
@@ -19,6 +18,9 @@ networks:
   children:
     driver: overlay
     attachable: true
-    name: ${APPNAME}_family
+    name: ${APPNAME}_sdi_sds_family
   sibling:
     driver: overlay
+  parent:
+    external:
+      name: ${APPNAME}_sdi_family

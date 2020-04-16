@@ -112,6 +112,7 @@ const packageGenerator = (pkg, output) => {
     // if it has then check the next level.
 
     let packageArray = pkg.name.split(/\//);
+    let ancestors = [];
     for (let i in packageArray) {
         let packageItem = packageArray[i];
         let packageItemName = packageItem.replace(/ /g, '');
@@ -122,24 +123,32 @@ const packageGenerator = (pkg, output) => {
         }
         shortname = shortname.toUpperCase();
         if (!existsDir(output + '/' + packageItemName)) {
-            console.log("Create PackageL", packageItemName);
             let files = {
                 context: {
                     name: packageItem,
                     nameNoSpace: packageItemName,
-                    shortname: shortname
+                    shortname: shortname.toLowerCase(),
+                    ancestors: ancestors.join('_').toLowerCase()
                 },
                 targets: {
                     ':nameNoSpace:/index.js': {template: '/templates/Package/index.js'},
                     ':nameNoSpace:/handlers': {folder: true},
                     ':nameNoSpace:/interface': {folder: true},
                     ':nameNoSpace:/models': {folder: true},
+                    ':nameNoSpace:/deploy': {folder: true},
+                    ':nameNoSpace:/deploy/docker-compose.yml': {template: '/templates/Package/deploy/docker-compose.yml'},
+                    ':nameNoSpace:/deploy/build.js': {template: '/templates/Package/deploy/build.js'},
+                    ':nameNoSpace:/deploy/web/Dockerfile': {template: '/templates/Package/deploy/Dockerfile'},
+                    ':nameNoSpace:/deploy/web/package.json': {template: '/templates/Package/deploy/package.json'},
+                    ':nameNoSpace:/deploy/web/server.js': {template: '/templates/Package/deploy/server.js'},
+                    ':nameNoSpace:/deploy/gateway/Dockerfile': {template: '/templates/Package/deploy/Dockerfile'},
                     ':nameNoSpace:/usecases': {folder: true},
 
                 }
             };
             Generator.process(files, output);
         }
+        ancestors.push(shortname);
         output += '/' + packageItemName;
     }
     return {dir: output, name: pkg.name};

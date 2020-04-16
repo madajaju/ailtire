@@ -45,8 +45,8 @@ const processDirectory = dir => {
 // First look load the index file as the name of the top subsystem.
 
 
-const isDirectory = source => fs.lstatSync(source).isDirectory();
-const isFile = source => !fs.lstatSync(source).isDirectory();
+const isDirectory = source => fs.existsSync(source) && fs.lstatSync(source).isDirectory();
+const isFile = source => fs.existsSync(source) && !fs.lstatSync(source).isDirectory();
 const getDirectories = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
 const getFiles = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isFile);
 
@@ -59,12 +59,12 @@ let reservedDirs = {
     deploy: (pkg, prefix, dir) => {
         loadDeploy(pkg, prefix, dir);
     },
-    handlers: function (pkg, prefix, dir) {
-    // The Interface directory can be multiple directories deep which map to routes A/B/C
+    handlers: (pkg, prefix, dir) => {
+        // The Interface directory can be multiple directories deep which map to routes A/B/C
         pkg.handlers = loadHandlers(pkg, prefix, dir);
     },
     interface: (pkg, prefix, dir) => {
-        // The Interface directory can be multiple directories deep which map to routes A/B/C
+    //The Interface directory can be multiple directories deep which map to routes A/B/C
         pkg.interfaceDir = dir;
         pkg.interface = loadActions(pkg, prefix, dir);
     },
@@ -127,18 +127,17 @@ const loadHandlers = (pkg, prefix, mDir) => {
         let aname = path.basename(file).replace('.js', '');
         let apath = prefix + '/' + aname;
         apath = apath.toLowerCase();
-        if(!global.handlers.hasOwnProperty(aname)) {
-            global.handlers[aname] = {name:aname, handlers:[] };
+        if (!global.handlers.hasOwnProperty(aname)) {
+            global.handlers[aname] = {name: aname, handlers: []};
         }
         let tempItem = require(file);
-        for(let j in tempItem.handlers) {
+        for (let j in tempItem.handlers) {
             let action = null;
             let handler = tempItem.handlers[j];
-            if(handler.hasOwnProperty('action')) {
+            if (handler.hasOwnProperty('action')) {
                 let actionName = `${prefix.toLowerCase()}/${handler.action}`;
                 action = actionName;
-            }
-            else {
+            } else {
                 action = handler.fn;
             }
             global.handlers[aname].handlers.push(action);
