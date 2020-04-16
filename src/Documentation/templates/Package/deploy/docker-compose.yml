@@ -1,11 +1,11 @@
 version: "3.7"
 services:
   frontend:
-    image: <%= shortname %>_web
+    image: <%= ancestors %>_<%= shortname %>_web
     networks:
       - sibling
   gw:
-    image: <%= shortname %>_gw
+    image: <%= ancestors %>_<%= shortname %>_gw
     networks:
       children:
         aliases:
@@ -19,6 +19,9 @@ networks:
   children:
     driver: overlay
     attachable: true
-    name: ${APPNAME}_family
+    name: ${APPNAME}_<%= ancestors %>_<%= shortname %>_family
   sibling:
     driver: overlay
+  parent:
+    external:
+      name: ${APPNAME}_<%= ancestors %>_family

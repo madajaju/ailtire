@@ -1,5 +1,5 @@
 const path = require('path');
-const spawn = require('child_process').spawn;
+const spawn = require('child_process').spawnSync;
 const api = require('../../Documentation/api');
 const sLoader = require('../../Server/Loader');
 const fs = require('fs');
@@ -55,7 +55,7 @@ function buildPackage(package, opts) {
                 for(ename in bc.env) {
                     process.env[ename] = bc.env[ename];
                 }
-                console.log("containerName:", bc.tag);
+                console.log("==== ContainerName ====", bc.tag);
                 proc = spawn('docker', ['build', '-t', bc.tag, '-f', bc.file, bc.dir], {
                     cwd: package.deploy.dir,
                     stdio: 'inherit',

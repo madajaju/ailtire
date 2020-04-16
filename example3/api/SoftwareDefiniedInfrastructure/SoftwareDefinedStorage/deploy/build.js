@@ -3,7 +3,7 @@ module.exports = {
     web: {
         dir: '..',
         file: 'web/Dockerfile',
-        tag: 'example3_web',
+        tag: 'sdi_sds_web',
         env: {
 
         }
@@ -11,7 +11,7 @@ module.exports = {
     gateway: {
         dir: '..',
         file: 'web/Dockerfile',
-        tag: 'example3_gw',
+        tag: 'sdi_sds_gw',
         env: {
 
         }
