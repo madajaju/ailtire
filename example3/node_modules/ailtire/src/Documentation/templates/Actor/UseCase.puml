@@ -1,0 +1,19 @@
+@startuml
+
+<% let anameNoSpace = actor.name.replace(/ /g, '') %>
+Actor "<%= actor.name %>" as <%= anameNoSpace %>
+
+<% for(let pname in actorPackages) {
+    let package = actorPackages[pname];
+%>
+rectangle "<%= package.name %>" as <%= package.shortname %>  <%= package.color %> {
+    <% for(let uname in package.usecases) {
+        let usecase = package.usecases[uname];
+    -%>
+    usecase "<%= usecase.name %>" as <%= uname %>
+    <%= anameNoSpace %> --> <%= uname %>
+<% } %>
+}
+<% } %>
+
+@enduml

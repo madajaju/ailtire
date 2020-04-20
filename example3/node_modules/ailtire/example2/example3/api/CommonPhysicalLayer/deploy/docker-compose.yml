@@ -1,0 +1,64 @@
+version: "3.7"
+services:
+  frontend:
+    image: alpine
+    command: ping parent
+    networks:
+      children:
+        aliases:
+          - parent
+      sibling:
+        aliases:
+          - cpl
+      parent:
+        aliases:
+          - cpl
+  frontendcheck:
+    image: alpine
+    command: ping frontend
+    networks:
+      - sibling
+  frontendcheck2:
+      image: alpine
+      command: ping cpl
+      networks:
+        - sibling
+  childcheck:
+    image: alpine
+    command: ping do
+    networks:
+      - children
+  childcheck2:
+    image: alpine
+    command: ping cpl_do
+    networks:
+      - children
+  siblingCheck:
+    image: alpine
+    command: ping sdi
+    networks:
+      - parent
+  gw:
+    image: alpine
+    command: ping parent
+    networks:
+      children:
+        aliases:
+          - parent
+      sibling:
+        aliases:
+          - cplgw
+      parent:
+        aliases:
+          - cplgw
+
+networks:
+  children:
+    driver: overlay
+    attachable: true
+    name: ${APPNAME}_cpl_family
+  sibling:
+    driver: overlay
+  parent:
+    external:
+      name: ${APPNAME}_family

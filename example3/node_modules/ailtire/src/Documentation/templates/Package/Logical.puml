@@ -1,0 +1,59 @@
+@startuml
+
+package "User" #ffffcc {
+
+}
+
+package "Used" #ffffcc {
+
+}
+
+package "<%= package.name %>" <%= package.color %> {
+
+    interface "<%= package.name %>" as i {
+    <% for (let iname in package.interface) {
+        let inter = package.interface[iname];
+    -%>
+        <%= iname %>()
+    <% } %>
+    }
+
+
+    CLI ()-- i
+    REST ()-- i
+    Web ()-- i
+    <% for(let cname in package.classes) {
+        let cls = package.classes[cname].definition;
+    -%>
+    class "<%= cname %>" {
+        <% for(let aname in cls.attributes) {
+           let attr = cls.attributes[aname];
+         -%>
+         <%= attr.type %> <%= aname %>
+        <% } -%>
+        <% for(let mname in cls.methods) { -%>
+             <%= mname %>()
+        <% } -%>
+    }
+    <% for(let aname in cls.associations) {
+        let assoc = cls.associations[aname];
+        -%>
+        <% if(assoc.owner) { -%>
+        <%= cname %> *--> "<%= assoc.cardinality %>" <%= assoc.type %> : <%= aname %>
+        <% } else { -%>
+        <%= cname %> o--> "<%= assoc.cardinality %>" <%= assoc.type %> : <%= aname %>
+        <% } -%>
+    <% } %>
+
+<% } %>
+
+<% for(let spname in package.subpackages) { %>
+package <%= spname %> {
+}
+<% } -%>
+
+}
+User --> i
+"<%= package.name %>" --> Used
+
+@enduml

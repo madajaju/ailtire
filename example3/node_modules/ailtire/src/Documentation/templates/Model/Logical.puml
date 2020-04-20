@@ -1,0 +1,27 @@
+@startuml
+
+class "<%- model.name %>" as Model {
+<% for(let aname in model.attributes) {
+    let attr = model.attributes[aname];
+-%> <%= attr.type %> <%= aname %>
+<% } %>
+ <% for(let mname in model.methods) {
+     let method = model.methods[mname];
+ -%><%= mname %>()
+ <% } %>
+}
+
+<% for(let aname in model.associations) {
+    let assoc = model.associations[aname];
+-%>
+rectangle "<%= assoc.type %>" as <%= assoc.type %> {
+}
+<% if(assoc.owner) { %>
+Model *--> "<%= assoc.cardinality %>" <%= assoc.type %> : <%= aname %>
+<% } else { %>
+Model o--> "<%= assoc.cardinality %>" <%= assoc.type %> : <%= aname %>
+<% } %>
+
+<% } %>
+
+@enduml

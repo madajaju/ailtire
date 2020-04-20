@@ -75,6 +75,9 @@ module.exports = {
         server.get('/', (req,res) => {
             console.error("Hello Error", req);
         });
+        server.all('*', (req,res) => {
+            console.error("Catch All", req);
+        });
         global.io = io;
         io.on('connection', function (socket) {
             socket.emit('news', { hello: 'world' });

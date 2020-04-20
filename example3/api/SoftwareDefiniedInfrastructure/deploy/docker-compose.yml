@@ -4,16 +4,26 @@ services:
     image: sdi_web
     networks:
       - sibling
-  gw:
-    image: sdi_gw
+  sdi_gw:
+    image: containous/whoami
     networks:
+      parent:
+        aliases:
+          - sdi
       children:
         aliases:
           - parent
       sibling:
         aliases:
           - gateway
-
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${APPNAME}_family
+        - traefik.http.services.sdi_gw.loadbalancer.server.port=80
+        - traefik.http.routers.sdi_gw_http.rule=Path(`/sdi`)
+        - traefik.http.routers.sdi_gw_http.service=sdi_gw
+        - traefik.http.routers.sdi_gw_http.entrypoints=http
 networks:
   children:
     driver: overlay
