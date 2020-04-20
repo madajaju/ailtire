@@ -9,7 +9,7 @@ const getFiles = source => fs.readdirSync(source).map(name => path.join(source, 
 
 module.exports = {
     execute: (action, inputs, env) => {
-        return execute(action,inputs, env);
+        return execute(action, inputs, env);
     },
     load: (server, prefix, mDir) => {
         loadActions(prefix, mDir);
@@ -19,7 +19,7 @@ module.exports = {
         }
     },
     defaults: (server) => {
-       addForModels(server);
+        addForModels(server);
     },
     mapRoutes: (server, routes) => {
         // Routes are mapped to action paths.
@@ -60,17 +60,17 @@ const addForModels = (server) => {
     const listAction = require('./actions/list.js');
     const showAction = require('./actions/show.js');
     const addAction = require('./actions/add.js');
-    for(let name in global.classes) {
+    for (let name in global.classes) {
         let cls = global.classes[name];
-        setAction(`/${name}/new` , newAction);
-        setAction(`/${name}/create` , createAction);
-        setAction(`/${name}/update` , updateAction);
-        setAction(`/${name}/list` , listAction);
-        setAction(`/${name}/destory` , destroyAction);
+        setAction(`/${name}/new`, newAction);
+        setAction(`/${name}/create`, createAction);
+        setAction(`/${name}/update`, updateAction);
+        setAction(`/${name}/list`, listAction);
+        setAction(`/${name}/destory`, destroyAction);
 
-        for(let aname in cls.definition.associations) {
+        for (let aname in cls.definition.associations) {
             let assoc = cls.definition.associations[aname];
-            if(assoc.cardinality !== 1) {
+            if (assoc.cardinality !== 1) {
                 let assocUpper = aname;
                 assocUpper = assocUpper[0].toUpperCase() + assocUpper.slice(1);
                 const newAddAction = {
@@ -85,12 +85,12 @@ const addForModels = (server) => {
             }
         }
 
-        setAction(`/${name}` , showAction);
+        setAction(`/${name}`, showAction);
     }
 };
 
 const setAction = (route, action) => {
-    if(!global.actions.hasOwnProperty(route)) {
+    if (!global.actions.hasOwnProperty(route)) {
         global.actions[route] = action;
     }
     /*else {
@@ -105,7 +105,7 @@ const loadActions = (prefix, mDir) => {
         let aname = path.basename(file).replace('.js', '');
         let apath = prefix + '/' + aname;
         apath = apath.toLowerCase();
-        setAction(apath , require(file));
+        setAction(apath, require(file));
     }
     let dirs = getDirectories(mDir);
     for (let i in dirs) {
@@ -120,6 +120,9 @@ const mapToServer = (server) => {
     for (let i in global.actions) {
         let gaction = global.actions[i];
         console.log("Server route:", i);
+        if (i[0] != '/') {
+            i = '/' + i;
+        }
         server.all(i, (req, res) => {
             execute(gaction, req.query, {req: req, res: res});
         });
