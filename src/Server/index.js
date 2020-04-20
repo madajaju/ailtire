@@ -66,12 +66,15 @@ module.exports = {
         Action.mapRoutes(server, config.routes);
 
         server.get('/', (req,res) => {
-            console.error("Hello Error", req);
-            res.json(req);
+            console.error("Hello Error", req.originalUrl);
+            res.end(req.originalUrl);
         });
         server.all('*', (req,res) => {
-            console.error("Catch All", req);
-            res.json(req);
+            console.error("Catch All", req.originalUrl);
+            for(let i in global.actions) {
+                console.error("Path: ", i);
+            }
+            res.end(req.originalUrl);
         });
         global.io = io;
         io.on('connection', function (socket) {
