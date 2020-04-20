@@ -10,7 +10,7 @@ services:
         - traefik.enable=true
         - traefik.docker.network=${APPNAME}_family
         - traefik.http.services.sdi_sds.loadbalancer.server.port=3000
-        - traefik.http.routers.sdi_sds_http.rule=PathPrefixStrip(`/sdi/sds`)
+        - traefik.http.routers.sdi_sds_http.rule=PathPrefix(`/sdi/sds`)
         - traefik.http.routers.sdi_sds_http.service=sdi_sds
         - traefik.http.routers.sdi_sds_http.entrypoints=http
   gw:

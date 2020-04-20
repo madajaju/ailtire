@@ -60,23 +60,18 @@ module.exports = {
 
         Action.defaults(server);
         let ailPath = __dirname + "/../../interface";
-        Action.load(server, '', path.resolve(ailPath)); // Load the ailtire defaults from the interface directory.
+        // Make sure the prefix from the config is put in here to handle forwarded url.
+        Action.load(server, config.prefix, path.resolve(ailPath)); // Load the ailtire defaults from the interface directory.
         Action.load(server, config.prefix, path.resolve(config.baseDir + '/interface'));
         Action.mapRoutes(server, config.routes);
 
-        server.get('/init', (req, res) => {
-            let retval = {};
-            for(let path in global.actions) {
-                retval[path] = { name: path, inputs: global.actions[path].inputs,friendlyName: global.actions[path].friendlyName, description: global.actions[path].description };
-            }
-            res.json(retval);
-        });
-
         server.get('/', (req,res) => {
             console.error("Hello Error", req);
+            res.json(req);
         });
         server.all('*', (req,res) => {
             console.error("Catch All", req);
+            res.json(req);
         });
         global.io = io;
         io.on('connection', function (socket) {

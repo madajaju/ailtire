@@ -119,7 +119,8 @@ const loadActions = (prefix, mDir) => {
 const mapToServer = (server) => {
     for (let i in global.actions) {
         let gaction = global.actions[i];
-        server.use(i, (req, res) => {
+        console.log("Server route:", i);
+        server.all(i, (req, res) => {
             execute(gaction, req.query, {req: req, res: res});
         });
 
