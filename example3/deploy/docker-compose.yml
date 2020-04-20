@@ -1,20 +1,40 @@
 version: "3.7"
 services:
   frontend:
-    image: redis
+    image: traefik:latest
+    command:
+      - --api=true
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --api.debug=true
+      - --log.level=DEBUG
+      - --providers.docker=true
+      - --providers.docker.swarmMode=true
+      - --providers.docker.network=children
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.http.address=:80
+      - --entrypoints.https.address=:443
+    ports:
+      - '80:80'
+      - '8080:8080'
+      - '443:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - children
+  gw:
+    image: containous/whoami
     networks:
       - sibling
-  gw:
-    image: redis
-    networks:
-      children:
-        aliases:
-          - parent
-          - top
-      sibling:
-        aliases:
-          - gateway
-
+      - children
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${APPNAME}_family
+        - traefik.http.services.gw.loadbalancer.server.port=80
+        - traefik.http.routers.gw_http.rule=Path(`/top`)
+        - traefik.http.routers.gw_http.service=gw
+        - traefik.http.routers.gw_http.entrypoints=http
 networks:
   children:
     driver: overlay

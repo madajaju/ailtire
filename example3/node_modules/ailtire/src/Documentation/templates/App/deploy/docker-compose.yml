@@ -1,0 +1,24 @@
+version: "3.7"
+services:
+  frontend:
+    image: <%= app.name %>_web
+    networks:
+      - sibling
+  gw:
+    image: <%= app.name %>_gw
+    networks:
+      children:
+        aliases:
+          - parent
+          - top
+      sibling:
+        aliases:
+          - gateway
+
+networks:
+  children:
+    driver: overlay
+    attachable: true
+    name: ${APPNAME}_family
+  sibling:
+    driver: overlay

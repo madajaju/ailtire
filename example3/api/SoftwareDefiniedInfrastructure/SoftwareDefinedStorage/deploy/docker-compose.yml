@@ -3,13 +3,23 @@ services:
   frontend:
     image: sdi_sds_web
     networks:
-      - sibling
+      - parent
+      - top
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${APPNAME}_family
+        - traefik.http.services.sdi_sds.loadbalancer.server.port=3000
+        - traefik.http.routers.sdi_sds_http.rule=PathPrefixStrip(`/sdi/sds`)
+        - traefik.http.routers.sdi_sds_http.service=sdi_sds
+        - traefik.http.routers.sdi_sds_http.entrypoints=http
   gw:
     image: sdi_sds_gw
     networks:
       children:
         aliases:
           - parent
+          - top
       sibling:
         aliases:
           - gateway
@@ -24,3 +34,6 @@ networks:
   parent:
     external:
       name: ${APPNAME}_sdi_family
+  top:
+    external:
+      name: ${APPNAME}_family
