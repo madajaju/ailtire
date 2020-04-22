@@ -1,6 +1,6 @@
 {
   "name": "ailtire",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "UML Architecture by coding and simulating the system architecture.",
   "main": "index.js",
   "scripts": {
@@ -13,6 +13,7 @@
   "author": "Darren W Pulsipher - darren@pulsipher.org",
   "license": "ISC",
   "dependencies": {
+    "bent": "^7.3.0",
     "body-parser": "^1.19.0",
     "commander": "^4.1.0",
     "debug": "latest",

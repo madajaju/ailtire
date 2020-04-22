@@ -7,6 +7,7 @@ const Action = require('./Action.js');
 const fs = require('fs');
 const http = require('http').createServer(server);
 const io = require('socket.io')(http);
+const socket = require('socket.io-client')('http://localhost');
 const bodyParser = require("body-parser");
 const funcHandler = require('../Proxy/MethodProxy');
 
@@ -46,9 +47,11 @@ module.exports = {
             let str = fs.readFileSync(apath, 'utf8');
             res.end(str);
         });
+        global.socket = socket;
         global.io = io;
-        io.on('connection', function (socket) {
-            AEvent.addHandlers(socket);
+        io.on('connection', function (msocket) {
+            console.log("IO ON, Connection");
+            AEvent.addHandlers(msocket);
         });
 
         console.log("Listening on Port:", config.listenPort);
@@ -63,6 +66,7 @@ module.exports = {
         // Make sure the prefix from the config is put in here to handle forwarded url.
         Action.load(server, config.prefix, path.resolve(ailPath)); // Load the ailtire defaults from the interface directory.
         Action.load(server, config.prefix, path.resolve(config.baseDir + '/interface'));
+
         Action.mapRoutes(server, config.routes);
 
         server.get('/', (req,res) => {
@@ -77,11 +81,11 @@ module.exports = {
             res.end(req.originalUrl);
         });
         global.io = io;
-        io.on('connection', function (socket) {
-            socket.emit('news', { hello: 'world' });
-            socket.on('list', function (data) {
-                console.log(data);
-            });
+        global.socket = socket;
+
+        io.on('connection', function (msocket) {
+            console.log("Micro IO ON, Connection");
+            AEvent.addHandlers(msocket);
         });
 
         console.log("Listening on Port:", config.listenPort);
