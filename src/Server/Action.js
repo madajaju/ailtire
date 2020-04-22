@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const renderer = require('../Documentation/Renderer.js');
 
+
 const isDirectory = source => fs.lstatSync(source).isDirectory();
 const isFile = source => !fs.lstatSync(source).isDirectory();
 const getDirectories = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
@@ -33,16 +34,18 @@ module.exports = {
                 console.error("Could not find the route: ", i, routes[i]);
             }
         }
+
     }
 };
 
+// Add ServiceProxy here.
 const mergeMaps = (target, source) => {
     if (!target) {
         target = {};
     }
     if (typeof source === 'object') {
         for (let i in source) {
-            if (!target.hasOwnProperty(i)) {
+            if (!target[i]) {
                 target[i] = {};
             }
             target[i] = mergeMaps(target[i], source[i]);

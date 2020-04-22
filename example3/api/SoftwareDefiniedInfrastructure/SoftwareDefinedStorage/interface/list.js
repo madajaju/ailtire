@@ -1,4 +1,5 @@
 const path = require('path');
+const AEvent = require('ailtire/src/Server/AEvent');
 
 module.exports = {
     friendlyName: 'list',
@@ -21,6 +22,7 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
+        AEvent.emit("sds.list", {name: "SDS Darren Called"});
         env.res.end("SDS Done: " + inputs.name);
     }
 };

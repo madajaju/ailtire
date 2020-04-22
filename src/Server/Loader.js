@@ -135,8 +135,7 @@ const loadHandlers = (pkg, prefix, mDir) => {
             let action = null;
             let handler = tempItem.handlers[j];
             if (handler.hasOwnProperty('action')) {
-                let actionName = `${prefix.toLowerCase()}/${handler.action}`;
-                action = actionName;
+                action = handler.action;
             } else {
                 action = handler.fn;
             }
