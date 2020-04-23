@@ -22,7 +22,7 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
-        AEvent.emit("sds.list", {name: "SDS Darren Called"});
+        AEvent.emit("sds.list", {name: "SDS2 Darren Called"});
         env.res.end("SDS Done: " + inputs.name);
     }
 };
