@@ -7,7 +7,7 @@ const Action = require('./Action.js');
 const fs = require('fs');
 const http = require('http').createServer(server);
 const io = require('socket.io')(http);
-const socket = require('socket.io-client')('http://localhost');
+const redis = require('socket.io-redis');
 const bodyParser = require("body-parser");
 const funcHandler = require('../Proxy/MethodProxy');
 
@@ -19,6 +19,10 @@ module.exports = {
     listen: (config) => {
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
+        if(!config.hasOwnProperty('redis')) {
+           config.redis = { host: 'redis', port: 6379};
+        }
+        io.adapter(redis({ host: config.redis.host, port: config.redis.port }));
 
         Action.defaults(server);
         let ailPath = __dirname + "/../../interface";
@@ -47,7 +51,6 @@ module.exports = {
             let str = fs.readFileSync(apath, 'utf8');
             res.end(str);
         });
-        global.socket = socket;
         global.io = io;
         io.on('connection', function (msocket) {
             console.log("IO ON, Connection");
@@ -60,6 +63,11 @@ module.exports = {
     micro: (config) => {
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
+
+        if(!config.hasOwnProperty('redis')) {
+            config.redis = { host: 'redis', port: 6379};
+        }
+        io.adapter(redis({ host: config.redis.host, port: config.redis.port }));
 
         Action.defaults(server);
         let ailPath = __dirname + "/../../interface";
@@ -81,7 +89,6 @@ module.exports = {
             res.end(req.originalUrl);
         });
         global.io = io;
-        global.socket = socket;
 
         io.on('connection', function (msocket) {
             console.log("Micro IO ON, Connection");

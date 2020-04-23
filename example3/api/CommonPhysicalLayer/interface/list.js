@@ -1,6 +1,6 @@
 const path = require('path');
 const AEvent = require('ailtire/src/Server/AEvent');
-const Service = require('../../../../src/Server/Service');
+const Service = require('ailtire/src/Server/Service');
 
 module.exports = {
     friendlyName: 'list',
@@ -24,16 +24,18 @@ module.exports = {
 
     fn: async function (inputs, env) {
         let val = await Service.call('sdi.sds.list', {name: 'Darren'});
-        AEvent.emit("cpl.list", {name: "Darren Called"});
+        AEvent.emit("cpl.list", {name: "CPL Darren Called"});
+        AEvent.emit("sds.list", {name: "SDS Darren Called"});
 
-        if(env) {
+        if (env) {
             env.res.end("<html><script src='/socket.io/socket.io.js'></script>" +
-                "<script>const socket =io(); socket.emit('sds.list');</script>" +
+                "<script>const socket = io('http://localhost'); socket.emit('sds.list');" +
+                "socket.on('cpl.list', (data) => {" +
+                "console.log('Data', data); });</script>" +
                 "<h1>CPL LIST</h1>" +
                 "<button onclick='socket.emit(\"sds.list\");'>Send Event</button>" +
                 "</html>");
-        }
-        else {
+        } else {
             console.log("CPL List Done");
             return "CPL List Done";
         }

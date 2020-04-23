@@ -4,7 +4,7 @@ if(!fs.existsSync('./node_modules')) {
    console.error('Error: you must run "npm install" first');
    return;
 }
-const server = require('../../../../../src/Server/index');
+const server = require('ailtire');
 
 server.micro( {
     baseDir: '.',

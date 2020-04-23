@@ -1,5 +1,22 @@
 version: "3.7"
 services:
+  pubsub:
+    image: redis
+    networks:
+      children:
+        aliases:
+          -redis
+      sibling:
+        aliases:
+          - redis
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${APPNAME}_family
+        - traefik.http.services.pubsub.loadbalancer.server.port=80
+        - traefik.http.routers.pubsub_http.rule=Path(`/pubsub`)
+        - traefik.http.routers.pubsub_http.service=pubsub
+        - traefik.http.routers.pubsub_http.entrypoints=http
   frontend:
     image: traefik:latest
     command:

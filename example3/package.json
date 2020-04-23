@@ -15,10 +15,11 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "ailtire": "0.0.15",
+    "ailtire": "0.0.20",
     "commander": "^4.1.0",
     "ejs": "^3.0.1",
     "express": "^4.17.1",
-    "mocha": "^7.0.0"
+    "mocha": "^7.0.0",
+    "socket.io-redis": "^5.2.0"
   }
 }
