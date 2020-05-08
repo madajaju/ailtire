@@ -1,0 +1,32 @@
+@startuml
+
+<% for(let name in model.statenet) {
+    let state = model.statenet[name];
+    if(state.actions) {
+        if(state.actions.entry) {
+            for(let action in state.actions.entry) {
+%>
+<%= name %>: entry/ <%= action %>
+<%          }
+        }
+        if(state.actions.exit) {
+            for(let action in state.actions.exit) {
+%>
+<%= name %>: exit/ <%= action %>
+<%          }
+        }
+    }
+    if(state.events) {
+        for(let event in state.events) {
+            for(let tState in state.events[event]) {
+
+%>
+<%= name %> --> <%= tState %> : <%= event %>
+<%
+            }
+        }
+    }
+}
+%>
+
+@enduml

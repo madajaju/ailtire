@@ -1,0 +1,25 @@
+@startuml
+
+actor "Data Scientist" as DataScientist
+
+actor "Data Analyst" as DataAnalyst
+
+actor "Data Engineer" as DataEngineer
+
+
+
+
+DataScientist -> "Common Data Services": Manage Data
+"Common Data Services" -> bin: /edgemere/info
+bin -> REST: /edgemere/info
+
+DataAnalyst -> "Common Data Services": Manage Data
+"Common Data Services" -> bin: /edgemere/info
+bin -> REST: /edgemere/info
+
+DataEngineer -> "Common Data Services": Manage Data
+"Common Data Services" -> bin: /edgemere/info
+bin -> REST: /edgemere/info
+
+
+@enduml

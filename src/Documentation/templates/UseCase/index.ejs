@@ -1,0 +1,27 @@
+<head>
+    <link rel="stylesheet/less" type="text/css" href="/styles/importer.less" />
+    <script src="/js/less.js" type="text/javascript"></script>
+</head>
+
+<h1><%= usecase.name %></h1>
+<%= usecase.description %>
+
+<img src='./Activities.puml'></img>
+
+<h2>Actors</h2>
+<ul>
+<% for(let aname in usecase.actors) {
+let actorNoSpaces = actors[aname].shortname;
+-%>
+    <li><a href='/doc/actor/<%= actorNoSpaces %>'><%= aname %></a></li>
+<% } %>
+</ul>
+
+<h2>Detail Scenarios</h2>
+<ul>
+<% for(let sname in usecase.scenarios) {
+let nameNoSpaces = sname.replace(/ /g, '');
+-%>
+<li><a href='./Scenario-<%= nameNoSpaces %>'><%= sname %></a></li>
+<% } %>
+</ul>

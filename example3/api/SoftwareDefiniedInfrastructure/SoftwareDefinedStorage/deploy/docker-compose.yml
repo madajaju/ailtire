@@ -35,5 +35,5 @@ networks:
     external:
       name: ${APPNAME}_sdi_family
   top:
-    external:
-      name: ${APPNAME}_family
+    external: true
+    name: ${APPNAME}_family

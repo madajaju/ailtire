@@ -4,7 +4,7 @@ if(!fs.existsSync('./node_modules')) {
    console.error('Error: you must run "npm install" first');
    return;
 }
-const server = require('ailtire');
+const server = require('../src/Server');
 
 server.listen( {
     baseDir: '.',
@@ -12,5 +12,5 @@ server.listen( {
     routes: {
         "/document": "/model/document"
     },
-    listenPort: 8080
+    listenPort: 3000
 });

@@ -1,0 +1,48 @@
+@startuml
+
+package "User" #ffffcc {
+
+}
+
+package "Used" #ffffcc {
+
+}
+
+package "edgemere" #lightgreen {
+
+    interface "edgemere" as i {
+            /mapp/create()
+            /mapp/show()
+    
+    }
+
+
+    CLI ()-- i
+    REST ()-- i
+    Web ()-- i
+    
+
+
+package AML {
+}
+
+package CPL {
+}
+
+package DIML {
+}
+
+package SA {
+}
+
+package SML {
+}
+
+package SDI {
+}
+
+}
+User --> i
+"edgemere" --> Used
+
+@enduml

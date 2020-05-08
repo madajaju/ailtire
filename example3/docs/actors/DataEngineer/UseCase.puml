@@ -1,0 +1,30 @@
+@startuml
+
+
+Actor "Data Engineer" as DataEngineer
+
+
+rectangle "Common Data Services" as CDS  #lightblue {
+        usecase "Manage Data" as ManageData
+    DataEngineer --> ManageData
+
+}
+
+rectangle "Data Definition Framework" as DDF  #lightblue {
+        usecase "Manage Data Pipeline" as ManageDataPipeline
+    DataEngineer --> ManageDataPipeline
+    usecase "Manage Data Blue Prints" as ManageDataBluePrints
+    DataEngineer --> ManageDataBluePrints
+    usecase "Manage Data Procedures" as ManageDataProcedures
+    DataEngineer --> ManageDataProcedures
+
+}
+
+rectangle "Data Management Layer" as DML  #lightblue {
+        usecase "Manage Data Sources" as ManageDataSources
+    DataEngineer --> ManageDataSources
+
+}
+
+
+@enduml

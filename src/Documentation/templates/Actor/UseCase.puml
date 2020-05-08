@@ -1,5 +1,7 @@
 @startuml
 
+left to right direction
+
 <% let anameNoSpace = actor.name.replace(/ /g, '') %>
 Actor "<%= actor.name %>" as <%= anameNoSpace %>
 

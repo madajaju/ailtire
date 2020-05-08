@@ -8,7 +8,7 @@ module.exports = {
 
         }
     },
-    gateway: {
+    doc: {
         dir: '..',
         file: 'gateway/Dockerfile',
         tag: 'example3_gw',

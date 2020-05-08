@@ -1,0 +1,17 @@
+@startuml
+
+class "DataAdaptor" as Model {
+ string name
+
+ 
+}
+
+rectangle "DataBluePrint" as DataBluePrint {
+}
+
+Model o--> "n" DataBluePrint : blueprint
+
+
+
+
+@enduml

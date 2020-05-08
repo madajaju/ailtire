@@ -3,15 +3,15 @@ module.exports = {
     web: {
         dir: '..',
         file: 'web/Dockerfile',
-        tag: '<%= app.name %>_web',
+        tag: '<%= name %>_web',
         env: {
 
         }
     },
-    gateway: {
+    doc: {
         dir: '..',
-        file: 'gateway/Dockerfile',
-        tag: '<%= app.name %>_gw',
+        file: 'doc/Dockerfile',
+        tag: '<%= name %>_doc',
         env: {
 
         }

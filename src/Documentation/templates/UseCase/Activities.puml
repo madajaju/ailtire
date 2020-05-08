@@ -3,7 +3,7 @@
 
 usecase "<%= usecase.name %>" as <%= ucNoSpace %>
 <% for(let aname in usecase.actors) {
-let anameNoSpace = aname.replace(/ /g,'');
+let anameNoSpace = actors[aname].shortname;
 %>
 Actor "<%= aname %>" as <%= anameNoSpace %>
 

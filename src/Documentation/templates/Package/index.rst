@@ -95,5 +95,5 @@ Interface Details
     let method = package.interface[mname]
     method.name = mname;
 -%>
-<%- partial("./src/Documentation/templates/Action/_index.rst", {action: method}) %>
+<%- partial("./templates/Action/_index.rst", {action: method}) %>
 <% } %>

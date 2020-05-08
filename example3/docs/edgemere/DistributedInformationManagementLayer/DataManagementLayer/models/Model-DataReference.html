@@ -1,0 +1,85 @@
+<h1>DataReference</h1>
+This reference is how Services access data through an abstract layer
+
+<img src='./Model-DataReference.puml' > </img>
+
+<h2>Attributes</h2>
+<ul>
+
+<li>name:string - </li>
+
+<li>connection:string - </li>
+
+</ul>
+
+<h2>Associations</h2>
+<table class="AssociationTable DocTable">
+    <tr>
+        <th>Name</th>
+        <th>Cardinality</th>
+        <th>Class</th>
+        <th>Composition</th>
+        <th>Owner</th>
+        <th>Description</th>
+    </tr>
+
+    <tr>
+        <td>instances</td>
+        <td>n</td>
+        <td>DataInstance</td>
+        <td>true</td>
+        <td>false</td>
+        <td></td>
+    </tr>
+
+</table>
+
+
+</table>
+
+<h2>Methods</h2>
+<ul>
+
+    <li> <a href="#Action-DataReference-load">load`() - Create a Application in the System</a>
+    
+</ul>
+<h2>Method Details</h2>
+    
+        <div id="Action-DataReference-load">
+<h3>load</h3>
+<ul>
+<li>REST - load</li>
+<li>bin - load</li>
+<li>js - load</li>
+</ul>
+
+Create a Application in the System
+
+<table class="MethodTable">
+    <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Required</th>
+        <th>Description</th>
+    </tr>
+
+    <tr>
+        <td>scope</td>
+        <td>string</td>
+        <td>true</td>
+        <td>The scope of the Data Reference</td>
+    </tr>
+
+    <tr>
+        <td>data</td>
+        <td>object</td>
+        <td>true</td>
+        <td>The information for the Data Reference</td>
+    </tr>
+
+</table>
+
+
+        </div>
+
+

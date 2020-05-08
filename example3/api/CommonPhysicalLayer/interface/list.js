@@ -28,12 +28,13 @@ module.exports = {
         AEvent.emit("sds.list", {name: "SDS Darren Called"});
 
         if (env) {
-            env.res.end("<html><script src='/socket.io/socket.io.js'></script>" +
-                "<script>const socket = io('http://localhost'); socket.emit('sds.list');" +
+            env.res.end("<html><script src='/js/socket.io.js'></script>" +
+                "<script>const socket = io('http://localhost/redis'); socket.emit('sds.list');" +
                 "socket.on('cpl.list', (data) => {" +
                 "console.log('Data', data); });</script>" +
                 "<h1>CPL LIST</h1>" +
                 "<button onclick='socket.emit(\"sds.list\");'>Send Event</button>" +
+                "<a href='/sdi/sds/list?name=Darren'>SDS LIST</a>" +
                 "</html>");
         } else {
             console.log("CPL List Done");
