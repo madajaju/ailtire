@@ -1,3 +1,5 @@
+const funcHandler = require('../Proxy/MethodProxy');
+
 module.exports = {
     addHandlers: (socket) => {
         for (let event in global.handlers) {

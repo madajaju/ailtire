@@ -1,0 +1,25 @@
+@startuml
+
+class "SourceMetaData" as Model {
+ string connection
+ string name
+ string value
+
+ 
+}
+
+rectangle "model" as model {
+}
+
+Model *--> "range" model : name
+
+
+rectangle "DataInstance" as DataInstance {
+}
+
+Model o--> "1" DataInstance : metadata
+
+
+
+
+@enduml

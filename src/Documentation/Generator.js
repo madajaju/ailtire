@@ -40,6 +40,8 @@ const processItem = (item, target, objects) => {
             if (err) {
                 console.error("Error processing model:", objects, "with", item, "targeted to",target);
                 console.error(err);
+                console.error('=====');
+                console.error(str);
             }
             // Create the directory and then store the file.
             let apath = path.resolve(target);
@@ -64,6 +66,13 @@ const processItem = (item, target, objects) => {
 };
 const partialProcess = (file, objects) => {
     let apath = path.resolve(file);
+    if(!fs.existsSync(apath)) {
+       apath = path.resolve(__dirname + '/' + file);
+       if(!fs.existsSync(apath)) {
+           // console.error("Could not find", file);
+          return "";
+       }
+    }
     try {
         let str = fs.readFileSync(apath, 'utf8');
         let retval = ejs.render(str, objects);

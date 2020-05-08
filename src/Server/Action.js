@@ -122,7 +122,6 @@ const loadActions = (prefix, mDir) => {
 const mapToServer = (server) => {
     for (let i in global.actions) {
         let gaction = global.actions[i];
-        console.log("Server route:", i);
         if (i[0] != '/') {
             i = '/' + i;
         }

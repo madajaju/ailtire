@@ -1,0 +1,15 @@
+@startuml
+
+
+Init --> Ready : create
+
+Ready: entry/ show
+
+Ready: entry/ showAll
+
+Ready: exit/ showAfter
+
+Ready --> Done : stop
+
+
+@enduml

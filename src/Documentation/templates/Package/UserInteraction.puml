@@ -1,6 +1,6 @@
 @startuml
 <% for(let aname in actors) { %>
-actor "<%= actors[aname].name %>" as <%= aname %>
+actor "<%= actors[aname].name %>" as <%= actors[aname].shortname %>
 <% }%>
 
 
@@ -9,7 +9,7 @@ actor "<%= actors[aname].name %>" as <%= aname %>
      for(let ucname in actors[aname].usecases) {
         let usecase = actor.usecases[ucname];
 %>
-<%= aname %> -> "<%= package.name %>": <%= usecase.name %>
+<%= actors[aname].shortname %> -> "<%= package.name %>": <%= usecase.name %>
 "<%= package.name %>" -> bin: <%= usecase.method %>
 bin -> REST: <%= usecase.method %>
 <% } } %>

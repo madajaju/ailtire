@@ -1,0 +1,28 @@
+<h3><%= action.name %></h3>
+<ul>
+<li>REST - <%= action.name %></li>
+<li>bin - <%= action.name.replace(/\//g, ' '); %></li>
+<li>js - <%= action.name.replace(/\//g, '.'); %></li>
+</ul>
+
+<%= action.description %>
+
+<table class="MethodTable">
+    <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Required</th>
+        <th>Description</th>
+    </tr>
+<% for(let iname in action.inputs)  {
+    let input = action.inputs[iname];
+%>
+    <tr>
+        <td><%= iname %></td>
+        <td><%= input.type%></td>
+        <td><%= input.required %></td>
+        <td><%= input.description %></td>
+    </tr>
+<% } %>
+</table>
+

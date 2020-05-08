@@ -1,0 +1,173 @@
+
+<h1>Data Management Layer</h1>
+This layer is responsible for the management of data
+
+<h2>Use Cases</h2>
+<ul>
+    <li> <a href='/doc/usecases/ManageDataGovernance'>Manage Data Governance</a></li>
+    <li> <a href='/doc/usecases/ManageDataPolicies'>Manage Data Policies</a></li>
+    <li> <a href='/doc/usecases/ManageDataSources'>Manage Data Sources</a></li>
+    <li> <a href='/doc/usecases/ManageDataStrategy'>Manage Data Strategy</a></li>
+
+</ul>
+
+<img src='./UseCases.puml'></img>
+<h2>Users</h2>
+<ul>
+    <li><a href='/doc/actor/ChiefDataOfficer'>Chief Data Officer</a></li>
+    <li><a href='/doc/actor/DataEngineer'>Data Engineer</a></li>
+
+</ul>
+
+<img src='./UserInteraction.puml'></img>
+
+<h2>Interface</h2>
+<ul>
+<li><a href='#Action--diml-dml-data-govern'>/diml/dml/data/govern(...)</a></li>
+<li><a href='#Action--diml-dml-data-policies'>/diml/dml/data/policies(...)</a></li>
+<li><a href='#Action--diml-dml-data-sources'>/diml/dml/data/sources(...)</a></li>
+
+</ul>
+
+<h2>Logical Artifacts</h2>
+The Data Model for the  Data Management Layer shows how the different objects and classes of object interact
+and their structure.
+
+<img src='./Logical.puml'>
+
+<h3>Sub Packages</h3>
+<ul>
+
+</ul>
+
+<h3>Classes</h3>
+<ul>
+<li><a href='./Model-Data'>Data</a>
+<li><a href='./Model-DataAdaptor'>DataAdaptor</a>
+<li><a href='./Model-DataBluePrint'>DataBluePrint</a>
+<li><a href='./Model-DataInstance'>DataInstance</a>
+<li><a href='./Model-DataReference'>DataReference</a>
+<li><a href='./Model-DataSource'>DataSource</a>
+<li><a href='./Model-LineageMetaData'>LineageMetaData</a>
+<li><a href='./Model-MetaData'>MetaData</a>
+<li><a href='./Model-SourceMetaData'>SourceMetaData</a>
+
+</ul>
+
+
+
+<h2>Activities and Flows</h2>
+The Data Management Layer subsystem provides the following activities and flows.
+
+<img src='./Process.puml'></img>
+
+<h2>Deployment Architecture</h2>
+This subsystem is deployed using micro-services as shown in the diagram below. The 'micro' module is
+used to implement the micro-services in the system.
+The subsystem also has an CLI, REST and Web Interface exposed through a sailajs application. The sailsjs
+application will interface with the micro-services and can monitor and drive work-flows through the mesh of
+micro-services.
+
+<img src='./Deployment.puml'> </img>
+
+<h2>Physical Architecture</h2>
+The Data Management Layer subsystem is is physically laid out on a hybrid cloud infrastructure. Each microservice is shown
+how they connect to each other. All of the micro-services communicate to each other and the main app through a
+REST interface. A CLI, REST or Web interface for the app is how other subsystems or actors interact. Requests are
+forwarded to micro-services through the REST interface of each micro-service.
+
+<img src='./Physical.puml'> </img>
+
+<h2>Micro-Services</h2>
+These are the micro-services for the subsystem. The combination of the micro-services help implement
+the subsystem's logic.
+
+<h2>Interface Details</h2>
+<div id="Action--diml-dml-data-govern">
+<h3>/diml/dml/data/govern</h3>
+<ul>
+<li>REST - /diml/dml/data/govern</li>
+<li>bin -  diml dml data govern</li>
+<li>js - .diml.dml.data.govern</li>
+</ul>
+
+Description of the action
+
+<table class="MethodTable">
+    <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Required</th>
+        <th>Description</th>
+    </tr>
+
+    <tr>
+        <td>attr1</td>
+        <td>string</td>
+        <td>false</td>
+        <td>Description for the parameter</td>
+    </tr>
+
+</table>
+
+
+</div>
+<div id="Action--diml-dml-data-policies">
+<h3>/diml/dml/data/policies</h3>
+<ul>
+<li>REST - /diml/dml/data/policies</li>
+<li>bin -  diml dml data policies</li>
+<li>js - .diml.dml.data.policies</li>
+</ul>
+
+Description of the action
+
+<table class="MethodTable">
+    <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Required</th>
+        <th>Description</th>
+    </tr>
+
+    <tr>
+        <td>attr1</td>
+        <td>string</td>
+        <td>false</td>
+        <td>Description for the parameter</td>
+    </tr>
+
+</table>
+
+
+</div>
+<div id="Action--diml-dml-data-sources">
+<h3>/diml/dml/data/sources</h3>
+<ul>
+<li>REST - /diml/dml/data/sources</li>
+<li>bin -  diml dml data sources</li>
+<li>js - .diml.dml.data.sources</li>
+</ul>
+
+Description of the action
+
+<table class="MethodTable">
+    <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Required</th>
+        <th>Description</th>
+    </tr>
+
+    <tr>
+        <td>attr1</td>
+        <td>string</td>
+        <td>false</td>
+        <td>Description for the parameter</td>
+    </tr>
+
+</table>
+
+
+</div>
+

@@ -1,19 +1,36 @@
 version: "3.7"
 services:
-  frontend:
+  cpl_frontend:
     image: cpl_web
     networks:
       - sibling
-  gw:
-    image: cpl_gw
+      - parent
+    deploy:
+      labels:
+        - traefik.frontend.rule=PathPrefix:/cpl
+        - traefik.docker.network=parent
+        - traefik.port=3000
+        - traefik.enable=true
+  cpl_gw:
+    image: containous/whoami
     networks:
+      parent:
+        aliases:
+          - cpl
       children:
         aliases:
           - parent
       sibling:
         aliases:
           - gateway
-
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${APPNAME}_family
+        - traefik.http.services.cpl_gw.loadbalancer.server.port=80
+        - traefik.http.routers.cpl_http.rule=Path(`/cpl`)
+        - traefik.http.routers.cpl_http.service=cpl_gw
+        - traefik.http.routers.cpl_http.entrypoints=http
 networks:
   children:
     driver: overlay

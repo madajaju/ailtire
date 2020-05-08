@@ -3,6 +3,7 @@ const path = require('path');
 const classProxy = require('../Proxy/ClassProxy');
 const packageProxy = require('../Proxy/PackageProxy');
 const apiGenerator = require('../Documentation/api');
+const YAML = require('yamljs');
 
 module.exports = {
     processPackage: (dir) => {
@@ -35,9 +36,7 @@ const processDirectory = dir => {
         pkg = loadDirectory(dir, '');
     }
     let deployDir = dir + '/deploy';
-    console.log("DeployDir:", deployDir);
     if (isDirectory(deployDir)) {
-        console.log("DeployDir2:", deployDir);
         loadDeploy(pkg, pkg.prefix, deployDir);
     }
     return pkg;
@@ -57,7 +56,7 @@ let reservedDirs = {
     node_modules: (pkg, prefix, dir) => {
     },
     deploy: (pkg, prefix, dir) => {
-        loadDeploy(pkg, prefix, dir);
+        pkg = loadDeploy(pkg, prefix, dir);
     },
     handlers: (pkg, prefix, dir) => {
         // The Interface directory can be multiple directories deep which map to routes A/B/C
@@ -102,17 +101,39 @@ let reservedDirs = {
 
             let myUC = require(ucDir + '/index.js');
             myUC.package = pkg.name;
-            pkg.usecases[myUC.name] = myUC;
+            myUC.prefix = pkg.prefix;
+            pkg.usecases[myUC.name.replace(/\s/g,'')] = myUC;
             loadUCScenarios(myUC, ucDir);
         }
     }
 };
 const loadDeploy = (pkg, prefix, dir) => {
-    console.log("LoadDeploy:", pkg);
     pkg.deploy = {
         dir: dir,
-        prefix: prefix
+        prefix: prefix,
+        envs: {},
+        build: {}
     };
+    // Get the build file
+    let apath = path.resolve(dir + '/build.js');
+    if(isFile(apath)) {
+        let build = require(dir + '/' + 'build.js');
+        pkg.deploy.build = build;
+    }
+
+    // Now get the docker-compose file
+    apath = path.resolve(dir + '/deploy.js');
+    if(isFile(apath)) {
+        let deploy = require(dir + '/' + 'deploy.js');
+        for (let env in deploy) {
+            // Now get the file from the deploy and read it in.
+            let compose = YAML.load(dir + '/' + deploy[env].file);
+            pkg.deploy.envs[env] = {
+                tag: deploy[env].tag,
+                definition: compose
+            };
+        }
+    }
     return pkg;
 };
 
@@ -287,7 +308,7 @@ const checkPackage = (pkg) => {
             if (!global.actors[aname].hasOwnProperty('usecases')) {
                 global.actors[aname].usecases = {};
             }
-            global.actors[aname].usecases[usecase.name] = usecase;
+            global.actors[aname].usecases[usecase.name.replace(/\s/g,'')] = usecase;
         }
 
         // Make sure each UseCase has a method that matches an interface that exists.

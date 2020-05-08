@@ -1,0 +1,134 @@
+
+<h1>edgemere</h1>
+Edgemere is the application
+
+<h2>Use Cases</h2>
+<ul>
+
+</ul>
+
+<img src='./UseCases.puml'></img>
+<h2>Users</h2>
+<ul>
+
+</ul>
+
+<img src='./UserInteraction.puml'></img>
+
+<h2>Interface</h2>
+<ul>
+<li><a href='#Action--mapp-create'>/mapp/create(...)</a></li>
+<li><a href='#Action--mapp-show'>/mapp/show(...)</a></li>
+
+</ul>
+
+<h2>Logical Artifacts</h2>
+The Data Model for the  edgemere shows how the different objects and classes of object interact
+and their structure.
+
+<img src='./Logical.puml'>
+
+<h3>Sub Packages</h3>
+<ul>
+<li><a href='./ApplicationManagementLayer/index.html'>Application Management Layer</a>
+    <li><a href='./CommandPhysicalLayer/index.html'>Command Physical Layer</a>
+    <li><a href='./DistributedInformationManagementLayer/index.html'>Distributed Information Management Layer</a>
+    <li><a href='./SecurityAspect/index.html'>Security Aspect</a>
+    <li><a href='./ServiceManagementLayer/index.html'>Service Management Layer</a>
+    <li><a href='./SoftwareDefinedInfrastructure/index.html'>Software Defined Infrastructure</a>
+    
+</ul>
+
+<h3>Classes</h3>
+<ul>
+
+</ul>
+
+
+
+<h2>Activities and Flows</h2>
+The edgemere subsystem provides the following activities and flows.
+
+<img src='./Process.puml'></img>
+
+<h2>Deployment Architecture</h2>
+This subsystem is deployed using micro-services as shown in the diagram below. The 'micro' module is
+used to implement the micro-services in the system.
+The subsystem also has an CLI, REST and Web Interface exposed through a sailajs application. The sailsjs
+application will interface with the micro-services and can monitor and drive work-flows through the mesh of
+micro-services.
+
+<img src='./Deployment.puml'> </img>
+
+<h2>Physical Architecture</h2>
+The edgemere subsystem is is physically laid out on a hybrid cloud infrastructure. Each microservice is shown
+how they connect to each other. All of the micro-services communicate to each other and the main app through a
+REST interface. A CLI, REST or Web interface for the app is how other subsystems or actors interact. Requests are
+forwarded to micro-services through the REST interface of each micro-service.
+
+<img src='./Physical.puml'> </img>
+
+<h2>Micro-Services</h2>
+These are the micro-services for the subsystem. The combination of the micro-services help implement
+the subsystem's logic.
+
+<h2>Interface Details</h2>
+<div id="Action--mapp-create">
+<h3>/mapp/create</h3>
+<ul>
+<li>REST - /mapp/create</li>
+<li>bin -  mapp create</li>
+<li>js - .mapp.create</li>
+</ul>
+
+Create an app
+
+<table class="MethodTable">
+    <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Required</th>
+        <th>Description</th>
+    </tr>
+
+    <tr>
+        <td>scope</td>
+        <td>string</td>
+        <td>false</td>
+        <td>The scope of the Data Reference</td>
+    </tr>
+
+</table>
+
+
+</div>
+<div id="Action--mapp-show">
+<h3>/mapp/show</h3>
+<ul>
+<li>REST - /mapp/show</li>
+<li>bin -  mapp show</li>
+<li>js - .mapp.show</li>
+</ul>
+
+Show an app
+
+<table class="MethodTable">
+    <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Required</th>
+        <th>Description</th>
+    </tr>
+
+    <tr>
+        <td>scope</td>
+        <td>string</td>
+        <td>false</td>
+        <td>The scope of the Data Reference</td>
+    </tr>
+
+</table>
+
+
+</div>
+

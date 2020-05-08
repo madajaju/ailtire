@@ -32,5 +32,5 @@ networks:
   sibling:
     driver: overlay
   parent:
-    external:
-      name: ${APPNAME}_family
+    external: true
+    name: ${APPNAME}_family

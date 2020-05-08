@@ -1,5 +1,24 @@
 let funcHandler = require('./MethodProxy');
-
+/*
+statenet: {
+    StateName: {
+        description: "My Description of the state",
+        events: {
+            eventName: {
+                StateName: {
+                    condition: function(obj) { ... },
+                    action: function(obj) { ... },
+                }
+            },
+            eventName2 ...
+        }
+        actions: {
+            entry: { entry1: function(obj) { ... } },
+            exit: { exit1: function(obj) { ... } }
+        }
+    }
+}
+ */
 module.exports = {
 
     // Check if a statenet will allow the transition from current state
@@ -37,9 +56,9 @@ module.exports = {
             // Fire off the after actions in the current state.
             cStateObj = statenet[currentState];
             if (cStateObj.hasOwnProperty('actions')) {
-                if (cStateObj.actions.hasOwnProperty('after')) {
-                    for (i in cStateObj.actions.after) {
-                        cStateObj.actions.after[i](proxy);
+                if (cStateObj.actions.hasOwnProperty('exit')) {
+                    for (i in cStateObj.actions.exit) {
+                        cStateObj.actions.exit[i](proxy);
                     }
                 }
             }
@@ -49,9 +68,9 @@ module.exports = {
             }
             let nStateObj = statenet[transition.state];
             if (nStateObj.hasOwnProperty('actions')) {
-                if (nStateObj.actions.hasOwnProperty('before')) {
-                    for (let i in nStateObj.actions.before) {
-                        cStateObj.actions.before[i](proxy);
+                if (nStateObj.actions.hasOwnProperty('entry')) {
+                    for (let i in nStateObj.actions.entry) {
+                        cStateObj.actions.entry[i](proxy);
                     }
                 }
             }

@@ -113,18 +113,6 @@ module.exports = {
             }
         }
     },
-    /*    ownKeys: (oTarget, sKey) => {
-        },
-        has: (oTarget, sKey) => {
-
-        },
-        defineProperty: (oTarget, sKey, oDesc) => {
-
-        },
-        getOwnPropertyDescriptor: (oTarget, sKey) => {
-
-        }
-     */
 };
 
 function getHandler(obj, definition, prop) {

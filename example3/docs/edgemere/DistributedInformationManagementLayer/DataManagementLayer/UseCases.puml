@@ -1,0 +1,21 @@
+@startuml
+
+left to right direction
+Actor "Chief Data Officer" as ChiefDataOfficer
+Actor "Chief Data Officer" as ChiefDataOfficer
+Actor "Data Engineer" as DataEngineer
+Actor "Chief Data Officer" as ChiefDataOfficer
+
+
+rectangle "Data Management Layer" #lightblue {
+usecase "Manage Data Governance" as ManageDataGovernance
+    ChiefDataOfficer --> ManageDataGovernance
+    usecase "Manage Data Policies" as ManageDataPolicies
+    ChiefDataOfficer --> ManageDataPolicies
+    usecase "Manage Data Sources" as ManageDataSources
+    DataEngineer --> ManageDataSources
+    usecase "Manage Data Strategy" as ManageDataStrategy
+    ChiefDataOfficer --> ManageDataStrategy
+    }
+
+@enduml
