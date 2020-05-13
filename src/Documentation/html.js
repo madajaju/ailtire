@@ -62,10 +62,11 @@ const appGenerator = (app, output) => {
     Generator.process(files, output);
 };
 const indexGenerator = (name, output) => {
+    
     let files = {
         context: {
             basedir: output,
-            packages: global.packages,
+            packages: global.topPackage.subpackages,
             actors: global.actors,
             appName: name,
         },
@@ -166,12 +167,25 @@ const packageGenerator = (package, output) => {
             ':shortname:/Process.puml': {template: '/templates/Package/Process.puml'}
         }
     };
+    // Get the doc from the package and add them to the targets list
+    if(package.hasOwnProperty('doc')) {
+        for (let i in package.doc.files) {
+            let file = package.doc.files[i];
+            let sourcefile = path.resolve(package.doc.basedir + file);
+            if(file.includes('.ejs')) {
+                files.targets[`:shortname:/${file}`] = {template:`${sourcefile}`};
+            }
+            else {
+                files.targets[`:shortname:/${file}`] = {copy:`${sourcefile}`};
+            }
+        }
+    }
     Generator.process(files, output);
     for (let cname in package.classes) {
         modelGenerator(package.classes[cname].definition, output + '/' + files.context.shortname + '/models/');
     }
     for (let spname in package.subpackages) {
-        packageGenerator(package.subpackages[spname], output + '/' + files.context.shortname + '/');
+        packageGenerator(package.subpackages[spname], output + '/' + files.context.shortname);
     }
     for (let ucname in package.usecases) {
         useCaseGenerator(package.usecases[ucname], output + '/' + files.context.shortname + '/usecases');
