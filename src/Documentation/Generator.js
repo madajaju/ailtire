@@ -32,9 +32,14 @@ module.exports = {
 
 const processItem = (item, target, objects) => {
 
+    let relfile = __dirname + '/' + item.name;
+    let apath = path.resolve(relfile);
+    if(!fs.existsSync(apath)) {
+        // Try the absolute Path
+        relfile = item.name;
+        apath = path.resolve(relfile);
+    }
     if(item.action === 'template') {
-        let relfile = __dirname + '/' + item.name;
-        let apath = path.resolve(relfile);
         objects.partial = partialProcess;
         ejs.renderFile(apath, objects, {}, (err, str) => {
             if (err) {
@@ -55,8 +60,6 @@ const processItem = (item, target, objects) => {
         fs.mkdirSync(dirname, {recursive: true});
     }
     else if(item.action === 'copy') {
-        let relfile = __dirname + '/' + item.name;
-        let apath = path.resolve(relfile);
         let str = fs.readFileSync(apath);
         let dest = path.resolve(target);
         let dirname = path.dirname(dest);
@@ -66,10 +69,11 @@ const processItem = (item, target, objects) => {
 };
 const partialProcess = (file, objects) => {
     let apath = path.resolve(file);
+    objects.partial = partialProcess;
     if(!fs.existsSync(apath)) {
        apath = path.resolve(__dirname + '/' + file);
        if(!fs.existsSync(apath)) {
-           // console.error("Could not find", file);
+          console.error("Could not find", file);
           return "";
        }
     }

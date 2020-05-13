@@ -54,6 +54,11 @@ let reservedDirs = {
         loadActors(dir, prefix);
     },
     node_modules: (pkg, prefix, dir) => {
+        // Do Nothing.
+        // Just skip
+    },
+    doc: (pkg, prefix, dir) => {
+        pkg = loadDocs(pkg, prefix, dir);
     },
     deploy: (pkg, prefix, dir) => {
         pkg = loadDeploy(pkg, prefix, dir);
@@ -107,6 +112,16 @@ let reservedDirs = {
         }
     }
 };
+const loadDocs = (pkg, prefix, dir) => {
+    let files = getFiles(dir);
+    let nfiles = [];
+    for(let i in files) {
+        let file = files[i];
+        nfiles.push(file.replace(dir,''));
+    }
+    pkg.doc = { basedir: dir, files: nfiles };
+}
+
 const loadDeploy = (pkg, prefix, dir) => {
     pkg.deploy = {
         dir: dir,

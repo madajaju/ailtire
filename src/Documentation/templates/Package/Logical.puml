@@ -1,12 +1,32 @@
 @startuml
 
-package "User" #ffffcc {
-
+<%
+let pkgs = {};
+for(let cname in package.classes) {
+    let cls = package.classes[cname].definition;
+    for(let aname in cls.associations) {
+        let assoc = cls.associations[aname];
+        let atype = assoc.type;
+        let aclass = global.classes[atype];
+        if(aclass) {
+            let pkg = aclass.definition.package;
+            if(!pkgs.hasOwnProperty(pkg.shortname)) {
+                pkgs[pkg.shortname] = {name: pkg.name, color: pkg.color, classes:{}};
+            }
+            pkgs[pkg.shortname].classes[atype] = 1;
+        }
+    }
 }
-
-package "Used" #ffffcc {
-
+for(let pname in pkgs) {
+    let pkg = pkgs[pname];
+%>
+package "<%= pkg.name %>" <%= pkg.color %> {
+    <% for(let cname in pkg.classes) { %>
+        class <%= cname %> {
+        }
+    <% } -%>
 }
+<% } %>
 
 package "<%= package.name %>" <%= package.color %> {
 
@@ -39,21 +59,19 @@ package "<%= package.name %>" <%= package.color %> {
         let assoc = cls.associations[aname];
         -%>
         <% if(assoc.owner) { -%>
-        <%= cname %> *--> "<%= assoc.cardinality %>" <%= assoc.type %> : <%= aname %>
+    <%= cname %> *--> "<%= assoc.cardinality %>" <%= assoc.type %> : <%= aname %>
         <% } else { -%>
-        <%= cname %> o--> "<%= assoc.cardinality %>" <%= assoc.type %> : <%= aname %>
+    <%= cname %> o--> "<%= assoc.cardinality %>" <%= assoc.type %> : <%= aname %>
         <% } -%>
     <% } %>
 
 <% } %>
 
 <% for(let spname in package.subpackages) { %>
-package <%= spname %> {
+package <%= spname %> #white {
 }
 <% } -%>
 
 }
-User --> i
-"<%= package.name %>" --> Used
 
 @enduml

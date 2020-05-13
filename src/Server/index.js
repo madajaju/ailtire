@@ -15,7 +15,7 @@ const htmlGenerator = require('../Documentation/html');
 plantuml.useNailgun();
 
 // Here we are configuring express to use body-parser as middle-ware.
-server.use(bodyParser.urlencoded({ extended: false }));
+server.use(bodyParser.urlencoded({extended: false}));
 server.use(bodyParser.json());
 
 module.exports = {
@@ -28,54 +28,53 @@ module.exports = {
         // Action.load(server, '', path.resolve(ailPath)); // Load the ailtire defaults from the interface directory.
         Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'));
         // Action.mapRoutes(server, config.routes);
-        htmlGenerator.index(config.prefix,apath + '/docs');
+        htmlGenerator.index(config.prefix, apath + '/docs');
         htmlGenerator.package(global.topPackage, apath + '/docs');
         htmlGenerator.actors(global.actors, apath + '/docs');
 
-        server.get('/styles/*', (req,res) => {
+        server.get('/styles/*', (req, res) => {
             let apath = path.resolve('./docs/assets' + req.url);
             let str = fs.readFileSync(apath, 'utf8');
             res.send(str);
         });
-        server.get('/js/*', (req,res) => {
+        server.get('/js/*', (req, res) => {
             let apath = path.resolve('./docs/assets' + req.url);
             let str = fs.readFileSync(apath, 'utf8');
             res.send(str);
         });
-        server.get('*.html', (req,res) => {
+        server.get('*.html', (req, res) => {
             let apath = path.resolve('./docs/' + req.url);
             res.sendFile(apath);
         });
-        server.get('*.png', (req,res) => {
+        server.get('*.png', (req, res) => {
             let apath = path.resolve('./docs/' + req.url);
             // res.sendFile(apath, { root: __dirname });
             res.sendFile(apath);
         });
-        server.get('*.jpg', (req,res) => {
+        server.get('*.jpg', (req, res) => {
             let apath = path.resolve('./docs/' + req.url);
             // res.sendFile(apath, { root: __dirname });
             res.sendFile(apath);
         });
-        server.get('*.puml', (req,res) => {
+        server.get('*.puml', (req, res) => {
             let apath = path.resolve('./docs/' + req.url);
-            if(fs.existsSync(apath)) {
+            if (fs.existsSync(apath)) {
                 res.set('Content-Type', 'image/svg+xml');
                 let gen = plantuml.generate(apath, {format: 'svg'});
                 gen.out.pipe(res);
-            }
-            else {
+            } else {
                 console.error(req.url + ' not found!');
                 res.end(req.url + ' not found!');
             }
         });
-        server.get('/doc/actor/*', (req,res) => {
-            let actorName = req.url.replace(/\/doc\/actor\//,'');
+        server.get('/doc/actor/*', (req, res) => {
+            let actorName = req.url.replace(/\/doc\/actor\//, '');
             let apath = `/actors/${actorName}/index.html`;
             res.redirect(apath)
             // res.sendFile('index.html', {root: apath});
         });
-        server.get('/doc/usecase/*', (req,res) => {
-            let name = req.url.replace(/\/doc\/usecase\//,'');
+        server.get('/doc/usecase/*', (req, res) => {
+            let name = req.url.replace(/\/doc\/usecase\//, '');
             // Name is Package.SubPackage.Name
             let names = name.split('/');
             let ucName = names.pop();
@@ -84,8 +83,8 @@ module.exports = {
             let apath = `/${uidName}/usecases/${ucName}/index.html`;
             res.redirect(apath)
         });
-        server.get('/doc/model/*', (req,res) => {
-            let name = req.url.replace(/\/doc\/model\//,'');
+        server.get('/doc/model/*', (req, res) => {
+            let name = req.url.replace(/\/doc\/model\//, '');
             let names = name.split('/');
             let mName = names.pop();
             let prefix = names.join('/');
@@ -93,13 +92,13 @@ module.exports = {
             res.redirect(apath)
             // res.sendFile('index.html', {root: apath});
         });
-        server.get('/doc/package/*', (req,res) => {
-            let name = req.url.replace(/\/doc\/package\//,'');
+        server.get('/doc/package/*', (req, res) => {
+            let name = req.url.replace(/\/doc\/package\//, '');
             let apath = `/${name}/index.html`;
             res.redirect(apath)
             // res.sendFile('index.html', {root: apath});
         });
-        server.get('/', (req,res) => {
+        server.get('/', (req, res) => {
             res.redirect('/index.html');
         });
 
@@ -109,8 +108,8 @@ module.exports = {
     listen: (config) => {
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
-        if(config.hasOwnProperty('redis')) {
-           io.adapter(redis({ host: config.redis.host, port: config.redis.port }));
+        if (config.hasOwnProperty('redis')) {
+            io.adapter(redis({host: config.redis.host, port: config.redis.port}));
         }
 
         Action.defaults(server);
@@ -121,50 +120,55 @@ module.exports = {
 
         server.get('/init', (req, res) => {
             let retval = {};
-            for(let path in global.actions) {
-                retval[path] = { name: path, inputs: global.actions[path].inputs,friendlyName: global.actions[path].friendlyName, description: global.actions[path].description };
+            for (let path in global.actions) {
+                let prunedPath = path.replace(/\//, '').replace(config.prefix, '');
+                retval[prunedPath] = {
+                    name: prunedPath,
+                    inputs: global.actions[path].inputs,
+                    friendlyName: global.actions[path].friendlyName,
+                    description: global.actions[path].description
+                };
             }
             res.json(retval);
         });
 
-        server.get('/', (req,res) => {
+        server.get('/', (req, res) => {
             console.error("Hello Error", req);
         });
-        server.get('/styles/*', (req,res) => {
+        server.get('/styles/*', (req, res) => {
             let apath = path.resolve('./assets' + req.url);
             let str = fs.readFileSync(apath, 'utf8');
             res.send(str);
         });
-        server.get('/js/*', (req,res) => {
+        server.get('/js/*', (req, res) => {
             let apath = path.resolve('./assets' + req.url);
             let str = fs.readFileSync(apath, 'utf8');
             res.send(str);
         });
-        server.get('*.html', (req,res) => {
+        server.get('*.html', (req, res) => {
             let apath = path.resolve('./' + req.url);
             // res.sendFile(apath, { root: __dirname });
             res.sendFile(apath);
         });
-        server.get('*.puml', (req,res) => {
+        server.get('*.puml', (req, res) => {
             let apath = path.resolve('./' + req.url);
-            if(fs.existsSync(apath)) {
+            if (fs.existsSync(apath)) {
                 res.set('Content-Type', 'image/svg+xml');
                 let gen = plantuml.generate(apath, {format: 'svg'});
                 gen.out.pipe(res);
-            }
-            else {
+            } else {
                 console.error(req.url + ' not found!');
                 res.end(req.url + ' not found!');
             }
         });
-        server.get('/doc/actor/*', (req,res) => {
-            let actorName = req.url.replace(/\/doc\/actor\//,'');
+        server.get('/doc/actor/*', (req, res) => {
+            let actorName = req.url.replace(/\/doc\/actor\//, '');
             let apath = '/docs/actors/' + actorName + '/index.html';
             res.redirect(apath)
             // res.sendFile('index.html', {root: apath});
         });
-        server.get('/doc/usecase/*', (req,res) => {
-            let name = req.url.replace(/\/doc\/usecase\//,'');
+        server.get('/doc/usecase/*', (req, res) => {
+            let name = req.url.replace(/\/doc\/usecase\//, '');
             // Name is Package.SubPackage.Name
             let names = name.split(/\./);
             let ucName = names.pop();
@@ -173,14 +177,14 @@ module.exports = {
             let apath = '/docs/edgemere/' + uidName + '/usecases/' + ucName + '/index.html';
             res.redirect(apath)
         });
-        server.get('/doc/model/*', (req,res) => {
-            let actorName = req.url.replace(/\/doc\/model\//,'');
+        server.get('/doc/model/*', (req, res) => {
+            let actorName = req.url.replace(/\/doc\/model\//, '');
             let apath = '/docs/edgemere/' + actorName + '/index.html';
             res.redirect(apath)
             // res.sendFile('index.html', {root: apath});
         });
-        server.get('/doc/package/*', (req,res) => {
-            let actorName = req.url.replace(/\/doc\/package\//,'');
+        server.get('/doc/package/*', (req, res) => {
+            let actorName = req.url.replace(/\/doc\/package\//, '');
             let apath = '/docs/actors/' + actorName + '/index.html';
             res.redirect(apath)
             // res.sendFile('index.html', {root: apath});
@@ -199,10 +203,10 @@ module.exports = {
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
 
-        if(!config.hasOwnProperty('redis')) {
-            config.redis = { host: 'redis', port: 6379};
+        if (!config.hasOwnProperty('redis')) {
+            config.redis = {host: 'redis', port: 6379};
         }
-        io.adapter(redis({ host: config.redis.host, port: config.redis.port }));
+        io.adapter(redis({host: config.redis.host, port: config.redis.port}));
 
         Action.defaults(server);
         let ailPath = __dirname + "/../../interface";
@@ -212,13 +216,13 @@ module.exports = {
 
         Action.mapRoutes(server, config.routes);
 
-        server.get('/', (req,res) => {
+        server.get('/', (req, res) => {
             console.error("Hello Error", req.originalUrl);
             res.end(req.originalUrl);
         });
-        server.all('*', (req,res) => {
+        server.all('*', (req, res) => {
             console.error("Catch All", req.originalUrl);
-            for(let i in global.actions) {
+            for (let i in global.actions) {
                 console.error("Path: ", i);
             }
             res.end(req.originalUrl);
@@ -244,15 +248,15 @@ module.exports = {
         Action.defaults(server);
         Action.mapRoutes(server, config.routes);
 
-        server.get('/', (req,res) => {
+        server.get('/', (req, res) => {
             console.error("Hello Error", req);
         });
-        server.get('/styles/*', (req,res) => {
+        server.get('/styles/*', (req, res) => {
             let apath = path.resolve('./assets' + req.url);
             let str = fs.readFileSync(apath, 'utf8');
             res.end(str);
         });
-        server.get('/js/*', (req,res) => {
+        server.get('/js/*', (req, res) => {
             let apath = path.resolve('./assets' + req.url);
             let str = fs.readFileSync(apath, 'utf8');
             res.end(str);

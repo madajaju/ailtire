@@ -22,6 +22,25 @@ let actorNoSpaces = actors[aname].shortname;
 <% for(let sname in usecase.scenarios) {
 let nameNoSpaces = sname.replace(/ /g, '');
 -%>
-<li><a href='./Scenario-<%= nameNoSpaces %>'><%= sname %></a></li>
+<li><a href='#Scenario-<%= nameNoSpaces %>'><%= sname %></a></li>
 <% } %>
 </ul>
+<% for(let sname in usecase.scenarios) {
+let nameNoSpaces = sname.replace(/ /g, '');
+let scenario = usecase.scenarios[sname];
+let pkgPath = global.packages[usecase.package.replace(/ /g, '')].prefix;
+-%>
+<h3 id='Scenario-<%= nameNoSpaces %>'><%= sname %></h3>
+<%= scenario.description %>
+<h4>Action</h4>
+<a href='/doc/package<%= pkgPath %>#Action-<%= scenario.method.replace(/\//g, '-') %>'><%= scenario.method %>(...)</a>
+<h4>Actors</h4>
+<ul>
+<% for(let aname in scenario.actors) {
+    let actor = global.actors[aname];
+%>
+<li><a href='./doc/actor/<%= actor.shortname %>'><%= aname %> </a></li>
+</ul>
+
+<% } %>
+<% } %>

@@ -6,6 +6,7 @@ body {
 img {
   margin: 0px 50px;
   display: block;
+  max-width: calc(100% - 330px);
 }
 
 table, th, td {
@@ -14,14 +15,20 @@ table, th, td {
 }
 
 .leftContent {
+  font: 10pt arial;
   float: left;
-  width: 200px;
+  width: 300px;
+  height: 100%;
+  overflow-y: scroll;
 }
 .leftContent ul {
   list-style-type: none;
 }
 .leftContent ul li {
   margin-left: -40px;
+}
+.treeview ul li {
+  margin-left: -30px;
 }
 .leftContent a:link {
   text-decoration: none;
@@ -31,5 +38,6 @@ table, th, td {
 }
 .rightContent {
   float: left;
-  width: calc(100% - 220px);
+  width: calc(100% - 320px);
+  height: 100%;
 }
