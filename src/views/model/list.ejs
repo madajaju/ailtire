@@ -5,11 +5,10 @@
 <script src="/js/socket.io.js"></script>
 <script>
     const socket = io('http://localhost:8080');
-    socket.on('<%= className %>.create', (data) => {
+    socket.on('<%= className.toLowerCase() %>.create', (data) => {
         let obj = data.obj;
         let list = document.getElementById("<%= className %>-list");
         let innerHTML = "";
-
         innerHTML += '<tr id="<%= className %>-' + obj._attributes.id + '" >';
         innerHTML += '<td>' + obj._attributes.id + '</td>';
         innerHTML += '<td><a href="/<%= className %>?id=' +

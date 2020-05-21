@@ -4,6 +4,7 @@ const classProxy = require('../Proxy/ClassProxy');
 const packageProxy = require('../Proxy/PackageProxy');
 const apiGenerator = require('../Documentation/api');
 const YAML = require('yamljs');
+const AClass = require('./AClass');
 
 module.exports = {
     processPackage: (dir) => {
@@ -58,7 +59,7 @@ let reservedDirs = {
         // Just skip
     },
     doc: (pkg, prefix, dir) => {
-        pkg = loadDocs(pkg, prefix, dir);
+        loadDocs(pkg, dir);
     },
     deploy: (pkg, prefix, dir) => {
         pkg = loadDeploy(pkg, prefix, dir);
@@ -93,6 +94,7 @@ let reservedDirs = {
                 global.classes[myClass.definition.name] = myProxy;
                 global[myClass.definition.name] = myProxy;
             }
+            loadDocs(myClass, modelDir + '/doc');
             loadClassMethods(myClass, modelDir);
         }
     },
@@ -108,18 +110,24 @@ let reservedDirs = {
             myUC.package = pkg.name;
             myUC.prefix = pkg.prefix;
             pkg.usecases[myUC.name.replace(/\s/g,'')] = myUC;
+            loadDocs(myUC, ucDir + '/doc');
             loadUCScenarios(myUC, ucDir);
         }
     }
 };
-const loadDocs = (pkg, prefix, dir) => {
-    let files = getFiles(dir);
-    let nfiles = [];
-    for(let i in files) {
-        let file = files[i];
-        nfiles.push(file.replace(dir,''));
+const loadDocs = (pkg, dir) => {
+    if(fs.existsSync(dir)) {
+        let files = getFiles(dir);
+        let nfiles = [];
+        let ndir = dir;
+        ndir = ndir.replace(/[\/\\]/g, '/');
+        for (let i in files) {
+            let file = files[i];
+            let nfile = file.replace(/[\/\\]/g, '/');
+            nfiles.push(nfile.replace(ndir, ''));
+        }
+        pkg.doc = {basedir: dir, files: nfiles};
     }
-    pkg.doc = { basedir: dir, files: nfiles };
 }
 
 const loadDeploy = (pkg, prefix, dir) => {
@@ -263,6 +271,20 @@ const loadDirectory = (dir, prefix) => {
 
 const checkPackage = (pkg) => {
     // check the package for consistencies
+    // Check the Depends
+    let depends = [];
+    for(let i in pkg.depends) {
+        let depend = pkg.depends[i].replace(/\s/g, '');
+        let dpkg;
+        if(global.packages.hasOwnProperty(depend)) {
+            dpkg = global.packages[depend];
+            depends.push(dpkg);
+        }
+        else {
+            console.error("Package in Depends not found:", depend, " in ", pkg.name);
+        }
+    }
+    pkg.depends = depends;
     // associations,
     // attributes.
     // Inheritance relationship check.
@@ -270,7 +292,7 @@ const checkPackage = (pkg) => {
         let cls = pkg.classes[i];
         if (cls.definition.hasOwnProperty('extends')) {
             if (global.classes.hasOwnProperty(cls.definition.extends)) {
-                let parentCls = global.classes[cls.definition.extends];
+                let parentCls = AClass.getClass(cls.definition.extends);
                 if (!parentCls.definition.hasOwnProperty('subClasses')) {
                     parentCls.definition.subClasses = [];
                 }
@@ -301,7 +323,7 @@ const checkPackage = (pkg) => {
                         }
                     }
                     if (parentCls.definition.hasOwnProperty('extends')) {
-                        parentCls = global.classes[parentCls.definition.extends];
+                        parentCls = AClass.getClass(parentCls.definition.extends);
                     } else {
                         parentCls = null;
                     }
@@ -333,9 +355,30 @@ const checkPackage = (pkg) => {
         if (actionName[0] !== '/') {
             actionName = pkg.prefix + '/' + actionName;
         }
+        else {
+            let pkgs = pkg.prefix.split('/');
+            let actions = actionName.split('/');
+            let nactionpath = [];
+            let i=1;
+            let j=1;
+            while(j < pkgs.length) {
+                if(pkgs[j] !== actions[i]) {
+                    nactionpath.push(pkgs[j])
+                    j++;
+                }
+                else {
+                   while(i < actions.length) {
+                        nactionpath.push(actions[i]);
+                        i++;
+                   }
+                   j = pkgs.length;
+                }
+            }
+            actionName = '/' + nactionpath.join('/');
+        }
         actionName = actionName.toLowerCase();
         if (!actionName.includes(pkg.shortname.toLowerCase())) {
-            // console.warn("Method is not part of the intreface!", actionName);
+           // console.warn("Method is not part of the intreface!", actionName);
         } else {
             if (!global.actions.hasOwnProperty(actionName)) {
                 console.warn("Action does not exist creating:", actionName, usecase.method);

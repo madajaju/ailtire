@@ -24,7 +24,7 @@
          <td align="right"><%= name %></td>
          <% if(obj[name]) { %>
             <% if(assoc.cardinality === 1) { %>
-               <td class="hoverable" id="<%= obj[name].id %>" onmouseover="window.graph.selectNode('<%= obj[name].id %>');"><a href="/<%= assoc.type %>/show?id=<%= obj[name].id %>">
+               <td class="hoverable" id="<%= obj[name].id %>" onmouseover="window.graph.selectNode('<%= obj[name].id %>');"><a href="/<%= assoc.type %>?id=<%= obj[name].id %>">
                    <%
                    let dname = obj[name].toString();
                    if(dname.length > 0) {
@@ -39,7 +39,7 @@
                 <% for(let ai in obj[name]) {
                     %>
                         <tr id="<%=obj[name][ai].id%>" class="hoverable" onmouseover="window.graph.selectNode('<%= obj[name][ai].id %>');">
-                            <td><a href="/<%= assoc.type %>/show?id=<%= obj[name][ai].id %>"><%= obj[name][ai].toString() %></a></td>
+                            <td><a href="/<%= assoc.type %>?id=<%= obj[name][ai].id %>"><%= obj[name][ai].toString() %></a></td>
                         </tr>
                 <% } %>
                 </table></td>
@@ -102,7 +102,7 @@
          %>
         graph.simulate(data);
 
-        socket.on('<%= className %>.update', (res) => {
+        socket.on('<%= className.toLowerCase() %>.update', (res) => {
             let obj = res.obj;
             let oid = obj._attributes.id;
             let level = obj.package;

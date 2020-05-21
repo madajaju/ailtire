@@ -12,7 +12,7 @@ const bodyParser = require("body-parser");
 const plantuml = require('node-plantuml');
 const htmlGenerator = require('../Documentation/html');
 
-plantuml.useNailgun();
+// plantuml.useNailgun();
 
 // Here we are configuring express to use body-parser as middle-ware.
 server.use(bodyParser.urlencoded({extended: false}));
@@ -48,13 +48,21 @@ module.exports = {
         });
         server.get('*.png', (req, res) => {
             let apath = path.resolve('./docs/' + req.url);
-            // res.sendFile(apath, { root: __dirname });
-            res.sendFile(apath);
+            if (fs.existsSync(apath)) {
+                res.sendFile(apath);
+            }
+            else {
+                res.end(apath + " not found!!");
+            }
         });
         server.get('*.jpg', (req, res) => {
             let apath = path.resolve('./docs/' + req.url);
-            // res.sendFile(apath, { root: __dirname });
-            res.sendFile(apath);
+            if (fs.existsSync(apath)) {
+                res.sendFile(apath);
+            }
+            else {
+                res.end(apath + " not found!!");
+            }
         });
         server.get('*.puml', (req, res) => {
             let apath = path.resolve('./docs/' + req.url);
@@ -108,9 +116,10 @@ module.exports = {
     listen: (config) => {
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
-        if (config.hasOwnProperty('redis')) {
+        /*if (config.hasOwnProperty('redis')) {
             io.adapter(redis({host: config.redis.host, port: config.redis.port}));
         }
+         */
 
         Action.defaults(server);
         let ailPath = __dirname + "/../../interface";
@@ -121,7 +130,7 @@ module.exports = {
         server.get('/init', (req, res) => {
             let retval = {};
             for (let path in global.actions) {
-                let prunedPath = path.replace(/\//, '').replace(config.prefix, '');
+                let prunedPath = path.replace('\/' + config.prefix,'');
                 retval[prunedPath] = {
                     name: prunedPath,
                     inputs: global.actions[path].inputs,
@@ -192,7 +201,6 @@ module.exports = {
 
         global.io = io;
         io.on('connection', function (msocket) {
-            console.log("IO ON, Connection");
             AEvent.addHandlers(msocket);
         });
 
@@ -230,7 +238,6 @@ module.exports = {
         global.io = io;
 
         io.on('connection', function (msocket) {
-            console.log("Micro IO ON, Connection");
             AEvent.addHandlers(msocket);
         });
 

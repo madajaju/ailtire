@@ -3,7 +3,7 @@ const bent = require('bent');
 module.exports = {
     call: async (action, opts) => {
         let actions = action.split('.');
-        let fn = findService(global.services, actions);
+        let fn = findService(global.services[global.topPackage.shortname], actions);
         if (fn) {
             return fn(opts);
         } else {

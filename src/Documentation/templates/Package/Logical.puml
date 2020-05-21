@@ -2,6 +2,10 @@
 
 <%
 let pkgs = {};
+for(let i in package.depends) {
+    let dpkg = package.depends[i];
+    pkgs[dpkg.shortname] = {name: dpkg.name, color:dpkg.color, classes:{}};
+}
 for(let cname in package.classes) {
     let cls = package.classes[cname].definition;
     for(let aname in cls.associations) {
@@ -37,11 +41,13 @@ package "<%= package.name %>" <%= package.color %> {
         <%= iname %>()
     <% } %>
     }
+}
 
+CLI ()-- i
+REST ()-- i
+Web ()-- i
 
-    CLI ()-- i
-    REST ()-- i
-    Web ()-- i
+package "<%= package.name %>" <%= package.color %> {
     <% for(let cname in package.classes) {
         let cls = package.classes[cname].definition;
     -%>
@@ -64,14 +70,33 @@ package "<%= package.name %>" <%= package.color %> {
     <%= cname %> o--> "<%= assoc.cardinality %>" <%= assoc.type %> : <%= aname %>
         <% } -%>
     <% } %>
-
+    <% if(cls.extends) { %>
+        <%= cls.extends %> <|-- <%= cname %>
+    <% } %>
 <% } %>
 
-<% for(let spname in package.subpackages) { %>
-package <%= spname %> #white {
+<% for(let spname in package.subpackages) {
+    let pkg = package.subpackages[spname];
+%>
+rectangle "<%= pkg.name %>" <%= pkg.color %> {
 }
 <% } -%>
-
+<% for(let spname in package.subpackages) {
+    let spkg = package.subpackages[spname];
+    for(let i in spkg.depends) {
+    let dpkg = spkg.depends[i];
+    %>
+    "<%= spkg.name %>" --> "<%= dpkg.name %>"
+    <%
+    }
 }
+%>
+}
+
+<% for(let i in package.depends) {
+    let dpkg = package.depends[i];
+    %>
+    "<%= package.name %>" --> "<%= dpkg.name %>"
+<% } %>
 
 @enduml

@@ -4,6 +4,7 @@ const removeFromRegex = /^removeFrom/;
 const clearRegex = /^clear/;
 const funcHandler = require('./MethodProxy');
 const stateNetHandler = require('./StateNetProxy');
+const AClass = require('../Server/AClass');
 
 let toJSONDepth = 10;
 
@@ -157,11 +158,15 @@ function getHandler(obj, definition, prop) {
                     for (let j in assoc) {
                         if (definition.associations[i].owner) {
                             toJSONDepth--;
-                            assocs[i][j] = assoc[j].toJSON;
+                            if (assoc[j]) {
+                                assocs[i][j] = assoc[j].toJSON;
+                            }
                             toJSONDepth++;
                         } else {
                             toJSONDepth--;
-                            assocs[i][j] = assoc[j].id;
+                            if (assoc[j]) {
+                                assocs[i][j] = assoc[j].id;
+                            }
                             toJSONDepth++;
                         }
                     }
@@ -253,7 +258,7 @@ function getHandler(obj, definition, prop) {
                 while (myDef) {
                     if (myDef.hasOwnProperty('extends')) {
                         let parent = myDef.extends;
-                        let newObj = global.classes[parent];
+                        let newObj = AClass.getClass(parent);
                         myDef = newObj.definition;
                         if (myDef.methods.hasOwnProperty('create')) {
                             return funcHandler.run(myDef.methods.create, this, args[0]);
@@ -350,6 +355,9 @@ function getHandler(obj, definition, prop) {
 
 function addToAssoc(simpleProp, obj, proxy, item) {
     let child = null;
+    if(item === null) { // do not add a null to the assoication
+        return null;
+    }
     // retrieve the object and add it to the array if a number is passed in.
     if (typeof item === 'number') {
         if (global._instances.hasOwnProperty(item)) {
@@ -358,10 +366,20 @@ function addToAssoc(simpleProp, obj, proxy, item) {
             console.error(prop, "could not find the object with id:", item);
             return null;
         }
+    } else if (Array.isArray(item)) { // Check if it is an array of objects. if so then recursively add to the association.
+        let retval = [];
+        for (let i in item) {
+            retval.push(addToAssoc(simpleProp, obj, proxy, item[i]));
+        }
+        return retval;
     } else if (typeof item === 'object') {
         // Create a new object if the item being passed in is a simple Object.
         // Add to the array if it is a object of the correct type.
         if (item.definition) {
+            if(!obj.definition.associations.hasOwnProperty(simpleProp)) {
+                console.error("Cannot Add to unknown property:", simpleProp);
+                return;
+            }
             if (isTypeOf(item, obj.definition.associations[simpleProp].type)) {
                 child = item;
             } else {
@@ -369,7 +387,7 @@ function addToAssoc(simpleProp, obj, proxy, item) {
                 return;
             }
         } else {
-            let newClass = global.classes[obj.definition.associations[simpleProp].type];
+            let newClass = AClass.getClass(obj.definition.associations[simpleProp].type);
             child = new newClass(item);
         }
     }
@@ -385,7 +403,7 @@ function addToAssoc(simpleProp, obj, proxy, item) {
         obj._associations[simpleProp].push(child);
     }
     // Add the back link with via
-    if(obj.definition.associations[simpleProp].hasOwnProperty('via')) {
+    if (obj.definition.associations[simpleProp].hasOwnProperty('via')) {
         let via = obj.definition.associations[simpleProp].via;
         child[via] = proxy;
     }

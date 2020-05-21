@@ -6,7 +6,7 @@
 <h1><%= usecase.name %></h1>
 <%= usecase.description %>
 
-<img src='./Activities.puml'></img>
+<img src='./Activities.puml'>
 
 <h2>Actors</h2>
 <ul>
@@ -32,6 +32,8 @@ let pkgPath = global.packages[usecase.package.replace(/ /g, '')].prefix;
 -%>
 <h3 id='Scenario-<%= nameNoSpaces %>'><%= sname %></h3>
 <%= scenario.description %>
+<img src="./<%= scenario.name.replace(/\s/,'') %>.puml">
+
 <h4>Action</h4>
 <a href='/doc/package<%= pkgPath %>#Action-<%= scenario.method.replace(/\//g, '-') %>'><%= scenario.method %>(...)</a>
 <h4>Actors</h4>

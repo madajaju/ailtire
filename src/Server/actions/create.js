@@ -1,5 +1,6 @@
 const path = require('path');
 const AEvent = require('../AEvent');
+const AClass = require('../AClass');
 
 module.exports = {
     friendlyName: 'create',
@@ -25,14 +26,15 @@ module.exports = {
         // inputs contains the obj for the this method.
         let modelName = env.req.originalUrl.split(/\//)[1];
         if(inputs.mode === 'json') {
-            let newObj = new global.classes[modelName](env.req.body);
+            let cls = AClass.getClass(modelName);
+            let newObj = new cls(env.req.body);
             let jobj = newObj.toJSON;
             AEvent.emit(modelName + '.create', { obj: jobj });
             env.res.json({results: "Created Object"});
         }
         else {
             // Remove the cls  from the inputs so they are not passed down to the constructor
-            let newObj = new global.classes[modelName](inputs);
+            let newObj = new AClass.getClass(modelName)(inputs);
             AEvent.emit(modelName + '.create', { obj: newObj.toJSON });
             env.res.redirect(`/${modelName}?id=${newObj.id}`)
         }
