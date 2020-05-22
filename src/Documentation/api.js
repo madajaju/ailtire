@@ -204,6 +204,7 @@ const scenarioGenerator = (pkg, usecase, name, output) => {
         },
         targets: {
             ':nameNoSpace:.js': {template: '/templates/Scenario/scenario.js'},
+            'doc/:nameNoSpace:.puml': {template: '/templates/Scenario/Scenario.puml'},
         }
     };
     Generator.process(files, output);

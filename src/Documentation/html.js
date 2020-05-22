@@ -26,7 +26,8 @@ const appGenerator = (app, output) => {
         context: {
             name: app,
             nameNoSpace: app.replace(/ /g, ''),
-            path: output
+            path: output,
+            shortname: app.replace(/ /g,'')
         },
         targets: {
             'index.js': {template: '/templates/App/index.js'},
@@ -59,10 +60,11 @@ const appGenerator = (app, output) => {
             'docs/plantuml.jar': {copy: '/templates/App/plantuml.jar'}
         }
     };
+    addDocs(app, files);
     Generator.process(files, output);
 };
 const indexGenerator = (name, output) => {
-    
+
     let files = {
         context: {
             basedir: output,
@@ -84,6 +86,7 @@ const modelGenerator = (model, output) => {
     let files = {
         context: {
             model: model,
+            shortname: model.name.replace(/ /g, ''),
             modelname: model.name,
             modelnamenospace: model.name.replace(/ /g, ''),
         },
@@ -93,6 +96,7 @@ const modelGenerator = (model, output) => {
             './:modelnamenospace:/StateNet.puml': {template: '/templates/Model/StateNet.puml'},
         }
     };
+    addDocs(model, files);
     Generator.process(files, output);
 };
 const packageGenerator = (package, output) => {
@@ -153,7 +157,7 @@ const packageGenerator = (package, output) => {
             package: package,
             actors: actors,
             packageName: package.name,
-            shortname: package.shortname,
+            shortname: package.shortname.replace(/ /g, ''),
             packageNameNoSpace: package.name.replace(/ /g, ''),
         },
         targets: {
@@ -168,18 +172,7 @@ const packageGenerator = (package, output) => {
         }
     };
     // Get the doc from the package and add them to the targets list
-    if(package.hasOwnProperty('doc')) {
-        for (let i in package.doc.files) {
-            let file = package.doc.files[i];
-            let sourcefile = path.resolve(package.doc.basedir + file);
-            if(file.includes('.ejs')) {
-                files.targets[`:shortname:/${file}`] = {template:`${sourcefile}`};
-            }
-            else {
-                files.targets[`:shortname:/${file}`] = {copy:`${sourcefile}`};
-            }
-        }
-    }
+    addDocs(package, files);
     Generator.process(files, output);
     for (let cname in package.classes) {
         modelGenerator(package.classes[cname].definition, output + '/' + files.context.shortname + '/models/');
@@ -195,6 +188,7 @@ const useCaseGenerator = (usecase, output) => {
     let files = {
         context: {
             usecase: usecase,
+            shortname: usecase.name.replace(/ /g, ''),
             usecaseName: usecase.name,
             usecaseNameNoSpace: usecase.name.replace(/ /g, ''),
             actors: global.actors
@@ -204,6 +198,8 @@ const useCaseGenerator = (usecase, output) => {
             ':usecaseNameNoSpace:/Activities.puml': {template: '/templates/UseCase/Activities.puml'},
         }
     };
+    // Get the doc from the package and add them to the targets list
+    addDocs(usecase, files);
     Generator.process(files, output);
 };
 const actorGenerator = (actor, output) => {
@@ -234,5 +230,33 @@ const actorGenerator = (actor, output) => {
             ':actorNameNoSpace:/UseCase.puml': {template: '/templates/Actor/UseCase.puml'},
         }
     };
+    // Get the doc from the package and add them to the targets list
+    if(actor.hasOwnProperty('doc')) {
+        for (let i in actor.doc.files) {
+            let file = actor.doc.files[i];
+            let sourcefile = path.resolve(actor.doc.basedir + file);
+            if(file.includes('.ejs')) {
+                files.targets[`:shortname:/${file}`] = {template:`${sourcefile}`};
+            }
+            else {
+                files.targets[`:shortname:/${file}`] = {copy:`${sourcefile}`};
+            }
+        }
+    }
     Generator.process(files, output);
 };
+
+const addDocs = (obj, files) => {
+    if(obj.hasOwnProperty('doc')) {
+        for (let i in obj.doc.files) {
+            let file = obj.doc.files[i];
+            let sourcefile = path.resolve(obj.doc.basedir + file);
+            if(file.includes('.ejs')) {
+                files.targets[`:shortname:/${file}`] = {template:`${sourcefile}`};
+            }
+            else {
+                files.targets[`:shortname:/${file}`] = {copy:`${sourcefile}`};
+            }
+        }
+    }
+}

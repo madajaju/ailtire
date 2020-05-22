@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const renderer = require('../../Documentation/Renderer.js');
+const AClass = require('../../Server/AClass');
 
 module.exports = {
     friendlyName: 'new',
@@ -18,15 +19,15 @@ module.exports = {
         let apath = path.resolve(__dirname + '/../../views/model/list.ejs');
         let str = fs.readFileSync(apath, 'utf8');
         let objs = [];
-        let cls = global.classes[modelName];
+        let cls = AClass.getClass(modelName);
         if (global._instances) {
-            objs = getInstances(global.classes[modelName]);
+            objs = getInstances(AClass.getClass(modelName));
         }
 
         let sendString = renderer.renderString('default', str, {
             className: modelName,
             objs: objs,
-            definition: global.classes[modelName].definition,
+            definition: AClass.getClass(modelName).definition,
             app: {name: 'edgemere'}
         });
         env.res.end(sendString);
@@ -39,7 +40,7 @@ function getInstances(cls) {
         retval = global._instances[cls.definition.name];
     }
     for (let i in cls.definition.subClasses) {
-        let instances = getInstances(global.classes[cls.definition.subClasses[i]])
+        let instances = getInstances(AClass.getClass(cls.definition.subClasses[i]))
         for (let j in instances) {
             retval[instances[j].id] = instances[j];
         }

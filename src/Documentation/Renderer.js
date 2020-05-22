@@ -59,6 +59,7 @@ const partialProcess = (file, objects) => {
         return retval;
     } catch (e) {
         console.error("Partial Parsing Error:", e);
-        console.error("Partial Parsing:", file, "with", objects);
+        console.error("Partial Parsing:", file);
+        return "";
     }
 };

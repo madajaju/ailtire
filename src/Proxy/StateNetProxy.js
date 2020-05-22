@@ -1,4 +1,6 @@
-let funcHandler = require('./MethodProxy');
+const funcHandler = require('./MethodProxy');
+const AEvent = require('../Server/AEvent');
+
 /*
 statenet: {
     StateName: {
@@ -25,7 +27,7 @@ module.exports = {
     // To the next state with a call to this method.
     processEvent: (proxy, obj, event, args) => {
         // Check that the parameters are valid.
-        console.log("Process Event: ", event, "on", proxy.id, "[", proxy.state, "]");
+        // console.log("Process Event: ", event, "on", proxy.id, "[", proxy.state, "]");
         let currentState = proxy.state;
         let statenet = proxy.definition.statenet;
         if (!statenet[currentState].hasOwnProperty('events')) {
@@ -35,7 +37,11 @@ module.exports = {
 
         if (!statenet[currentState].events.hasOwnProperty(event)) {
             console.warn(`There is not a transistion from current state ${currentState} with the event ${event}`);
-            return;
+            let retval = undefined;
+            if(proxy.definition.methods.hasOwnProperty(event)) {
+                retval = funcHandler.run(proxy.definition.methods[event], proxy, args[0]);
+            }
+            return retval;
         }
         // Check the condition of the event
         let eventObj = statenet[currentState].events[event];
@@ -80,6 +86,10 @@ module.exports = {
             }
             // Now call the event method.
             obj._state = transition.state;
+            // console.log("Moved to State:", obj._state);
+
+            // Emit an event with the transistion.
+            AEvent.emit(`${obj.definition.name}.${obj._state}`, {obj:proxy});
             return retval;
         }
         else {

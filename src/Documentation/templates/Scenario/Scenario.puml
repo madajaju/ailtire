@@ -1,0 +1,18 @@
+@startuml
+
+actor "Actor"
+box <%= package.shortname %> <%= package.color %>
+    boundary <%= package.shortname %> #white
+    participant DataModel #white
+end box
+box DependentPackage #lightgray
+    boundary dependentPackage #lightgray
+end box
+entity EventBus
+"Actor" -> <%= pacakge.name %>: <%= name %>
+<%= package.name %> -> <%= package.name %>: methodName
+DataModel --/ EventBus : Model.Event
+EventBus -\ DependentPackage: method()
+DependentPackage --/ EventBus: Model.Event2
+EventBus --/ <%= package.shortname %> : method2()
+@enduml

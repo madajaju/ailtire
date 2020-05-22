@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const renderer = require('../Documentation/Renderer.js');
+const AClass = require('./AClass');
 
 
 const isDirectory = source => fs.lstatSync(source).isDirectory();
@@ -26,15 +27,18 @@ module.exports = {
         // Routes are mapped to action paths.
         for (let i in routes) {
             // Get Action handler from the actions.
+            let route = i.toLowerCase();
             if (global.actions.hasOwnProperty(routes[i])) {
-                server.use(i, (req, res) => {
+                server.all(route, (req, res) => {
                     execute(global.actions[routes[i]], req.query, {req: req, res: res});
                 });
             } else {
                 console.error("Could not find the route: ", i, routes[i]);
             }
         }
-
+    },
+    find: (name) => {
+        return find(name);
     }
 };
 
@@ -64,7 +68,7 @@ const addForModels = (server) => {
     const showAction = require('./actions/show.js');
     const addAction = require('./actions/add.js');
     for (let name in global.classes) {
-        let cls = global.classes[name];
+        let cls = AClass.getClass(name);
         setAction(`/${name}/new`, newAction);
         setAction(`/${name}/create`, createAction);
         setAction(`/${name}/update`, updateAction);
@@ -93,6 +97,7 @@ const addForModels = (server) => {
 };
 
 const setAction = (route, action) => {
+    route = route.toLowerCase();
     if (!global.actions.hasOwnProperty(route)) {
         global.actions[route] = action;
     }
@@ -125,10 +130,11 @@ const mapToServer = (server) => {
         if (i[0] != '/') {
             i = '/' + i;
         }
-        server.all(i, (req, res) => {
+        let normalizedName = i.replace('/' + global.topPackage.shortname,'' );
+        server.all(normalizedName, (req, res) => {
+            // console.log("Server Call:", normalizedName);
             execute(gaction, req.query, {req: req, res: res});
         });
-
     }
 };
 
@@ -166,7 +172,7 @@ const execute = (action, inputs, env) => {
                     console.error("Type Mismatch for: ", i, "expecting", input.type, "got", typeof inputs[i]);
                 }
             } else {
-                console.error("Required parameter does not exist:", i);
+               //  console.error("Required parameter does not exist:", i);
             }
         }
     }
@@ -185,3 +191,19 @@ const execute = (action, inputs, env) => {
     // run the function
     return action.fn(finputs, env);
 };
+const find = (name) => {
+    name = name.toLowerCase();
+    if(global.actions.hasOwnProperty(name)) {
+        return global.actions[name];
+    }
+    else {
+        let items = name.replace(/[\/\\]/g, '/').replace(/^\//, '').split('/');
+        let nName = '/' + global.topPackage.shortname + '/' + items.join('/');
+        if(global.actions.hasOwnProperty(nName)) {
+            return global.actions[nName];
+        }
+        else {
+            return null;
+        }
+    }
+}
