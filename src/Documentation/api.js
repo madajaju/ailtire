@@ -102,7 +102,7 @@ const actorGenerator = (actor, output) => {
             nameNoSpace: actor.name.replace(/ /g, '')
         },
         targets: {
-            ':nameNoSpace:.js': {template: '/templates/Actor/actor.js'},
+            ':nameNoSpace:/index.js': {template: '/templates/Actor/actor.js'},
         }
     };
     Generator.process(files, output);
@@ -204,7 +204,6 @@ const scenarioGenerator = (pkg, usecase, name, output) => {
         },
         targets: {
             ':nameNoSpace:.js': {template: '/templates/Scenario/scenario.js'},
-            'doc/:nameNoSpace:.puml': {template: '/templates/Scenario/Scenario.puml'},
         }
     };
     Generator.process(files, output);

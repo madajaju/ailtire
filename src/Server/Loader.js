@@ -10,6 +10,7 @@ module.exports = {
     processPackage: (dir) => {
         global.actors = {};
         global.actions = {};
+        global.events = {};
         global.handlers = {};
         global.classes = {};
         global.packages = {};
@@ -104,8 +105,6 @@ let reservedDirs = {
         for (let i in usecases) {
             // let modelDir = models[i].replace(/\\/g,'/');
             let ucDir = usecases[i];
-            let model = path.basename(ucDir);
-
             let myUC = require(ucDir + '/index.js');
             myUC.package = pkg.name;
             myUC.prefix = pkg.prefix;
@@ -161,7 +160,7 @@ const loadDeploy = (pkg, prefix, dir) => {
 };
 
 const loadHandlers = (pkg, prefix, mDir) => {
-    let actions = {};
+    let handlers = {};
     if (!pkg.prefix) {
         pkg.prefix = prefix.toLowerCase();
     }
@@ -178,16 +177,11 @@ const loadHandlers = (pkg, prefix, mDir) => {
         for (let j in tempItem.handlers) {
             let action = null;
             let handler = tempItem.handlers[j];
-            if (handler.hasOwnProperty('action')) {
-                action = handler.action;
-            } else {
-                action = handler.fn;
-            }
-            global.handlers[aname].handlers.push(action);
+            global.handlers[aname].handlers.push(handler);
         }
+        handlers[aname] = global.handlers[aname];
     }
-    let dirs = getDirectories(mDir);
-    return actions;
+    return handlers;
 };
 // These actions are from the models not the interface.
 const loadActions = (pkg, prefix, mDir) => {
@@ -339,13 +333,14 @@ const checkPackage = (pkg) => {
         let usecase = pkg.usecases[i];
         // Make sure that there is an actor for the actors in a use case.
         for (let aname in usecase.actors) {
-            if (!global.actors.hasOwnProperty(aname)) {
+            let nsAname = aname.replace(/\s/g,'');
+            if (!global.actors.hasOwnProperty(nsAname)) {
                 apiGenerator.actor({name: aname}, global.appBaseDir + '/actors');
             }
-            if (!global.actors[aname].hasOwnProperty('usecases')) {
-                global.actors[aname].usecases = {};
+            if (!global.actors[nsAname].hasOwnProperty('usecases')) {
+                global.actors[nsAname].usecases = {};
             }
-            global.actors[aname].usecases[usecase.name.replace(/\s/g,'')] = usecase;
+            global.actors[nsAname].usecases[usecase.name.replace(/\s/g,'')] = usecase;
         }
 
         // Make sure each UseCase has a method that matches an interface that exists.
@@ -388,15 +383,45 @@ const checkPackage = (pkg) => {
             }
         }
     }
+    // Handler Checker
+    // Create a new member that has the events that are emited from the Package.
+    // Create a global struture to store the events.
+    for(let i in pkg.handlers) {
+        let handler = pkg.handlers[i];
+        let ename = handler.name;
+        if (!global.events.hasOwnProperty(ename)) {
+            global.events[ename] = {
+                handlers: {},
+            }
+        }
+        // Find the emitter.
+        // Event syntax is ClassName.event
+        let cls = AClass.getClass(ename.split(/\./)[0]);
+        if (cls) {
+            handler.emitter = cls;
+            global.events[ename].emitter = cls;
+            if(!cls.definition.hasOwnProperty('messages')) {
+                cls.definition.messages = {};
+            }
+            cls.definition.messages[ename] = global.events[ename];
+            if(!cls.definition.package.definition.hasOwnProperty('messages')) {
+                cls.definition.package.definition.messages = {};
+            }
+            cls.definition.package.definition.messages[ename] = global.events[ename];
+        }
+        global.events[ename].handlers[pkg.prefix] = handler;
+    }
 };
 
 const loadActors = (dir, prefix) => {
-    let files = getFiles(dir);
+    let actors = getDirectories(dir);
     if (!global.hasOwnProperty('actors')) {
         global.actors = {};
     }
-    for (let i in files) {
-        let actor = require(files[i]);
-        global.actors[actor.name] = actor;
+    for(let i in actors) {
+        let actorDir = actors[i];
+        let actor = require(actorDir + '/index.js');
+        global.actors[actor.name.replace(/\s/g,'')] = actor;
+        loadDocs(actor, actorDir + '/doc');
     }
 };

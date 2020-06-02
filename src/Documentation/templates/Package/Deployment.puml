@@ -42,7 +42,7 @@ package  "<%= package.name %>"  <%= package.color %> {
 <% } -%>
     artifact images #ffffff {
         <% for(let image in deploy.images) { %>
-        file <%= image %>
+        file "<%= image %>"
         <% } %>
     }
 <% for(let name in deploy.services) {

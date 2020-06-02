@@ -60,7 +60,8 @@
         <td><%= name %></td>
         <td><%= state.description %></td>
     <% for(let stateName in state.events) {
-        eventNames += stateName + '->' + state.events[stateName] + ', ';
+        let newState = Object.keys(state.events[stateName]);
+        eventNames += stateName + '->' + newState[0] + ', ';
      } %>
         <td><%= eventNames %></td>
     <% } %>

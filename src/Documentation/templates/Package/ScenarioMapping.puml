@@ -1,0 +1,67 @@
+@startuml
+left to right direction
+
+<% const getStates = (name) => {
+    let names = name.split(/\//);
+    let asName = '';
+    let retval = '';
+    names.shift(); // Shift off the first item that is blank.
+    let pkgName = names.shift();
+    let package = global.packages[pkgName];
+    let slen = 0;
+    for(let i in names) {
+        let aname = names[i];
+        if(aname.length > 0) {
+        slen++;
+            if(package.hasOwnProperty('subpackages')) {
+                if(package.subpackages.hasOwnProperty(aname)) {
+                    package = package.subpackages[aname];
+                }
+            }
+            asName += aname;
+            retval += `state \"${aname}\" as ${asName} ${package.color} {\n`;
+        }
+    }
+    retval += '}\n'.repeat(slen);
+    return {sname:asName, states:retval, color:package.color};
+};
+%>
+<%
+    // Use Case generation
+for (let i in package.usecases) {
+    let uc = package.usecases[i];
+    let ucname = uc.name.replace(/\s/g, '');
+    for(let aname in uc.actors) {
+
+    let method = package.prefix + '/' + uc.method;
+    let mstate = getStates(method);
+    aucname = aname.replace(/\s/g,'')+ucname;
+%>
+state "<%= aname %>" as <%= aname.replace(/\s/g,'') %> {
+    state "<%= uc.name %>" as <%= aucname %> {
+    }
+}
+<%- mstate.states %>
+<%= aucname %> --> <%= mstate.sname %>
+<% } %>
+<% for(let sname in uc.scenarios) {
+    let scen = uc.scenarios[sname];
+    for(let aname in scen.actors) {
+        let method = package.prefix + scen.method;
+        let smstates = getStates(method);
+        let auscname = aname.replace(/\s/g,'') + uc.name.replace(/\s/g,'');
+        let ascname = auscname + sname.replace(/\s/g,'');
+    %>
+    state "<%= aname %>" as <%= aname.replace(/\s/g,'') %> {
+        state "<%= uc.name %>" as <%= auscname %> {
+            state "<%= scen.name %>" as <%= ascname %> {
+            }
+        }
+    }
+    <%- smstates.states %>
+    <%= ascname %> --> <%= smstates.sname %>
+    <% } %>
+ <% } %>
+ <% } %>
+
+@enduml

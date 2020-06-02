@@ -11,6 +11,7 @@
     </ul>
     <h3>Actors</h3>
     <ul class="left-actionbar">
+        <li><a href='/actors/index.html' target="mainFrame">All Actors</a></li>
         <% for(let aname in actors) { %>
             <li><a href='/doc/actor/<%= actors[aname].shortname %>' target="mainFrame"><%= aname %></a></li>
         <% } %>

@@ -13,6 +13,7 @@ module.exports = {
         packageGenerator(package, output);
     },
     actors: (actors, output) => {
+        actorsGenerator(actors, output + '/actors');
         for(let i in actors) {
             actorGenerator(actors[i], output + '/actors')
         }
@@ -105,10 +106,7 @@ const packageGenerator = (package, output) => {
         let usecase = package.usecases[ucname];
         let ucnameNoSpace = ucname.replace(/ /g, '');
         for(let aname in usecase.actors) {
-            /* if(!global.actors.hasOwnProperty(anameNoSpace)) {
-                global.actors[anameNoSpace] = { usecases: {}, name:aname};
-            }
-            */
+            aname = aname.replace(/\s/g, '');
             if(!actors.hasOwnProperty(aname)) {
                 actors[aname] = { usecases: {}, name:aname, shortname: global.actors[aname].shortname };
             }
@@ -168,7 +166,8 @@ const packageGenerator = (package, output) => {
             ':shortname:/Logical.puml': {template: '/templates/Package/Logical.puml'},
             ':shortname:/Deployment.puml': {template: '/templates/Package/Deployment.puml'},
             ':shortname:/Physical.puml': {template: '/templates/Package/Physical.puml'},
-            ':shortname:/Process.puml': {template: '/templates/Package/Process.puml'}
+            ':shortname:/Process.puml': {template: '/templates/Package/Process.puml'},
+            ':shortname:/ScenarioMapping.puml': {template: '/templates/Package/ScenarioMapping.puml'}
         }
     };
     // Get the doc from the package and add them to the targets list
@@ -201,6 +200,57 @@ const useCaseGenerator = (usecase, output) => {
     // Get the doc from the package and add them to the targets list
     addDocs(usecase, files);
     Generator.process(files, output);
+    for (let i in usecase.scenarios) {
+        scenarioGenerator(usecase, usecase.scenarios[i], output + '/' + usecase.name.replace(/\s/g,''));
+    }
+};
+const scenarioGenerator = (usecase, scenario, output) => {
+    let pkg = global.packages[usecase.package.replace(/\s/g,'')];
+    let files = {
+        context: {
+            usecase: usecase,
+            scenario: scenario,
+            package: pkg,
+            shortname: scenario.name.replace(/ /g, ''),
+            actors: scenario.actors
+        },
+        targets: {
+            ':shortname:.puml': {template: '/templates/Scenario/Scenario.puml'},
+        }
+    };
+    // Get the doc from the package and add them to the targets list
+    Generator.process(files, output);
+};
+const actorsGenerator = (actors, output) => {
+    let apackages = {};
+    for(let h in actors) {
+        let actor = actors[h];
+        for (let i in actor.usecases) {
+            let usecase = actor.usecases[i];
+            let uname = usecase.name.replace(/\s/g, '');
+            let packageName = usecase.package.replace(/\s/g, '');
+            if (!apackages.hasOwnProperty(packageName)) {
+                apackages[packageName] = {
+                    color: global.packages[packageName].color,
+                    shortname: global.packages[packageName].shortname,
+                    usecases: {},
+                    name: usecase.package
+                };
+            }
+            apackages[packageName].usecases[uname] = usecase;
+        }
+    }
+    let files = {
+        context: {
+            actors: actors,
+            actorPackages: apackages
+        },
+        targets: {
+            '/index.html': {template: '/templates/Actor/all.ejs'},
+            '/Actors.puml': {template: '/templates/Actor/All.puml'},
+        }
+    };
+    Generator.process(files, output);
 };
 const actorGenerator = (actor, output) => {
     let apackages = {};
@@ -222,6 +272,7 @@ const actorGenerator = (actor, output) => {
     let files = {
         context: {
             actor: actor,
+            basedir: output,
             actorNameNoSpace: actor.shortname,
             actorPackages: apackages
         },
@@ -236,10 +287,10 @@ const actorGenerator = (actor, output) => {
             let file = actor.doc.files[i];
             let sourcefile = path.resolve(actor.doc.basedir + file);
             if(file.includes('.ejs')) {
-                files.targets[`:shortname:/${file}`] = {template:`${sourcefile}`};
+                files.targets[`:actorNameNoSpace:/${file}`] = {template:`${sourcefile}`};
             }
             else {
-                files.targets[`:shortname:/${file}`] = {copy:`${sourcefile}`};
+                files.targets[`:actorNameNoSpace:/${file}`] = {copy:`${sourcefile}`};
             }
         }
     }

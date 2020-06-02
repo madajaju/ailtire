@@ -13,8 +13,10 @@ package "<%= package.name %>" <%= package.color %> {
   folder deploy #ffffff {
   <% for(let bname in package.deploy.build) {
     let build = package.deploy.build[bname];
+    let bcmd = build.cmd;
+    if(!bcmd) { bcmd = bname }
   %>
-    file "<%= build.cmd %>" as <%= bname %>_container
+    file "<%= bcmd %>" as <%= bname %>_container
     REST --> <%= bname %>_container
     socket ---> <%= bname %>_container
   <% } %>

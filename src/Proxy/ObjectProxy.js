@@ -48,10 +48,10 @@ module.exports = {
             obj._associations = {};
         }
         if (obj.definition.hasOwnProperty('associations')) {
-            if (obj.definition.associations.hasOwnProperty(prop)) {
+            if (hasAssociation(obj.definition,prop)) {
                 // Check for associations
                 // Make the assignment if it is an object.
-                if (obj.definition.associations[prop].cardinality === 'n') {
+                if (getAssociation(obj.definition,prop).cardinality === 'n') {
 
                     // Store things as an array or a map.
                     if (Array.isArray(value)) {
@@ -64,11 +64,11 @@ module.exports = {
                 } else {
 
                     if (typeof value === 'object' && !Array.isArray(value)) {
-                        if (value.definition.name === obj.definition.associations[prop].type) {
+                        if (value.definition.name === getAssociation(obj.definition,prop).type) {
                             obj._associations[prop] = value;
                             return true;
                         } else {
-                            console.error("Assignment is the wrong type: ", obj.definition.associations[prop].type, " expected, recieved ", value.definition.name);
+                            console.error("Assignment is the wrong type: ", getAssociation(obj.definition,prop).type, " expected, recieved ", value.definition.name);
                             return false;
                         }
                     } else {
@@ -143,33 +143,40 @@ function getHandler(obj, definition, prop) {
             obj.package = obj.definition.package.name.replace(/ /g, '');
             for (let i in obj._associations) {
                 let assoc = obj._associations[i];
-                if (definition.associations[i].cardinality === 1) {
-                    if (definition.associations[i].owner) {
-                        toJSONDepth--;
-                        assocs[i] = assoc.toJSON;
-                        toJSONDepth++;
-                    } else {
-                        toJSONDepth--;
-                        assocs[i] = assoc.id;
-                        toJSONDepth++;
-                    }
-                } else {
-                    assocs[i] = {};
-                    for (let j in assoc) {
-                        if (definition.associations[i].owner) {
+                if(hasAssociation(obj.definition, i)) {
+                    let dassoc = getAssociation(definition, i);
+                    if (dassoc.cardinality === 1) {
+                        if (dassoc.owner) {
                             toJSONDepth--;
-                            if (assoc[j]) {
-                                assocs[i][j] = assoc[j].toJSON;
-                            }
+                            assocs[i] = assoc.toJSON;
                             toJSONDepth++;
                         } else {
                             toJSONDepth--;
-                            if (assoc[j]) {
-                                assocs[i][j] = assoc[j].id;
-                            }
+                            assocs[i] = assoc.id;
                             toJSONDepth++;
                         }
+                    } else {
+                        assocs[i] = {};
+                        for (let j in assoc) {
+                            if (dassoc.owner) {
+                                toJSONDepth--;
+                                if (assoc[j]) {
+                                    assocs[i][j] = assoc[j].toJSON;
+                                }
+                                toJSONDepth++;
+                            } else {
+                                toJSONDepth--;
+                                if (assoc[j]) {
+                                    assocs[i][j] = assoc[j].id;
+                                }
+                                toJSONDepth++;
+                            }
+                        }
                     }
+                } else {
+                    toJSONDepth--;
+                    assocs[i] = assoc.toJSON;
+                    toJSONDepth++;
                 }
             }
             return {
@@ -251,7 +258,11 @@ function getHandler(obj, definition, prop) {
                 definition.methods = {};
             }
             if (definition.methods.hasOwnProperty('create')) {
-                return funcHandler.run(definition.methods.create, this, args[0]);
+                if (hasStateNet(definition)) {
+                    return stateNetHandler.processEvent(this, obj, prop, args);
+                } else {
+                    return funcHandler.run(definition.methods[prop], this, args[0]);
+                }
             } else {
                 let myDef = obj.definition;
 
@@ -286,8 +297,9 @@ function getHandler(obj, definition, prop) {
             // call destroy on all of the associations
             for (let name in obj._associations) {
                 let assoc = obj._associations[name];
-                if (definition.associations[name].cardinality === 1) {
-                    if (definition.associations[name].owner === true) {
+                let dassoc = getAssociation(definition,name);
+                if (dassoc.cardinality === 1) {
+                    if (dassoc.owner === true) {
                         assoc.destroy();
                     }
                     delete obj._associations[name];
@@ -295,7 +307,7 @@ function getHandler(obj, definition, prop) {
                     // Call destroy on all of the objects in the array.
                     while (obj._associations[name].length) {
                         let assocItem = obj._associations[name].pop();
-                        if (definition.associations[name].owner === true) {
+                        if (dassoc.owner === true) {
                             assocItem.destroy();
                         }
                     }
@@ -314,8 +326,8 @@ function getHandler(obj, definition, prop) {
     } else if (obj._associations.hasOwnProperty(prop)) {
         return obj._associations[prop];
         // Check if the association definition is defined if so then return an empty array or null
-    } else if (obj.definition.associations.hasOwnProperty(prop)) {
-        if (obj.definition.associations[prop].cardinality === 1) {
+    } else if (hasAssociation(obj.definition, prop)) {
+        if (getAssociation(obj.definition,prop).cardinality === 1) {
             return null;
         } else {
             // return an empty array
@@ -329,7 +341,8 @@ function getHandler(obj, definition, prop) {
                 return obj._attributes.id;
             }
         }
-    } else if (definition.hasOwnProperty('statenet')) {
+        // If there is an extends then you need to check the parent stateenet.
+    } else if (hasStateNet(definition)) {
         return function (...args) {
             return stateNetHandler.processEvent(this, obj, prop, args);
         }
@@ -338,7 +351,7 @@ function getHandler(obj, definition, prop) {
     else if (definition.methods.hasOwnProperty(prop)) {
         return function (...args) {
             if (!definition.methods[prop].static) {
-                if (definition.hasOwnProperty('statenet')) {
+                if (hasStateNet(definition)) {
                     return stateNetHandler.processEvent(this, obj, prop, args);
                 } else {
                     return funcHandler.run(definition.methods[prop], this, args[0]);
@@ -376,22 +389,22 @@ function addToAssoc(simpleProp, obj, proxy, item) {
         // Create a new object if the item being passed in is a simple Object.
         // Add to the array if it is a object of the correct type.
         if (item.definition) {
-            if(!obj.definition.associations.hasOwnProperty(simpleProp)) {
+            if(!hasAssociation(obj.definition,simpleProp)) {
                 console.error("Cannot Add to unknown property:", simpleProp);
                 return;
             }
-            if (isTypeOf(item, obj.definition.associations[simpleProp].type)) {
+            if (isTypeOf(item, getAssociation(obj.definition,simpleProp).type)) {
                 child = item;
             } else {
-                console.error(prop, "wrong type of object! Recieved:", item.definition.name, 'expecting', obj.definition.associations[simpleProp].type);
+                console.error(prop, "wrong type of object! Recieved:", item.definition.name, 'expecting', getAssociation(obj.definition,simpleProp).type);
                 return;
             }
         } else {
-            let newClass = AClass.getClass(obj.definition.associations[simpleProp].type);
+            let newClass = AClass.getClass(getAssociation(obj.definition,simpleProp).type);
             child = new newClass(item);
         }
     }
-    if (obj.definition.associations[simpleProp].unique) {
+    if (getAssociation(obj.definition,simpleProp).unique) {
         if (!obj._associations.hasOwnProperty(simpleProp)) {
             obj._associations[simpleProp] = {};
         }
@@ -403,8 +416,8 @@ function addToAssoc(simpleProp, obj, proxy, item) {
         obj._associations[simpleProp].push(child);
     }
     // Add the back link with via
-    if (obj.definition.associations[simpleProp].hasOwnProperty('via')) {
-        let via = obj.definition.associations[simpleProp].via;
+    if (getAssociation(obj.definition,simpleProp).hasOwnProperty('via')) {
+        let via = getAssociation(obj.definition,simpleProp).via;
         child[via] = proxy;
     }
     return child;
@@ -419,5 +432,41 @@ function isTypeOf(item, type) {
         } else {
             return false;
         }
+    }
+}
+
+function hasStateNet(definition) {
+    if(definition.hasOwnProperty('statenet')) {
+        return true;
+    } else if(definition.hasOwnProperty('extends')) {
+        let parent = AClass.getClass(definition.extends);
+        return hasStateNet(parent.definition);
+    } else {
+        return false;
+    }
+}
+function hasAssociation(definition, aname) {
+    if(definition.associations.hasOwnProperty(aname)) {
+        return true;
+    } else if(definition.hasOwnProperty('extends')) {
+        let parent = AClass.getClass(definition.extends);
+        return hasAssociation(parent.definition,aname);
+    } else {
+        return false;
+    }
+}
+
+function getAssociation(definition, aname) {
+    if(definition.associations.hasOwnProperty(aname)) {
+        return definition.associations[aname];
+    } else if(definition.hasOwnProperty('extends')) {
+        let parent = AClass.getClass(definition.extends);
+        console.log("Get Association Parent:", aname);
+        console.log("CHILD:", Object.keys(definition.associations));
+        console.log("PARENT:", Object.keys(parent.definition.associations));
+        return getAssociation(parent.definition,aname);
+    } else {
+        console.log("Could not find association:", aname);
+        return null;
     }
 }

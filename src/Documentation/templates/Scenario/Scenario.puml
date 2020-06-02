@@ -1,18 +1,32 @@
 @startuml
+<% for(let aname in actors) { %>
+actor "<%= aname %>"
+<% } %>
 
-actor "Actor"
-box <%= package.shortname %> <%= package.color %>
+entity EventBus
+
+box <%= package.name %> <%= package.color %>
     boundary <%= package.shortname %> #white
     participant DataModel #white
 end box
-box DependentPackage #lightgray
-    boundary dependentPackage #lightgray
-end box
-entity EventBus
-"Actor" -> <%= pacakge.name %>: <%= name %>
-<%= package.name %> -> <%= package.name %>: methodName
+
+<% for(let aname in actors) {
+%>
+"<%= aname %>" -> <%= package.shortname %>: <%= scenario.name %>
+<%= package.shortname %> -> <%= package.shortname %>: <%= scenario.method %>
+<% } %>
 DataModel --/ EventBus : Model.Event
-EventBus -\ DependentPackage: method()
-DependentPackage --/ EventBus: Model.Event2
+
+<% for(let i in package.depends) {
+    let  dpkg = package.depends[i];
+    if(dpkg) {
+-%>
+box "<%= dpkg.name %>" <%= dpkg.color %>
+    boundary <%= dpkg.shortname %> #white
+end box
+EventBus -\ <%= dpkg.shortname %>: method()
+<%= dpkg.shortname %> --/ EventBus: Model.Event2
+<% }
+} %>
 EventBus --/ <%= package.shortname %> : method2()
 @enduml

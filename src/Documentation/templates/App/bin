@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 const program = require('commander');
 const fs = require('fs');
 require('./lib/subcommander');
@@ -11,16 +12,14 @@ try {
     let topCommands = {};
     for(let path in global.ailtire.config.actions) {
         let cmds = path.split('\/');
-        let cmdName = cmds[0];
-        if(cmdName === '') {
-            cmdName = cmds[1];
-        }
-        if(!topCommands.hasOwnProperty(cmdName)) {
-            program.command(cmdName + " [cmds]", 'Top command for ' + cmds[1]);
-            topCommands[cmdName]= true;
+        if(!topCommands.hasOwnProperty(cmds[1])) {
+            program.command(cmds[1] + " [cmds]", 'Top command for ' + cmds[1]);
+            topCommands[cmds[1]]= true;
         }
     }
 } catch (e) {
     console.log("You must run init first!");
 }
 program.parse(process.argv);
+
+

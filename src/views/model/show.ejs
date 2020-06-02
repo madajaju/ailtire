@@ -3,13 +3,17 @@
 </div>
 <script src="/js/socket.io.js"></script>
 <div class="modelDetail">
-   <h3>Create <%= className %> </h3>
-   <table>
+   <h3><%= className %></h3>
+   <table class="state<%= obj.state %>">
+       <tr class = "state<%= obj.state %>">
+           <td align="right"><b>Status</b></td>
+           <td><%= obj.state %></td>
+       </tr>
       <% for(let name in definition.attributes) {
          let attr = definition.attributes[name];
       %>
       <tr>
-         <td align="right"><%= name %></td>
+          <td align="right"><b><%= name[0].toUpperCase() + name.slice(1) %></b></td>
           <% if(attr.type === 'json') { %>
               <td><%- partial('_json.ejs', {json: obj[name]}) %></td>
           <% } else { %>
@@ -21,10 +25,10 @@
       let assoc = definition.associations[name];
       %>
       <tr>
-         <td align="right"><%= name %></td>
+          <td align="right"><b><%= name[0].toUpperCase() + name.slice(1) %></b></td>
          <% if(obj[name]) { %>
             <% if(assoc.cardinality === 1) { %>
-               <td class="hoverable" id="<%= obj[name].id %>" onmouseover="window.graph.selectNode('<%= obj[name].id %>');"><a href="/<%= assoc.type %>?id=<%= obj[name].id %>">
+               <td class="hoverable state<%= obj[name].state %>" id="<%= obj[name].id %>" onmouseover="window.graph.selectNode('<%= obj[name].id %>');"><a href="/<%= assoc.type %>?id=<%= obj[name].id %>">
                    <%
                    let dname = obj[name].toString();
                    if(dname.length > 0) {
@@ -39,7 +43,7 @@
                 <% for(let ai in obj[name]) {
                     %>
                         <tr id="<%=obj[name][ai].id%>" class="hoverable" onmouseover="window.graph.selectNode('<%= obj[name][ai].id %>');">
-                            <td><a href="/<%= assoc.type %>?id=<%= obj[name][ai].id %>"><%= obj[name][ai].toString() %></a></td>
+                            <td class="state<%= obj[name][ai].state %>"><a href="/<%= assoc.type %>?id=<%= obj[name][ai].id %>"><%= obj[name][ai].toString() %></a></td>
                         </tr>
                 <% } %>
                 </table></td>
@@ -65,7 +69,7 @@
         <%
             let oid = obj.id;
             let otype = obj.className;
-            let level = obj.package.name.replace(/ /g, '');
+        let level = obj.package.name.replace(/ /g, '');
         %>
             data.nodes["<%= oid %>"] = {id:"<%= oid %>", name:"<%= obj.name %>", group: "<%= otype %>", level:'<%= level %>'};
         <%
@@ -84,7 +88,9 @@
                             if (obj[aname][j]) {
                                 let aoid = obj[aname][j].id;
                                 let otype = obj[aname][j].className;
-                                let level = obj[aname][j].definition.package.name.replace(/ /g, '');
+                                if(obj[aname][j].definition) {
+                                    level = obj[aname][j].definition.package.name.replace(/ /g, '');
+                                }
                             %>
                                 data.nodes["<%= aoid %>"] = {
                                     id: "<%= aoid  %>",

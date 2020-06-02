@@ -1,5 +1,6 @@
 const funcHandler = require('./MethodProxy');
 const AEvent = require('../Server/AEvent');
+const AClass = require('../Server/AClass');
 
 /*
 statenet: {
@@ -27,18 +28,18 @@ module.exports = {
     // To the next state with a call to this method.
     processEvent: (proxy, obj, event, args) => {
         // Check that the parameters are valid.
-        // console.log("Process Event: ", event, "on", proxy.id, "[", proxy.state, "]");
+        console.log("Process Event: ", event, "on", proxy.id, "[", proxy.state, "]");
         let currentState = proxy.state;
-        let statenet = proxy.definition.statenet;
+        let statenet = getStateNet(proxy.definition);
         if (!statenet[currentState].hasOwnProperty('events')) {
             console.warn("Terminal State: No more transistions allowed.");
             return;
         }
 
         if (!statenet[currentState].events.hasOwnProperty(event)) {
-            console.warn(`There is not a transistion from current state ${currentState} with the event ${event}`);
+            console.warn(`There is not a transistion from current state ${currentState} with the event ${event} for ${obj.name}`);
             let retval = undefined;
-            if(proxy.definition.methods.hasOwnProperty(event)) {
+            if (proxy.definition.methods.hasOwnProperty(event)) {
                 retval = funcHandler.run(proxy.definition.methods[event], proxy, args[0]);
             }
             return retval;
@@ -69,7 +70,7 @@ module.exports = {
                 }
             }
             // Fire the action and then start on the next state.
-            if(transition.hasOwnProperty('action')) {
+            if (transition.hasOwnProperty('action')) {
                 transition.action(proxy);
             }
             let nStateObj = statenet[transition.state];
@@ -81,7 +82,7 @@ module.exports = {
                 }
             }
             let retval = undefined;
-            if(proxy.definition.methods.hasOwnProperty(event)) {
+            if (proxy.definition.methods.hasOwnProperty(event)) {
                 retval = funcHandler.run(proxy.definition.methods[event], proxy, args[0]);
             }
             // Now call the event method.
@@ -89,12 +90,29 @@ module.exports = {
             // console.log("Moved to State:", obj._state);
 
             // Emit an event with the transistion.
-            AEvent.emit(`${obj.definition.name}.${obj._state}`, {obj:proxy});
+            AEvent.emit(`${obj.definition.name}.${obj._state}`, {obj: proxy});
+            // We need to emit an event for the extends (parent) as well.
+            // This handles the inheritance model.
+            let definition = obj.definition;
+            while (definition.extends) {
+                let cls = AClass.getClass(definition.extends);
+                definition = cls.definition;
+                AEvent.emit(`${definition.name}.${obj._state}`, {obj:proxy});
+            }
             return retval;
-        }
-        else {
+        } else {
             console.error("Cannot transition!");
         }
     }
 };
 
+function getStateNet(definition) {
+    if (definition.hasOwnProperty('statenet')) {
+        return definition.statenet;
+    } else if (definition.hasOwnProperty('extends')) {
+        let parent = AClass.getClass(definition.extends);
+        return getStateNet(parent.definition);
+    } else {
+        return false;
+    }
+}
