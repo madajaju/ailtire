@@ -207,3 +207,19 @@ const find = (name) => {
         }
     }
 }
+const find = (name) => {
+    name = name.toLowerCase();
+    if(global.actions.hasOwnProperty(name)) {
+        return global.actions[name];
+    }
+    else {
+        let items = name.replace(/[\/\\]/g, '/').replace(/^\//, '').split('/');
+        let nName = '/' + global.topPackage.shortname + '/' + items.join('/');
+        if(global.actions.hasOwnProperty(nName)) {
+            return global.actions[nName];
+        }
+        else {
+            return null;
+        }
+    }
+}
