@@ -16,6 +16,16 @@ module.exports = {
     fn: function (inputs, env) {
         // inputs contains the obj for the this method.
         let modelName = env.req.url.split(/[\/\?]/)[1];
+        if(inputs.mode === 'json') {
+            if(!global.classes.hasOwnProperty(modelName)) {
+                env.res.end("Class Not Found! " + modelName) ;
+                env.res.json({Error:'class not found'});
+            }
+            let obj = AClass.getClass(modelName).find(env.req.query.id);
+            obj= obj.toJSON;
+            env.res.json({obj:obj});
+            return;
+        }
         // Remove the cls  from the inputs so they are not passed down to the constructor
         // look in the views path of the project for an override view first.
         let apath = path.resolve(`./views/${modelName}/show.ejs`)

@@ -13,9 +13,11 @@ module.exports = {
         // Check and set _attributes and _associations
         try {
             let definition = obj.definition;
+            if(prop === "_associations") {
+                return obj._associations;
+            }
             return getHandler(obj, definition, prop);
         } catch (e) {
-            console.error("Get cannot find ", prop);
             console.error(e);
             return null;
         }
@@ -48,10 +50,10 @@ module.exports = {
             obj._associations = {};
         }
         if (obj.definition.hasOwnProperty('associations')) {
-            if (hasAssociation(obj.definition,prop)) {
+            if (hasAssociation(obj.definition, prop)) {
                 // Check for associations
                 // Make the assignment if it is an object.
-                if (getAssociation(obj.definition,prop).cardinality === 'n') {
+                if (getAssociation(obj.definition, prop).cardinality === 'n') {
 
                     // Store things as an array or a map.
                     if (Array.isArray(value)) {
@@ -64,11 +66,11 @@ module.exports = {
                 } else {
 
                     if (typeof value === 'object' && !Array.isArray(value)) {
-                        if (value.definition.name === getAssociation(obj.definition,prop).type) {
+                        if (value.definition.name === getAssociation(obj.definition, prop).type) {
                             obj._associations[prop] = value;
                             return true;
                         } else {
-                            console.error("Assignment is the wrong type: ", getAssociation(obj.definition,prop).type, " expected, recieved ", value.definition.name);
+                            console.error("Assignment is the wrong type: ", getAssociation(obj.definition, prop).type, " expected, recieved ", value.definition.name);
                             return false;
                         }
                     } else {
@@ -143,7 +145,7 @@ function getHandler(obj, definition, prop) {
             obj.package = obj.definition.package.name.replace(/ /g, '');
             for (let i in obj._associations) {
                 let assoc = obj._associations[i];
-                if(hasAssociation(obj.definition, i)) {
+                if (hasAssociation(obj.definition, i)) {
                     let dassoc = getAssociation(definition, i);
                     if (dassoc.cardinality === 1) {
                         if (dassoc.owner) {
@@ -152,7 +154,7 @@ function getHandler(obj, definition, prop) {
                             toJSONDepth++;
                         } else {
                             toJSONDepth--;
-                            assocs[i] = assoc.id;
+                            assocs[i] = assoc.toJSONShallow;
                             toJSONDepth++;
                         }
                     } else {
@@ -167,7 +169,7 @@ function getHandler(obj, definition, prop) {
                             } else {
                                 toJSONDepth--;
                                 if (assoc[j]) {
-                                    assocs[i][j] = assoc[j].id;
+                                    assocs[i][j] = assoc[j].toJSONShallow;
                                 }
                                 toJSONDepth++;
                             }
@@ -179,13 +181,15 @@ function getHandler(obj, definition, prop) {
                     toJSONDepth++;
                 }
             }
-            return {
-                _attributes: obj._attributes,
-                _associations: assocs
-            }
+            // toJSON is same as toJSONShallow but it adds the associations.
+            let retval = shallowJSON(obj);
+            retval._associations = assocs;
+            return retval;
         } else {
             return {};
         }
+    } else if (prop === 'toJSONShallow') {
+        return shallowJSON(obj);
     } // Association addTo, removeFrom, and Clear
     else if (hasInRegex.test(prop)) {
         return function (...args) {
@@ -297,7 +301,7 @@ function getHandler(obj, definition, prop) {
             // call destroy on all of the associations
             for (let name in obj._associations) {
                 let assoc = obj._associations[name];
-                let dassoc = getAssociation(definition,name);
+                let dassoc = getAssociation(definition, name);
                 if (dassoc.cardinality === 1) {
                     if (dassoc.owner === true) {
                         assoc.destroy();
@@ -327,7 +331,7 @@ function getHandler(obj, definition, prop) {
         return obj._associations[prop];
         // Check if the association definition is defined if so then return an empty array or null
     } else if (hasAssociation(obj.definition, prop)) {
-        if (getAssociation(obj.definition,prop).cardinality === 1) {
+        if (getAssociation(obj.definition, prop).cardinality === 1) {
             return null;
         } else {
             // return an empty array
@@ -363,12 +367,13 @@ function getHandler(obj, definition, prop) {
         }
     } else {
         throw new Error(`Could not find ${prop}! on ${obj.name}`);
+        return undefined;
     }
 }
 
 function addToAssoc(simpleProp, obj, proxy, item) {
     let child = null;
-    if(item === null) { // do not add a null to the assoication
+    if (item === null) { // do not add a null to the assoication
         return null;
     }
     // retrieve the object and add it to the array if a number is passed in.
@@ -389,22 +394,22 @@ function addToAssoc(simpleProp, obj, proxy, item) {
         // Create a new object if the item being passed in is a simple Object.
         // Add to the array if it is a object of the correct type.
         if (item.definition) {
-            if(!hasAssociation(obj.definition,simpleProp)) {
+            if (!hasAssociation(obj.definition, simpleProp)) {
                 console.error("Cannot Add to unknown property:", simpleProp);
                 return;
             }
-            if (isTypeOf(item, getAssociation(obj.definition,simpleProp).type)) {
+            if (isTypeOf(item, getAssociation(obj.definition, simpleProp).type)) {
                 child = item;
             } else {
-                console.error(prop, "wrong type of object! Recieved:", item.definition.name, 'expecting', getAssociation(obj.definition,simpleProp).type);
+                console.error(prop, "wrong type of object! Recieved:", item.definition.name, 'expecting', getAssociation(obj.definition, simpleProp).type);
                 return;
             }
         } else {
-            let newClass = AClass.getClass(getAssociation(obj.definition,simpleProp).type);
+            let newClass = AClass.getClass(getAssociation(obj.definition, simpleProp).type);
             child = new newClass(item);
         }
     }
-    if (getAssociation(obj.definition,simpleProp).unique) {
+    if (getAssociation(obj.definition, simpleProp).unique) {
         if (!obj._associations.hasOwnProperty(simpleProp)) {
             obj._associations[simpleProp] = {};
         }
@@ -416,8 +421,8 @@ function addToAssoc(simpleProp, obj, proxy, item) {
         obj._associations[simpleProp].push(child);
     }
     // Add the back link with via
-    if (getAssociation(obj.definition,simpleProp).hasOwnProperty('via')) {
-        let via = getAssociation(obj.definition,simpleProp).via;
+    if (getAssociation(obj.definition, simpleProp).hasOwnProperty('via')) {
+        let via = getAssociation(obj.definition, simpleProp).via;
         child[via] = proxy;
     }
     return child;
@@ -436,37 +441,52 @@ function isTypeOf(item, type) {
 }
 
 function hasStateNet(definition) {
-    if(definition.hasOwnProperty('statenet')) {
+    if (definition.hasOwnProperty('statenet')) {
         return true;
-    } else if(definition.hasOwnProperty('extends')) {
+    } else if (definition.hasOwnProperty('extends')) {
         let parent = AClass.getClass(definition.extends);
         return hasStateNet(parent.definition);
     } else {
         return false;
     }
 }
+
 function hasAssociation(definition, aname) {
-    if(definition.associations.hasOwnProperty(aname)) {
+    if (definition.associations.hasOwnProperty(aname)) {
         return true;
-    } else if(definition.hasOwnProperty('extends')) {
+    } else if (definition.hasOwnProperty('extends')) {
         let parent = AClass.getClass(definition.extends);
-        return hasAssociation(parent.definition,aname);
+        return hasAssociation(parent.definition, aname);
     } else {
         return false;
     }
 }
 
 function getAssociation(definition, aname) {
-    if(definition.associations.hasOwnProperty(aname)) {
+    if (definition.associations.hasOwnProperty(aname)) {
         return definition.associations[aname];
-    } else if(definition.hasOwnProperty('extends')) {
+    } else if (definition.hasOwnProperty('extends')) {
         let parent = AClass.getClass(definition.extends);
-        console.log("Get Association Parent:", aname);
-        console.log("CHILD:", Object.keys(definition.associations));
-        console.log("PARENT:", Object.keys(parent.definition.associations));
-        return getAssociation(parent.definition,aname);
+        return getAssociation(parent.definition, aname);
     } else {
         console.log("Could not find association:", aname);
         return null;
     }
+}
+
+function shallowJSON(obj) {
+    return {
+        definition: {
+            name: obj.definition.name,
+            attributes: obj.definition.attributes,
+            associations: obj.definition.associations,
+            package: {
+                shortname: obj.definition.package.shortname,
+                name: obj.definition.package.name,
+                color: obj.definition.package.color
+            }
+        },
+        _attributes: obj._attributes
+        // Shallow does not return the associations.
+    };
 }

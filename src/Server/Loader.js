@@ -70,7 +70,7 @@ let reservedDirs = {
         pkg.handlers = loadHandlers(pkg, prefix, dir);
     },
     interface: (pkg, prefix, dir) => {
-    //The Interface directory can be multiple directories deep which map to routes A/B/C
+        //The Interface directory can be multiple directories deep which map to routes A/B/C
         pkg.interfaceDir = dir;
         pkg.interface = loadActions(pkg, prefix, dir);
     },
@@ -108,14 +108,14 @@ let reservedDirs = {
             let myUC = require(ucDir + '/index.js');
             myUC.package = pkg.name;
             myUC.prefix = pkg.prefix;
-            pkg.usecases[myUC.name.replace(/\s/g,'')] = myUC;
+            pkg.usecases[myUC.name.replace(/\s/g, '')] = myUC;
             loadDocs(myUC, ucDir + '/doc');
             loadUCScenarios(myUC, ucDir);
         }
     }
 };
 const loadDocs = (pkg, dir) => {
-    if(fs.existsSync(dir)) {
+    if (fs.existsSync(dir)) {
         let files = getFiles(dir);
         let nfiles = [];
         let ndir = dir;
@@ -138,14 +138,14 @@ const loadDeploy = (pkg, prefix, dir) => {
     };
     // Get the build file
     let apath = path.resolve(dir + '/build.js');
-    if(isFile(apath)) {
+    if (isFile(apath)) {
         let build = require(dir + '/' + 'build.js');
         pkg.deploy.build = build;
     }
 
     // Now get the docker-compose file
     apath = path.resolve(dir + '/deploy.js');
-    if(isFile(apath)) {
+    if (isFile(apath)) {
         let deploy = require(dir + '/' + 'deploy.js');
         for (let env in deploy) {
             // Now get the file from the deploy and read it in.
@@ -243,6 +243,7 @@ const loadDirectory = (dir, prefix) => {
     if (pkg.shortname) {
         prefix += '/' + pkg.shortname;
     }
+    pkg.prefix = prefix.toLowerCase();
 
     for (let i in dirs) {
         let file = path.basename(dirs[i]);
@@ -267,14 +268,13 @@ const checkPackage = (pkg) => {
     // check the package for consistencies
     // Check the Depends
     let depends = [];
-    for(let i in pkg.depends) {
+    for (let i in pkg.depends) {
         let depend = pkg.depends[i].replace(/\s/g, '');
         let dpkg;
-        if(global.packages.hasOwnProperty(depend)) {
+        if (global.packages.hasOwnProperty(depend)) {
             dpkg = global.packages[depend];
             depends.push(dpkg);
-        }
-        else {
+        } else {
             console.error("Package in Depends not found:", depend, " in ", pkg.name);
         }
     }
@@ -331,62 +331,12 @@ const checkPackage = (pkg) => {
     // UseCase checker
     for (let i in pkg.usecases) {
         let usecase = pkg.usecases[i];
-        // Make sure that there is an actor for the actors in a use case.
-        for (let aname in usecase.actors) {
-            let nsAname = aname.replace(/\s/g,'');
-            if (!global.actors.hasOwnProperty(nsAname)) {
-                apiGenerator.actor({name: aname}, global.appBaseDir + '/actors');
-            }
-            if (!global.actors[nsAname].hasOwnProperty('usecases')) {
-                global.actors[nsAname].usecases = {};
-            }
-            global.actors[nsAname].usecases[usecase.name.replace(/\s/g,'')] = usecase;
-        }
-
-        // Make sure each UseCase has a method that matches an interface that exists.
-        let actionName = usecase.method;
-        // Relative path does not start with /
-        // Convert it to an absolute path first.
-        if (actionName[0] !== '/') {
-            actionName = pkg.prefix + '/' + actionName;
-        }
-        else {
-            let pkgs = pkg.prefix.split('/');
-            let actions = actionName.split('/');
-            let nactionpath = [];
-            let i=1;
-            let j=1;
-            while(j < pkgs.length) {
-                if(pkgs[j] !== actions[i]) {
-                    nactionpath.push(pkgs[j])
-                    j++;
-                }
-                else {
-                   while(i < actions.length) {
-                        nactionpath.push(actions[i]);
-                        i++;
-                   }
-                   j = pkgs.length;
-                }
-            }
-            actionName = '/' + nactionpath.join('/');
-        }
-        actionName = actionName.toLowerCase();
-        if (!actionName.includes(pkg.shortname.toLowerCase())) {
-           // console.warn("Method is not part of the intreface!", actionName);
-        } else {
-            if (!global.actions.hasOwnProperty(actionName)) {
-                console.warn("Action does not exist creating:", actionName, usecase.method);
-                let aname = actionName.split(/\//).pop();
-                let pathName = actionName.replace(pkg.prefix.toLowerCase(), '');
-                apiGenerator.action({name: aname, path: pathName}, pkg.interfaceDir);
-            }
-        }
+        checkUseCase(pkg, usecase);
     }
     // Handler Checker
     // Create a new member that has the events that are emited from the Package.
     // Create a global struture to store the events.
-    for(let i in pkg.handlers) {
+    for (let i in pkg.handlers) {
         let handler = pkg.handlers[i];
         let ename = handler.name;
         if (!global.events.hasOwnProperty(ename)) {
@@ -400,11 +350,11 @@ const checkPackage = (pkg) => {
         if (cls) {
             handler.emitter = cls;
             global.events[ename].emitter = cls;
-            if(!cls.definition.hasOwnProperty('messages')) {
+            if (!cls.definition.hasOwnProperty('messages')) {
                 cls.definition.messages = {};
             }
             cls.definition.messages[ename] = global.events[ename];
-            if(!cls.definition.package.definition.hasOwnProperty('messages')) {
+            if (!cls.definition.package.definition.hasOwnProperty('messages')) {
                 cls.definition.package.definition.messages = {};
             }
             cls.definition.package.definition.messages[ename] = global.events[ename];
@@ -412,16 +362,121 @@ const checkPackage = (pkg) => {
         global.events[ename].handlers[pkg.prefix] = handler;
     }
 };
+const checkUseCase = (pkg, usecase) => {
+    // Make sure that there is an actor for the actors in a use case.
+    for (let aname in usecase.actors) {
+        let nsAname = aname.replace(/\s/g, '');
+        if (!global.actors.hasOwnProperty(nsAname)) {
+            apiGenerator.actor({name: aname}, global.appBaseDir + '/actors');
+        }
+        if (!global.actors[nsAname].hasOwnProperty('usecases')) {
+            global.actors[nsAname].usecases = {};
+        }
+        global.actors[nsAname].usecases[usecase.name.replace(/\s/g, '')] = usecase;
+    }
 
+    // Make sure each UseCase has a method that matches an interface that exists.
+    let actionName = usecase.method;
+    // Relative path does not start with /
+    // Convert it to an absolute path first.
+    if (actionName[0] !== '/') {
+        actionName = pkg.prefix + '/' + actionName;
+    } else {
+        let pkgs = pkg.prefix.split('/');
+        let actions = actionName.split('/');
+        let nactionpath = [];
+        let i = 1;
+        let j = 1;
+        while (j < pkgs.length) {
+            if (pkgs[j] !== actions[i]) {
+                nactionpath.push(pkgs[j])
+                j++;
+            } else {
+                while (i < actions.length) {
+                    nactionpath.push(actions[i]);
+                    i++;
+                }
+                j = pkgs.length;
+            }
+        }
+        actionName = '/' + nactionpath.join('/');
+    }
+    actionName = actionName.toLowerCase();
+    if (!actionName.includes(pkg.shortname.toLowerCase())) {
+        // console.warn("Method is not part of the intreface!", actionName);
+    } else {
+        if (!global.actions.hasOwnProperty(actionName)) {
+            console.warn("Action does not exist creating:", actionName, usecase.method);
+            let aname = actionName.split(/\//).pop();
+            let pathName = actionName.replace(pkg.prefix.toLowerCase(), '');
+            apiGenerator.action({name: aname, path: pathName}, pkg.interfaceDir);
+        }
+    }
+    for(let i in usecase.scenarios) {
+        let scenario = usecase.scenarios[i];
+        checkScenario(pkg, scenario);
+    }
+};
+const checkScenario = (pkg, scenario) => {
+    // Make sure that there is an actor for the actors in a use case.
+    for (let aname in scenario.actors) {
+        let nsAname = aname.replace(/\s/g, '');
+        if (!global.actors.hasOwnProperty(nsAname)) {
+            apiGenerator.actor({name: aname}, global.appBaseDir + '/actors');
+        }
+        if (!global.actors[nsAname].hasOwnProperty('scenarios')) {
+            global.actors[nsAname].scenarios = {};
+        }
+        global.actors[nsAname].scenarios[scenario.name.replace(/\s/g, '')] = scenario;
+    }
+
+    // Make sure each UseCase has a method that matches an interface that exists.
+    let actionName = scenario.method;
+    // Relative path does not start with /
+    // Convert it to an absolute path first.
+    if (actionName[0] !== '/') {
+        actionName = pkg.prefix + '/' + actionName;
+    } else {
+        let pkgs = pkg.prefix.split('/');
+        let actions = actionName.split('/');
+        let nactionpath = [];
+        let i = 1;
+        let j = 1;
+        while (j < pkgs.length) {
+            if (pkgs[j] !== actions[i]) {
+                nactionpath.push(pkgs[j])
+                j++;
+            } else {
+                while (i < actions.length) {
+                    nactionpath.push(actions[i]);
+                    i++;
+                }
+                j = pkgs.length;
+            }
+        }
+        actionName = '/' + nactionpath.join('/');
+    }
+    actionName = actionName.toLowerCase();
+    if (!actionName.includes(pkg.shortname.toLowerCase())) {
+        // console.warn("Method is not part of the intreface!", actionName);
+    } else {
+        if (!global.actions.hasOwnProperty(actionName)) {
+            console.warn("Action does not exist creating:", actionName, scenario.method);
+            let aname = actionName.split(/\//).pop();
+            let pathName = actionName.replace(pkg.prefix.toLowerCase(), '');
+            apiGenerator.action({name: aname, path: pathName}, pkg.interfaceDir);
+        }
+    }
+};
 const loadActors = (dir, prefix) => {
     let actors = getDirectories(dir);
     if (!global.hasOwnProperty('actors')) {
         global.actors = {};
     }
-    for(let i in actors) {
+    for (let i in actors) {
         let actorDir = actors[i];
         let actor = require(actorDir + '/index.js');
-        global.actors[actor.name.replace(/\s/g,'')] = actor;
+        global.actors[actor.name.replace(/\s/g, '')] = actor;
         loadDocs(actor, actorDir + '/doc');
     }
 };
