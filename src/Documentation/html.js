@@ -61,8 +61,8 @@ const appGenerator = (app, output) => {
             'docs/plantuml.jar': {copy: '/templates/App/plantuml.jar'}
         }
     };
-    addDocs(app, files);
     Generator.process(files, output);
+    addDocs(app, files, output);
 };
 const indexGenerator = (name, output) => {
 
@@ -97,8 +97,8 @@ const modelGenerator = (model, output) => {
             './:modelnamenospace:/StateNet.puml': {template: '/templates/Model/StateNet.puml'},
         }
     };
-    addDocs(model, files);
     Generator.process(files, output);
+    addDocs(model, files, output);
 };
 const packageGenerator = (package, output) => {
     let actors = {};
@@ -164,6 +164,7 @@ const packageGenerator = (package, output) => {
             ':shortname:/UseCases.puml': {template: '/templates/Package/UseCases.puml'},
             ':shortname:/UserInteraction.puml': {template: '/templates/Package/UserInteraction.puml'},
             ':shortname:/Logical.puml': {template: '/templates/Package/Logical.puml'},
+            ':shortname:/SubPackage.puml': {template: '/templates/Package/SubPackage.puml'},
             ':shortname:/Deployment.puml': {template: '/templates/Package/Deployment.puml'},
             ':shortname:/Physical.puml': {template: '/templates/Package/Physical.puml'},
             ':shortname:/Process.puml': {template: '/templates/Package/Process.puml'},
@@ -171,8 +172,8 @@ const packageGenerator = (package, output) => {
         }
     };
     // Get the doc from the package and add them to the targets list
-    addDocs(package, files);
     Generator.process(files, output);
+    addDocs(package, files,output);
     for (let cname in package.classes) {
         modelGenerator(package.classes[cname].definition, output + '/' + files.context.shortname + '/models/');
     }
@@ -198,11 +199,11 @@ const useCaseGenerator = (usecase, output) => {
         }
     };
     // Get the doc from the package and add them to the targets list
-    addDocs(usecase, files);
     Generator.process(files, output);
     for (let i in usecase.scenarios) {
         scenarioGenerator(usecase, usecase.scenarios[i], output + '/' + usecase.name.replace(/\s/g,''));
     }
+    addDocs(usecase, files, output);
 };
 const scenarioGenerator = (usecase, scenario, output) => {
     let pkg = global.packages[usecase.package.replace(/\s/g,'')];
@@ -297,7 +298,9 @@ const actorGenerator = (actor, output) => {
     Generator.process(files, output);
 };
 
-const addDocs = (obj, files) => {
+const addDocs = (obj, files, output) => {
+    files.targets = {};
+
     if(obj.hasOwnProperty('doc')) {
         for (let i in obj.doc.files) {
             let file = obj.doc.files[i];
@@ -310,4 +313,5 @@ const addDocs = (obj, files) => {
             }
         }
     }
+   Generator.process(files, output);
 }

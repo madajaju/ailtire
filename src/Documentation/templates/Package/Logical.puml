@@ -74,23 +74,6 @@ package "<%= package.name %>" <%= package.color %> {
         <%= cls.extends %> <|-- <%= cname %>
     <% } %>
 <% } %>
-
-<% for(let spname in package.subpackages) {
-    let pkg = package.subpackages[spname];
-%>
-rectangle "<%= pkg.name %>" <%= pkg.color %> {
-}
-<% } -%>
-<% for(let spname in package.subpackages) {
-    let spkg = package.subpackages[spname];
-    for(let i in spkg.depends) {
-    let dpkg = spkg.depends[i];
-    %>
-    "<%= spkg.name %>" --> "<%= dpkg.name %>"
-    <%
-    }
-}
-%>
 }
 
 <% for(let i in package.depends) {

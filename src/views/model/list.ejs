@@ -98,7 +98,7 @@
     <script src="/js/Graph.js"></script>
     <script src="/js/socket.io.js"></script>
     <script type="module">
-        const socket = io('http://localhost:8080');
+        const socket = io('http://localhost:3000',{ transport : ['websocket'] } );
         let graph = new Graph("DrawingArea");
         let data = {nodes: {}, links: [ ]};
         <% for(let i in objs) {
