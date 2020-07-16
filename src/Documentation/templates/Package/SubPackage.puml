@@ -1,0 +1,90 @@
+@startuml
+
+<%
+let pkgs = {};
+let spkgs = package.subpackages;
+
+for(let i in package.depends) {
+    let dpkg = package.depends[i];
+    if(spkgs) {
+        if(!spkgs.hasOwnProperty(dpkg.shortname)) {
+            pkgs[dpkg.shortname] = {name: dpkg.name, color:dpkg.color, classes:{}};
+        }
+    } else {
+        pkgs[dpkg.shortname] = {name: dpkg.name, color:dpkg.color, classes:{}};
+    }
+}
+for(let cname in package.classes) {
+    let cls = package.classes[cname].definition;
+    for(let aname in cls.associations) {
+        let assoc = cls.associations[aname];
+        let atype = assoc.type;
+        let aclass = global.classes[atype];
+        if(aclass) {
+            let pkg = aclass.definition.package;
+            if(spkgs) {
+                if(!spkgs.hasOwnProperty(pkg.shortname)) {
+                    if(!pkgs.hasOwnProperty(pkg.shortname)) {
+                        pkgs[pkg.shortname] = {name: pkg.name, color: pkg.color, classes:{}};
+                    }
+                    pkgs[pkg.shortname].classes[atype] = 1;
+                }
+            } else {
+                if(!pkgs.hasOwnProperty(pkg.shortname)) {
+                    pkgs[pkg.shortname] = {name: pkg.name, color: pkg.color, classes:{}};
+                }
+                pkgs[pkg.shortname].classes[atype] = 1;
+            }
+        }
+    }
+}
+for(let pname in pkgs) {
+    let pkg = pkgs[pname];
+%>
+package "<%= pkg.name %>" <%= pkg.color %> {
+
+}
+<% } %>
+
+package "<%= package.name %>" <%= package.color %> {
+
+    interface "<%= package.name %>" as i {
+    <% for (let iname in package.interface) {
+        let inter = package.interface[iname];
+    -%>
+        <%= iname %>()
+    <% } %>
+    }
+}
+
+CLI ()-- i
+REST ()-- i
+Web ()-- i
+
+package "<%= package.name %>" <%= package.color %> {
+
+<% for(let spname in package.subpackages) {
+    let pkg = package.subpackages[spname];
+%>
+rectangle "<%= pkg.name %>" #white {
+}
+<% } -%>
+<% for(let spname in package.subpackages) {
+    let spkg = package.subpackages[spname];
+    for(let i in spkg.depends) {
+    let dpkg = spkg.depends[i];
+    %>
+    "<%= spkg.name %>" --> "<%= dpkg.name %>"
+    <%
+    }
+}
+%>
+}
+
+<% for(let i in package.depends) {
+    let dpkg = package.depends[i];
+    %>
+    "<%= package.name %>" --> "<%= dpkg.name %>"
+<% } %>
+
+@enduml

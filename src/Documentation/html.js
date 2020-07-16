@@ -1,6 +1,7 @@
 let ejs = require('ejs');
 let path = require('path');
 let Generator = require('./Generator.js');
+const AClass = require('../Server/AClass');
 
 module.exports = {
     index: (name, output) => {
@@ -44,7 +45,11 @@ const appGenerator = (app, output) => {
             'bin/:nameNoSpace:': {copy: '/templates/App/bin'},
             'bin/init': {copy: '/templates/App/init'},
             'assets/js/d3.js': {copy: '/templates/App/js/d3.js'},
+            'assets/js/three.js': {copy: '/templates/App/js/three.js'},
             'assets/js/Graph.js': {copy: '/templates/App/js/Graph.js'},
+            'assets/js/Graph2D.js': {copy: '/templates/App/js/Graph2D.js'},
+            'assets/js/Graph3D.js': {copy: '/templates/App/js/Graph3D.js'},
+            'assets/js/3d-force-graph.js': {copy: '/templates/App/js/3d-force-graph.js'},
             'assets/js/less.js': {copy: '/templates/App/js/less.js'},
             'assets/js/socket.io.js': {copy: '/templates/App/js/socket.io.js'},
             'assets/styles/color.less': {copy: '/templates/App/styles/color.less'},
@@ -61,8 +66,8 @@ const appGenerator = (app, output) => {
             'docs/plantuml.jar': {copy: '/templates/App/plantuml.jar'}
         }
     };
-    addDocs(app, files);
     Generator.process(files, output);
+    addDocs(app, files, output);
 };
 const indexGenerator = (name, output) => {
 
@@ -75,6 +80,19 @@ const indexGenerator = (name, output) => {
         },
         targets: {
             './index.html': {template: '/templates/App/index.ejs'},
+            'assets/js/d3.js': {copy: '/templates/App/js/d3.js'},
+            'assets/js/three.js': {copy: '/templates/App/js/three.js'},
+            'assets/js/aframe.js': {copy: '/templates/App/js/aframe.js'},
+            'assets/js/Graph.js': {copy: '/templates/App/js/Graph.js'},
+            'assets/js/Graph2D.js': {copy: '/templates/App/js/Graph2D.js'},
+            'assets/js/Graph3D.js': {copy: '/templates/App/js/Graph3D.js'},
+            'assets/js/3d-force-graph.js': {copy: '/templates/App/js/3d-force-graph.js'},
+            'assets/js/less.js': {copy: '/templates/App/js/less.js'},
+            'assets/js/socket.io.js': {copy: '/templates/App/js/socket.io.js'},
+            'assets/styles/color.less': {copy: '/templates/App/styles/color.less'},
+            'assets/styles/graph.less': {copy: '/templates/App/styles/graph.less'},
+            'assets/styles/importer.less': {copy: '/templates/App/styles/importer.less'},
+            'assets/styles/top.less': {copy: '/templates/App/styles/top.less'},
             './app.html': {template: '/templates/App/app.ejs'},
             'assets/js/less.js': {copy: '/templates/App/js/less.js'},
             'assets/styles/importer.less': {copy: '/templates/App/styles/docimporter.less'},
@@ -97,8 +115,8 @@ const modelGenerator = (model, output) => {
             './:modelnamenospace:/StateNet.puml': {template: '/templates/Model/StateNet.puml'},
         }
     };
-    addDocs(model, files);
     Generator.process(files, output);
+    addDocs(model, files, output);
 };
 const packageGenerator = (package, output) => {
     let actors = {};
@@ -164,6 +182,7 @@ const packageGenerator = (package, output) => {
             ':shortname:/UseCases.puml': {template: '/templates/Package/UseCases.puml'},
             ':shortname:/UserInteraction.puml': {template: '/templates/Package/UserInteraction.puml'},
             ':shortname:/Logical.puml': {template: '/templates/Package/Logical.puml'},
+            ':shortname:/SubPackage.puml': {template: '/templates/Package/SubPackage.puml'},
             ':shortname:/Deployment.puml': {template: '/templates/Package/Deployment.puml'},
             ':shortname:/Physical.puml': {template: '/templates/Package/Physical.puml'},
             ':shortname:/Process.puml': {template: '/templates/Package/Process.puml'},
@@ -171,8 +190,8 @@ const packageGenerator = (package, output) => {
         }
     };
     // Get the doc from the package and add them to the targets list
-    addDocs(package, files);
     Generator.process(files, output);
+    addDocs(package, files,output);
     for (let cname in package.classes) {
         modelGenerator(package.classes[cname].definition, output + '/' + files.context.shortname + '/models/');
     }
@@ -198,11 +217,11 @@ const useCaseGenerator = (usecase, output) => {
         }
     };
     // Get the doc from the package and add them to the targets list
-    addDocs(usecase, files);
     Generator.process(files, output);
     for (let i in usecase.scenarios) {
         scenarioGenerator(usecase, usecase.scenarios[i], output + '/' + usecase.name.replace(/\s/g,''));
     }
+    addDocs(usecase, files, output);
 };
 const scenarioGenerator = (usecase, scenario, output) => {
     let pkg = global.packages[usecase.package.replace(/\s/g,'')];
@@ -297,7 +316,9 @@ const actorGenerator = (actor, output) => {
     Generator.process(files, output);
 };
 
-const addDocs = (obj, files) => {
+const addDocs = (obj, files, output) => {
+    files.targets = {};
+
     if(obj.hasOwnProperty('doc')) {
         for (let i in obj.doc.files) {
             let file = obj.doc.files[i];
@@ -310,4 +331,5 @@ const addDocs = (obj, files) => {
             }
         }
     }
+   Generator.process(files, output);
 }

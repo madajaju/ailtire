@@ -70,11 +70,41 @@ const addForModels = (server) => {
     for (let name in global.classes) {
         let cls = AClass.getClass(name);
         setAction(`/${name}/new`, newAction);
-        setAction(`/${name}/create`, createAction);
-        setAction(`/${name}/update`, updateAction);
+        // Check if Create method exists
+        if(cls.definition.methods.hasOwnProperty('create')) {
+            let ninputs = {};
+            let oinputs = createAction.inputs;
+            let cinputs = cls.definition.methods.create.inputs;
+            for(let oname in oinputs) {
+                ninputs[oname] = oinputs[oname];
+            }
+            for(let iname in cinputs) {
+                ninputs[iname] = cinputs[iname];
+            }
+            let newCreate = {
+                friendlyName: 'create',
+                description: 'create entity',
+                static: true,
+                inputs: ninputs,
+                exits: updateAction.exits,
+                fn: createAction.fn
+            }
+            setAction(`/${name}/create`, newCreate);
+        }
+        else {
+            setAction(`/${name}/create`, createAction);
+        }
         setAction(`/${name}/list`, listAction);
         setAction(`/${name}/destory`, destroyAction);
-
+        let inputs = {};
+        for(let aname in cls.definition.attributes) {
+            let attr = cls.definition.attributes[aname];
+            inputs[aname] = {
+                type: attr.type,
+                description: attr.description,
+                required: false
+            }
+        }
         for (let aname in cls.definition.associations) {
             let assoc = cls.definition.associations[aname];
             if (assoc.cardinality !== 1) {
@@ -89,10 +119,35 @@ const addForModels = (server) => {
                     fn: addAction.fn
                 };
                 setAction(`/${name}/add${assocUpper}`, newAddAction);
+            } else {
+                inputs[aname] = {
+                    type: 'object',
+                    description: assoc.description,
+                    required: false
+                }
             }
         }
 
         setAction(`/${name}`, showAction);
+        inputs.id = {
+            type: 'string',
+            description: 'ID of the item to update',
+            required: false
+        };
+        inputs.name = {
+            type: 'string',
+            description: 'Name of the item to update',
+            required: false
+        };
+        let newUpdateAction = {
+            friendlyName: 'update',
+            description: 'Update entity',
+            static: true,
+            inputs: inputs,
+            exits: updateAction,
+            fn: updateAction.fn
+        }
+        setAction(`/${name}/update`, newUpdateAction);
     }
 };
 
@@ -101,9 +156,9 @@ const setAction = (route, action) => {
     if (!global.actions.hasOwnProperty(route)) {
         global.actions[route] = action;
     }
-    /*else {
+    else {
         console.log('Action', route, 'already exists');
-    }*/
+    }
 };
 
 const loadActions = (prefix, mDir) => {
@@ -161,6 +216,14 @@ const mapToServices = () => {
 
 const execute = (action, inputs, env) => {
     // check the iputs
+    // Add the body of the env.req to the inputs.
+    // This handles POST REST items.
+    // This will overide the inputs from the query if they exist.
+    if(env && env.hasOwnProperty('req') && env.req.hasOwnProperty('body')) {
+        for (let i in env.req.body) {
+            inputs[i] = env.req.body[i];
+        }
+    }
     let finputs = {};
     for (let i in action.inputs) {
         let input = action.inputs[i];
@@ -191,22 +254,6 @@ const execute = (action, inputs, env) => {
     // run the function
     return action.fn(finputs, env);
 };
-const find = (name) => {
-    name = name.toLowerCase();
-    if(global.actions.hasOwnProperty(name)) {
-        return global.actions[name];
-    }
-    else {
-        let items = name.replace(/[\/\\]/g, '/').replace(/^\//, '').split('/');
-        let nName = '/' + global.topPackage.shortname + '/' + items.join('/');
-        if(global.actions.hasOwnProperty(nName)) {
-            return global.actions[nName];
-        }
-        else {
-            return null;
-        }
-    }
-}
 const find = (name) => {
     name = name.toLowerCase();
     if(global.actions.hasOwnProperty(name)) {

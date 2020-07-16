@@ -1,7 +1,9 @@
 const express = require('express');
 const server = express();
+const THREE = require('three');
 const sLoader = require('./Loader.js');
 const AEvent = require('./AEvent.js');
+const AClass = require('./AClass.js');
 const path = require('path');
 const Action = require('./Action.js');
 const fs = require('fs');
@@ -15,6 +17,11 @@ const htmlGenerator = require('../Documentation/html');
 // plantuml.useNailgun();
 
 // Here we are configuring express to use body-parser as middle-ware.
+server.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
 server.use(bodyParser.urlencoded({extended: false}));
 server.use(bodyParser.json());
 
@@ -22,6 +29,7 @@ module.exports = {
     doc: (config) => {
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
+        sLoader.analyze(topPackage);
 
         Action.defaults(server);
         //let ailPath = __dirname + "/../../interface";
@@ -94,9 +102,19 @@ module.exports = {
         server.get('/doc/model/*', (req, res) => {
             let name = req.url.replace(/\/doc\/model\//, '');
             let names = name.split('/');
-            let mName = names.pop();
-            let prefix = names.join('/');
-            let apath = `/${prefix}/models/${mName}/index.html`;
+            let apath = "";
+            if(names.length === 1) {
+               if(global.classes.hasOwnProperty(names[0])) {
+                   let cls = global.classes[names[0]].definition;
+                   apath = `${cls.package.prefix}/models/${names[0]}/index.html`;
+               } else {
+                   console.log("Model not found");
+               }
+            } else {
+                let mName = names.pop();
+                let prefix = names.join('/');
+                apath = `/${prefix}/models/${mName}/index.html`;
+            }
             res.redirect(apath)
             // res.sendFile('index.html', {root: apath});
         });

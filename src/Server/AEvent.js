@@ -19,7 +19,7 @@ module.exports = {
         const nevent = event.toLowerCase();
         console.log("Event:", nevent);
         // send the event to all clients.
-        global.io.emit(nevent, data);
+        global.io.emit(nevent, data.toJSON);
         // Check to see if the current server handles this event.
         // If it does then call the Call the handlers defined.
         // This allows for a server to have events handled.

@@ -52,7 +52,15 @@ const renderPage = (page, objects) => {
     return "";
 };
 const partialProcess = (file, objects) => {
+    // Look to find the file starting with the views directory
     let apath = path.resolve(file);
+    if(!fs.existsSync(apath)) {
+        apath = path.resolve('./views/' + file);
+        if(!fs.existsSync(apath)) {
+            apath = path.resolve(__dirname + '../../views/' + file);
+        }
+    }
+
     try {
         let str = fs.readFileSync(apath, 'utf8');
         let retval = ejs.render(str, objects);
