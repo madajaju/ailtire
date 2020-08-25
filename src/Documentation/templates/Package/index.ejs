@@ -8,6 +8,9 @@
 
 <%- partial(basedir + '/doc.ejs', {obj:package}) %>
 
+<h1>Logical 3D</h1>
+<%- partial("./templates/Package/Logical3D.ejs", {package: package}) %>
+
 <h2>Use Cases</h2>
 <ul>
 <% for(let uname in package.usecases) {

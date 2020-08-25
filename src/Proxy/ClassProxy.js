@@ -93,6 +93,9 @@ module.exports = {
 };
 
 function findObject(obj, name, args) {
+    if(!global._instances) {
+        return null;
+    }
     if (!global._instances.hasOwnProperty(name)) {
         return null;
     } else if (global._instances[name][args[0]]) {

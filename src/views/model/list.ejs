@@ -2,6 +2,8 @@
     <script src="/js/aframe.js"></script>
     <script src="/js/three.js"></script>
     <script src="/js/3d-force-graph.js"></script>
+    <script src="/js/d3-force-3d.js"></script>
+    <script src="/js/d3-octree.js"></script>
     <script src="/js/Graph3D.js"></script>
     <script src="/js/socket.io.js"></script>
 </head>
@@ -21,10 +23,11 @@ let model = definition;
                 <a-sphere id="default3DSourced" position="0 0 0" radius="10" color="#00ff00"></a-sphere>
                 <% for(let cname in global.classes) {
                     let cls = global.classes[cname];
-                console.log("CLS:", cls.definition.view);
+                console.log("CLS:", cls.definition.name);
+                if(cls.definition.view) {
                 %>
                     <%- cls.definition.view.object3d() %>
-                <% } %>
+                <% } } %>
             </a-entity>
         </a-scene>
     </div>

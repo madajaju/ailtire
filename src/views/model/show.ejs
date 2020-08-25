@@ -1,3 +1,12 @@
+<head>
+    <script src="/js/aframe.js"></script>
+    <script src="/js/three.js"></script>
+    <script src="/js/3d-force-graph.js"></script>
+    <script src="/js/d3-force-3d.js"></script>
+    <script src="/js/d3-octree.js"></script>
+    <script src="/js/Graph3D.js"></script>
+    <script src="/js/socket.io.js"></script>
+</head>
 <div class="modelActionBar">
     <%- partial('./model/_actionBar.ejs', {definition: definition, obj:obj, className:className}) %>
 </div>
@@ -62,14 +71,27 @@
         <% } %>
     </table>
 </div>
-
+<div style="display:none;">
+    <div id="scratchspace" style="display:none;">
+        <a-scene embedded height="0px" width="0px">
+            <a-entity id="ObjectGarden" position="-10 20 -100">
+                <a-sphere id="default3D" position="0 0 0" radius="10" color="#cccccc"></a-sphere>
+                <a-sphere id="default3DSelected" position="0 0 0" radius="10" color="#ffff00"></a-sphere>
+                <a-sphere id="default3DTargeted" position="0 0 0" radius="10" color="#ff0000"></a-sphere>
+                <a-sphere id="default3DSourced" position="0 0 0" radius="10" color="#00ff00"></a-sphere>
+                <% for(let cname in global.classes) {
+                let cls = global.classes[cname];
+                if(cls.definition.view) {
+                %>
+                <%- cls.definition.view.object3d() %>
+                <% } } %>
+            </a-entity>
+        </a-scene>
+    </div>
+</div>
 <div class="modelGraph" , id="DrawingArea">
     <svg width="960" height="600" id="DrawingArea"></svg>
 
-    <script src="/js/three.js"></script>
-    <script src="/js/3d-force-graph.js"></script>
-    <script src="/js/Graph3D.js"></script>
-    <script src="/js/socket.io.js"></script>
     <script type="module">
         const socket = io('http://localhost:3000', {transport: ['websocket']});
         let data = {nodes: {}, links: []};
@@ -82,7 +104,9 @@
             id: "<%= oid %>",
             name: "<%= obj.name %>",
             group: "<%= otype %>",
-            level: '<%= level %>'
+            level: '<%= level %>',
+            view: '<%= otype %>3D'
+
         };
         <%
         for (let aname in definition.associations) {
@@ -103,7 +127,8 @@
                         id: "<%= aoid  %>",
                         name: "<%= obj[aname].name %>",
                         group: '<%= otype %>',
-                        level: '<%= level %>'
+                        level: '<%= level %>',
+                        view: '<%= otype %>3D'
                     };
                     data.links.push({source: "<%= oid %>", target: "<%= aoid %>", value: <%= linkValue %>});
                 <%
@@ -121,7 +146,8 @@
                                 id: "<%= aoid  %>",
                                 name: "<%= obj[aname][j].name %>",
                                 group: '<%= otype %>',
-                                level: '<%= level %>'
+                                level: '<%= level %>',
+                                view: '<%= otype %>3D'
                             };
                             data.links.push({source: "<%= oid %>", target: "<%= aoid %>", value: <%= linkValue %>});
                         <%
@@ -130,7 +156,7 @@
                 }
             }
         } %>
-        let graph = new Graph3D("DrawingArea", data);
+        let graph = new Graph3D("DrawingArea", data, {background:"#000055", width:1000, height:600});
 
         socket.on('<%= className.toLowerCase() %>.update', (res) => {
             let obj = res.obj;
