@@ -220,8 +220,16 @@ const execute = (action, inputs, env) => {
     // This handles POST REST items.
     // This will overide the inputs from the query if they exist.
     if(env && env.hasOwnProperty('req') && env.req.hasOwnProperty('body')) {
-        for (let i in env.req.body) {
-            inputs[i] = env.req.body[i];
+        if(env.req.body.hasOwnProperty('data')) {
+            for (let i in env.req.body.data) {
+                inputs[i] = env.req.body.data[i];
+            }
+        }
+        else {
+            for (let i in env.req.body) {
+                inputs[i] = env.req.body[i];
+            }
+            
         }
     }
     let finputs = {};
