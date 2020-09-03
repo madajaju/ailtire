@@ -14,7 +14,7 @@ class "<%- model.name %>" as Model {
 <% for(let aname in model.associations) {
     let assoc = model.associations[aname];
 -%>
-rectangle "<%= assoc.type %>" as <%= assoc.type %> {
+rectangle "<%= assoc.type %>" as <%= assoc.type %> #lightblue {
 }
 <% if(assoc.owner) { %>
 Model *--> "<%= assoc.cardinality %>" <%= assoc.type %> : <%= aname %>
@@ -24,4 +24,16 @@ Model o--> "<%= assoc.cardinality %>" <%= assoc.type %> : <%= aname %>
 
 <% } %>
 
+<% for(let dname in model.dependant) {
+    let depend = model.dependant[dname];
+    let d = depend.model.name.replace(/\s/,'');
+-%>
+    rectangle "<%= depend.model.name %>" as <%= d %> #lightgreen {
+    }
+    <% if(depend.assoc.owner) { %>
+        <%= d %>   *--> "<%= depend.assoc.cardinality %>" Model : "<%= depend.assoc.name %>"
+    <% } else { %>
+        <%= d %>   o--> "<%= depend.assoc.cardinality %>" Model : "<%= depend.assoc.name %>"
+    <% } %>
+<% } %>
 @enduml

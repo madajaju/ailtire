@@ -37,14 +37,15 @@ module.exports = {
         // Make sure to call docker stack deploy first then go down.
         let name = inputs.name;
         let apath = path.resolve('.');
+        console.log("Start Build");
         let topPackage = sLoader.processPackage(apath);
+        console.log("Start Build2" + topPackage);
         buildPackage(topPackage, {name: name});
         return `Building Application`;
     }
 };
 
 function buildPackage(package, opts) {
-    console.log("Package:", package);
     if(package.deploy) {
         let apath = path.resolve(package.deploy.dir + '/build.js');
         if(fs.existsSync(apath)) {

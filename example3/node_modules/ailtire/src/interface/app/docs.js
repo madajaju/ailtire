@@ -1,5 +1,5 @@
 const path = require('path');
-const rst = require('../../Documentation/rst');
+const htmlGenerator = require('../../Documentation/html');
 const sLoader = require('../../Server/Loader.js');
 
 module.exports = {
@@ -20,8 +20,8 @@ module.exports = {
     fn: function (inputs, env) {
         let apath = path.resolve('.');
         let topPackage = sLoader.processPackage(apath);
-        rst.package(global.topPackage, apath + '/docs');
-        rst.actors(global.actors, apath + '/docs');
+        htmlGenerator.package(global.topPackage, apath + '/docs');
+        htmlGenerator.actors(global.actors, apath + '/docs');
     }
 };
 

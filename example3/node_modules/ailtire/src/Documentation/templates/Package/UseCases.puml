@@ -23,4 +23,5 @@ usecase "<%= ucname %>" as <%= ucnameNoSpace %>
 <% } -%>
 }
 
+
 @enduml

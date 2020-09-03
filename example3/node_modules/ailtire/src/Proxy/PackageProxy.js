@@ -28,12 +28,19 @@ module.exports = {
                     if(typeof obj.definition[i] === 'object') {
                         retval[i] = {};
                         for(let j in obj.definition[i]) {
-                            console.log("i, j:", i, j);
                             if (i === 'usecases') {
                                 retval[i][j] = obj.definition[i][j];
                             }
+                            else if(typeof obj.definition[i][j] === 'object') {
+                                if(obj.definition[i][j].hasOwnProperty('toJSON')) {
+                                    retval[i][j] = obj.definition[i][j].toJSON();
+                                }
+                                else {
+                                    retval[i][j] = obj.definition[i][j];
+                                }
+                            }
                             else {
-                                retval[i][j] = obj.definition[i][j].toJSON();
+                                retval[i][j] = obj.definition[i][j];
                             }
                         }
                     }

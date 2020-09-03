@@ -31,6 +31,35 @@ class Data {
                 owner: false,
             }
         },
+        statenet: {
+            Init: {
+                events: {
+                    create: {
+                        Ready: {}
+                    }
+                }
+            },
+            Ready: {
+                events: {
+                    stop: {
+                        Done: {
+                            condition: function(obj) { return true; },
+                            action: function(obj) { console.log(obj); }
+                        }
+                    }
+                },
+                actions: {
+                    entry: {
+                        show: function(obj) { console.log(obj);},
+                        showAll: function(obj) { console.log(obj);}
+                    },
+                    exit: {
+                        showAfter: function(obj) { console.log(obj);}
+                    }
+                }
+            },
+            Done: {}
+        }
     }
 }
 

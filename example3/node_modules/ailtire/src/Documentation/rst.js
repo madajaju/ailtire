@@ -16,7 +16,6 @@ module.exports = {
     }
 };
 const modelGenerator = (model, output) => {
-    console.log("Model:", model);
     let files = {
         context: {
             model: model,
@@ -26,6 +25,7 @@ const modelGenerator = (model, output) => {
         targets: {
             './Model-:modelnamenospace:.rst': {template: '/templates/Model/index.rst'},
             './Model-:modelnamenospace:.puml': {template: '/templates/Model/Logical.puml'},
+            './Model-:modelnamenospace:-StateNet.puml': {template: '/templates/Model/StateNet.puml'},
         }
     };
     Generator.process(files, output);

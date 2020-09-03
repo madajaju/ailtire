@@ -1,17 +1,21 @@
 #!/usr/bin/env node
-
+const bent = require('bent');
 const program = require('commander');
 
-const YAML = require('yamljs');
-const Client = require('node-rest-client').Client;
-const client = new Client();
 global.ailtire = { config: require('C:\\Users\\dwpulsip\\work\\ailtire\\example\\bin\\lib/../../.ailtire.js') };
-program.command('undefined [options]', 'undefined');
+
 program.parse(process.argv);
-let url = global.ailtire.config.host + '/sdi?';
-url += 'mode=json';
-let args = {headers: {'Content-Type': 'application/json'}, data: {}};
-client.post(url, args, (data, response) => {
-if (data.error) { console.error('Error:' + data.error); } else { 
-for(let item in data) { console.log(data[item].toString()); } }
+let url = 'http://localhost:3000/';
+let params = 'sdi?';
+// let args = {headers: {'Content-Type': 'application/json'}, data: {}};
+let args = {data: {}};
+params += 'mode=json';
+const post = bent(url, 'POST', 'json', 200);
+
+(async () => {
+    const response = await post(params, args);
+    console.log("Response:", response);
+})().catch(e => {
+    // Deal with the fact the chain failed
+    console.error("Response Error:", e);
 });

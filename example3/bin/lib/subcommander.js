@@ -248,36 +248,37 @@ const findAction = (args, localBin) => {
         // Look for the bin in the interface definitions.
         let tdir = './.tmp/';
         let tfile = tdir + found.action.path.split('/').pop();
-        let tempString = '#!/usr/bin/env node\n\nconst program = require(\'commander\');\n\n';
-        tempString += "const YAML = require('yamljs');\n";
-        tempString += "const Client = require('node-rest-client').Client;\n";
-        tempString += "const client = new Client();\n";
-        tempString += "global.ailtire = { config: require('" + __dirname.replace(/\\/g, '\\\\') + "/../../.ailtire.js') };\n";
         let action = found.action;
-        tempString += `program.command('${action.friendlyName} [options]', '${action.description}')`;
+        let tempString = `#!/user/bin/env node
+const bent = require('bent');
+const program = require('commander');
+global.ailtire = { config: require('${__dirname.replace(/\\/g, '\\\\')}/../../.ailtire.js') };
+program.parse(process.argv);
+program.command('${action.friendlyName} [options]', '${action.description}');`;
         for (let iname in action.inputs) {
             let input = action.inputs[iname];
             tempString += `\n\t.option('--${iname} <${input.type}>', '${input.description}')`;
         }
-        tempString += ';\n';
-        tempString += 'program.parse(process.argv);\n';
-        // Call the client call here
-        tempString += "let url = global.ailtire.config.host + '" + found.action.path + "?';\n";
-        tempString += "url += 'mode=json';\n";
-        tempString += "let args = {headers: {'Content-Type': 'application/json'}, data: {}};\n";
+        tempString += `;\n`;
+        tempString += `program.parse(process.argv);
+let url = global.ailtire.config.host;
+let params = '${found.action.path}?';
+params += 'mode=json';`;
         for (key in action.inputs) {
             if(action.inputs[key].type.toUpperCase() === 'YAML') {
-                tempString += "if(program['" + key + "']) { args.data['" + key + "'] = YAML.load(program['" + key + "']); }\n";
+                tempString += `if(program['${key}']) { args.data['${key}'] = YAML.load(program['${key}']); }\n`;
             }
             else {
-                tempString += "if(program['" + key + "']) { args.data['" + key + "'] = program['" + key + "']; }\n";
+                tempString += `if(program['${key}']) { args.data['${key}'] = program['${key}']); }\n`;
             }
         }
-        tempString += "client.post(url, args, (data, response) => {\n";
-        tempString += "if (data.error) { console.error('Error:' + data.error); }";
-        tempString += " else { \n";
-        tempString += "for(let item in data) { console.log(data[item].toString()); } }\n";
-        tempString += "});";
+        tempString += `(async () => {
+    const response = await post(params, args);
+    console.log("Response:", response);
+})().catch(e => {
+    // Deal with the fact the chain failed
+    console.error("Response Error:", e);
+});`;
 
         tfile = path.resolve(tfile);
         let dirname = path.dirname(tfile);
@@ -367,6 +368,7 @@ const _helpCommand = (found) => {
         }
         tempString += '\n';
         tempString += 'program.parse(process.argv);\n';
+        console.log(tempString);
         tfile = path.resolve(tfile);
         let dirname = path.dirname(tfile);
         fs.mkdirSync(dirname, {recursive: true});
