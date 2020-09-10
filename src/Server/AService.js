@@ -7,7 +7,7 @@ module.exports = {
         if (fn) {
             return fn(opts);
         } else {
-            let url = 'http://localhost/';
+            let url = 'http://localhost:3000/';
             const post = bent(url, 'POST', 'string', 200);
             const astring = action.replace(/\./g, '/');
             try {

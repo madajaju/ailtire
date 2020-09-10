@@ -7,7 +7,7 @@ Actor "<%= actor.name %>" as <%= anameNoSpace %>
 <% for(let pname in actorPackages) {
     let package = actorPackages[pname];
 %>
-rectangle "<%= package.name %>" as <%= package.shortname %>  <%= package.color %> {
+rectangle "<%= package.name %>" as <%= package.shortname %> #<%= package.color.replace('#','') %> {
     <% for(let uname in package.usecases) {
         let usecase = package.usecases[uname];
     -%>

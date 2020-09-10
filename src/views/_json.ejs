@@ -1,0 +1,12 @@
+<table>
+    <% for(let name in json) { %>
+    <tr>
+        <td><%= name %></td>
+        <% if(typeof json[name] === 'object') { %>
+            <td><%- partial('./src/views/model/_json.ejs', {json: json[name]}) %></td>
+        <% } else { %>
+            <td><%= json[name] %></td>
+        <% } %>
+    </tr>
+    <% } %>
+</table>

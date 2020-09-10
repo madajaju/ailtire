@@ -3,7 +3,7 @@
 let pkgs = {};
 for(let i in package.depends) {
     let dpkg = package.depends[i];
-    pkgs[dpkg.shortname] = {name: dpkg.name, color:dpkg.color, classes:{}};
+    pkgs[dpkg.shortname] = {name: dpkg.name, color:dpkg.color.replace('#',''), classes:{}};
 }
 for(let cname in package.classes) {
     let cls = package.classes[cname].definition;
@@ -14,7 +14,7 @@ for(let cname in package.classes) {
         if(aclass) {
             let pkg = aclass.definition.package;
             if(!pkgs.hasOwnProperty(pkg.shortname)) {
-                pkgs[pkg.shortname] = {name: pkg.name, color: pkg.color, classes:{}};
+                pkgs[pkg.shortname] = {name: pkg.name, color: pkg.color.replace('#',''), classes:{}};
             }
             pkgs[pkg.shortname].classes[atype] = 1;
         }
@@ -23,7 +23,7 @@ for(let cname in package.classes) {
 for(let pname in pkgs) {
     let pkg = pkgs[pname];
 %>
-package "<%= pkg.name %>" <%= pkg.color %> {
+package "<%= pkg.name %>" #<%= pkg.color.replace('#','') %> {
     <% for(let cname in pkg.classes) { %>
         class <%= cname %> {
         }
@@ -31,7 +31,7 @@ package "<%= pkg.name %>" <%= pkg.color %> {
 }
 <% } %>
 
-package "<%= package.name %>" <%= package.color %> {
+package "<%= package.name %>" #<%= package.color.replace('#','') %> {
 
     interface "<%= package.name %>" as i {
     <% for (let iname in package.interface) {
@@ -46,7 +46,7 @@ CLI ()-- i
 REST ()-- i
 Web ()-- i
 
-package "<%= package.name %>" <%= package.color %> {
+package "<%= package.name %>" #<%= package.color.replace('#','') %> {
     <% for(let cname in package.classes) {
         let cls = package.classes[cname].definition;
     -%>

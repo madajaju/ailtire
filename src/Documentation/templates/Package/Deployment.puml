@@ -25,7 +25,7 @@ boundary <%= nname %> <%= ncolor %>
 entity <%= nname %> <%= ncolor %>
 <% } %>
 
-package  "<%= package.name %>"  <%= package.color %> {
+package  "<%= package.name %>" #<%= package.color.replace('#','') %> {
 <% for(let nname in deploy.networks) {
     let network = deploy.networks[nname];
 -%>

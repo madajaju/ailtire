@@ -186,8 +186,8 @@ const mapToServer = (server) => {
             i = '/' + i;
         }
         let normalizedName = i.replace('/' + global.topPackage.shortname,'' );
+        normalizedName = normalizedName.toLowerCase();
         server.all(normalizedName, (req, res) => {
-            // console.log("Server Call:", normalizedName);
             execute(gaction, req.query, {req: req, res: res});
         });
     }

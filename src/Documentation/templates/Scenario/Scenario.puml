@@ -5,7 +5,7 @@ actor "<%= aname %>"
 
 entity EventBus
 
-box <%= package.name %> <%= package.color %>
+box <%= package.name %> #<%= package.color.replace('#','') %>
     boundary <%= package.shortname %> #white
     participant DataModel #white
 end box
@@ -21,7 +21,7 @@ DataModel --/ EventBus : Model.Event
     let  dpkg = package.depends[i];
     if(dpkg) {
 -%>
-box "<%= dpkg.name %>" <%= dpkg.color %>
+box "<%= dpkg.name %>" #<%= dpkg.color.replace('#','') %>
     boundary <%= dpkg.shortname %> #white
 end box
 EventBus -\ <%= dpkg.shortname %>: method()

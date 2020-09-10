@@ -31,7 +31,7 @@ left to right direction
                 }
             }
             asName += aname;
-            retval += `state \"${aname}\" as ${asName.toLowerCase()} ${package.color} {\n`;
+            retval += `state \"${aname}\" as ${asName.toLowerCase()} #${package.color.replace('#','')} {\n`;
         }
     }
     retval += '}\n'.repeat(slen);
@@ -40,8 +40,8 @@ left to right direction
         asName = global.topPackage.name.toLowerCase();
     }
 
-    stateMap[name] = {sname:asName, states:'', color:package.color};
-    return {sname:asName, states:retval, color:package.color};
+    stateMap[name] = {sname:asName, states:'', color:package.color.replace('#','')};
+    return {sname:asName, states:retval, color:package.color.replace('#','')};
 };
 %>
 <%
@@ -49,7 +49,7 @@ left to right direction
 %>
 <%- pstate.states %>
 
-state <%= pstate.sname %> <%= pstate.color %> {
+state <%= pstate.sname %> #<%= pstate.color.replace('#','') %> {
     state "Custom Function" as <%= package.shortname.toLowerCase() %>function {
     }
 }
