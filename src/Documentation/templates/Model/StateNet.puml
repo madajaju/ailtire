@@ -88,5 +88,4 @@ state <%= model.name %> <%= model.package.color %> {
       }
     }
  } %>
-
 @enduml

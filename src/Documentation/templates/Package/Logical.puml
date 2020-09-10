@@ -1,5 +1,4 @@
 @startuml
-
 <%
 let pkgs = {};
 for(let i in package.depends) {
@@ -81,5 +80,4 @@ package "<%= package.name %>" <%= package.color %> {
     %>
     "<%= package.name %>" --> "<%= dpkg.name %>"
 <% } %>
-
 @enduml

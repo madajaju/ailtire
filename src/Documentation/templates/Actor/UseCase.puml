@@ -1,5 +1,4 @@
 @startuml
-
 left to right direction
 
 <% let anameNoSpace = actor.name.replace(/ /g, '') %>
@@ -17,5 +16,4 @@ rectangle "<%= package.name %>" as <%= package.shortname %>  <%= package.color %
 <% } %>
 }
 <% } %>
-
 @enduml

@@ -1,5 +1,4 @@
 @startuml
-
 <%
 const colors = [ "#black", "#blue", "#red", "#orange", "#darkgreen", "#darkgray" ];
 let i = 1;
@@ -144,5 +143,4 @@ package <%= parent %> #lightgray {
     <%= parent %>children ==[<%= deploy.networks.parent.color %>]= parent
 }
 <% } %>
-
 @enduml
