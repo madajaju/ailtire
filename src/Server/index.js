@@ -12,7 +12,6 @@ const redis = require('socket.io-redis');
 const bodyParser = require("body-parser");
 const htmlGenerator = require('../Documentation/html');
 
-// plantuml.useNailgun();
 
 // Here we are configuring express to use body-parser as middle-ware.
 server.use(function(req, res, next) {
@@ -25,7 +24,7 @@ server.use(bodyParser.json());
 
 module.exports = {
     doc: (config) => {
-
+        plantuml.useNailgun();
         const THREE = require('three');
         const plantuml = require('node-plantuml');
         let apath = path.resolve(config.baseDir);
@@ -42,21 +41,21 @@ module.exports = {
         htmlGenerator.actors(global.actors, apath + '/docs');
 
         server.get('/styles/*', (req, res) => {
-            let apath = path.resolve('./docs/assets' + req.url);
+            let apath = path.resolve(`${config.baseDir}/docs/assets${req.url}`);
             let str = fs.readFileSync(apath, 'utf8');
             res.send(str);
         });
         server.get('/js/*', (req, res) => {
-            let apath = path.resolve('./docs/assets' + req.url);
+            let apath = path.resolve(`${config.baseDir}/docs/assets${req.url}`);
             let str = fs.readFileSync(apath, 'utf8');
             res.send(str);
         });
         server.get('*.html', (req, res) => {
-            let apath = path.resolve('./docs/' + req.url);
+            let apath = path.resolve(`${config.baseDir}/docs/${req.url}`);
             res.sendFile(apath);
         });
         server.get('*.png', (req, res) => {
-            let apath = path.resolve('./docs/' + req.url);
+            let apath = path.resolve(`${config.baseDir}/docs/${req.url}`);
             if (fs.existsSync(apath)) {
                 res.sendFile(apath);
             }
@@ -65,7 +64,7 @@ module.exports = {
             }
         });
         server.get('*.jpg', (req, res) => {
-            let apath = path.resolve('./docs/' + req.url);
+            let apath = path.resolve(`${config.baseDir}/docs/${req.url}`);
             if (fs.existsSync(apath)) {
                 res.sendFile(apath);
             }
@@ -74,7 +73,7 @@ module.exports = {
             }
         });
         server.get('*.puml', (req, res) => {
-            let apath = path.resolve('./docs/' + req.url);
+            let apath = path.resolve(`${config.baseDir}/docs/${req.url}`);
             if (fs.existsSync(apath)) {
                 res.set('Content-Type', 'image/svg+xml');
                 let gen = plantuml.generate(apath, {format: 'svg'});
@@ -105,12 +104,12 @@ module.exports = {
             let names = name.split('/');
             let apath = "";
             if(names.length === 1) {
-               if(global.classes.hasOwnProperty(names[0])) {
-                   let cls = global.classes[names[0]].definition;
-                   apath = `${cls.package.prefix}/models/${names[0]}/index.html`;
-               } else {
-                   console.log("Model not found");
-               }
+                if(global.classes.hasOwnProperty(names[0])) {
+                    let cls = global.classes[names[0]].definition;
+                    apath = `${cls.package.prefix}/models/${names[0]}/index.html`;
+                } else {
+                    console.log("Model not found");
+                }
             } else {
                 let mName = names.pop();
                 let prefix = names.join('/');
@@ -126,7 +125,8 @@ module.exports = {
             // res.sendFile('index.html', {root: apath});
         });
         server.get('/', (req, res) => {
-            res.redirect('/index.html');
+            let apath = path.resolve(`${config.baseDir}/docs/index.html`);
+            res.redirect(apath);
         });
 
         console.log("Serving up documentation on Port:", config.listenPort);
