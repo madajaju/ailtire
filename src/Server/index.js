@@ -1,6 +1,5 @@
 const express = require('express');
 const server = express();
-const THREE = require('three');
 const sLoader = require('./Loader.js');
 const AEvent = require('./AEvent.js');
 const AClass = require('./AClass.js');
@@ -11,7 +10,6 @@ const http = require('http').createServer(server);
 const io = require('socket.io')(http);
 const redis = require('socket.io-redis');
 const bodyParser = require("body-parser");
-const plantuml = require('node-plantuml');
 const htmlGenerator = require('../Documentation/html');
 
 // plantuml.useNailgun();
@@ -27,6 +25,9 @@ server.use(bodyParser.json());
 
 module.exports = {
     doc: (config) => {
+
+        const THREE = require('three');
+        const plantuml = require('node-plantuml');
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
         sLoader.analyze(topPackage);
