@@ -407,10 +407,12 @@ const checkUseCase = (pkg, usecase) => {
         if (!global.actors.hasOwnProperty(nsAname)) {
             apiGenerator.actor({name: aname}, global.appBaseDir + '/actors');
         }
-        if (!global.actors[nsAname].hasOwnProperty('usecases')) {
-            global.actors[nsAname].usecases = {};
+        if (global.actors.hasOwnProperty(nsAname)) {
+            if (!global.actors[nsAname].hasOwnProperty('usecases')) {
+                global.actors[nsAname].usecases = {};
+            }
+            global.actors[nsAname].usecases[usecase.name.replace(/\s/g, '')] = usecase;
         }
-        global.actors[nsAname].usecases[usecase.name.replace(/\s/g, '')] = usecase;
     }
 
     // Make sure each UseCase has a method that matches an interface that exists.

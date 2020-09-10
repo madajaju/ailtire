@@ -2,6 +2,7 @@ const path = require('path');
 const spawn = require('child_process').spawnSync;
 const api = require('../../Documentation/api');
 const sLoader = require('../../Server/Loader');
+const APackage = require('../../Server/APackage');
 const fs = require('fs');
 
 module.exports = {
@@ -15,10 +16,15 @@ module.exports = {
             required: true
         },
         name: {
-            description: 'Name of the Build',
+            description: 'Name Package to build',
             type: 'string',
-            required: false
+            required: true
         },
+        recursive: {
+            description: 'Rescurse to all sub packages',
+            type: 'boolean',
+            required: false
+        }
     },
 
     exits: {
@@ -39,8 +45,11 @@ module.exports = {
         let apath = path.resolve('.');
         console.log("Start Build");
         let topPackage = sLoader.processPackage(apath);
-        console.log("Start Build2" + topPackage);
-        buildPackage(topPackage, {name: name});
+        // Find the package
+        console.log("Packages:", global.packages);
+        let pkg = APackage.getPackage(name);
+
+        buildPackage(pkg, {name: name,recursive:inputs.recursive});
         return `Building Application`;
     }
 };
@@ -70,8 +79,10 @@ function buildPackage(package, opts) {
     }
 
     // Iterate over the subsystems and build the docker images
-    for (let i in package.subpackages) {
-        buildPackage(package.subpackages[i], opts);
+    if(opts.recursive) {
+        for (let i in package.subpackages) {
+            buildPackage(package.subpackages[i], opts);
+        }
     }
 }
 

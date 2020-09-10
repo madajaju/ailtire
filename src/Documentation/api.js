@@ -71,6 +71,7 @@ const appGenerator = (app, output) => {
             'deploy/deploy.js': {template: '/templates/App/deploy/deploy.js'},
             'deploy/web/Dockerfile': {template: '/templates/App/deploy/Dockerfile_web'},
             'deploy/doc/Dockerfile': {template: '/templates/App/deploy/Dockerfile_doc'},
+            'deploy/doc/package.json': {template: '/templates/App/deploy/package.doc.json'},
             '/deploy/web/server.js': {template: '/templates/App/deploy/server.js'},
             '/deploy/doc/doc.js': {template: '/templates/App/deploy/doc.js'},
             'docs/plantuml.jar': {copy: '/templates/App/plantuml.jar'}
