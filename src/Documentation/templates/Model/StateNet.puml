@@ -1,0 +1,91 @@
+@startuml
+
+<% const getStates = (name) => {
+    let names = name.split(/\//);
+    let asName = '';
+    let retval = '';
+    names.shift(); // Shift off the first item that is blank.
+    let pkgName = names.shift();
+    let package = global.packages[pkgName];
+    let slen = 0;
+    for(let i in names) {
+        let aname = names[i];
+        if(aname.length > 0) {
+        slen++;
+            if(package.hasOwnProperty('subpackages')) {
+                if(package.subpackages.hasOwnProperty(aname)) {
+                    package = package.subpackages[aname];
+                }
+            }
+            asName += aname;
+            retval += `state \"${aname}\" as ${asName} #${package.color.replace('#','')} {\n`;
+        }
+    }
+    retval += '}\n'.repeat(slen);
+    return {sname:asName, states:retval, color:package.color};
+};
+%>
+
+state <%= model.name %> #<%= model.package.color.replace('#','') %> {
+<% for(let name in model.statenet) {
+    let state = model.statenet[name];
+%>
+    state <%= name %> #<%= model.package.color.replace('#','') %> {
+    }
+<% } %>
+}
+
+<% for(let name in model.statenet) {
+    let state = model.statenet[name];
+    if(state.actions) {
+        if(state.actions.entry) {
+            for(let action in state.actions.entry) {
+%>
+<%= name %>: entry/ <%= action %>
+<%          }
+        }
+        if(state.actions.exit) {
+            for(let action in state.actions.exit) {
+%>
+<%= name %>: exit/ <%= action %>
+<%          }
+        }
+    }
+    if(state.events) {
+        for(let event in state.events) {
+            for(let tState in state.events[event]) {
+
+%>
+<%= name %> --> <%= tState %> : <%= event %>
+<%
+            }
+        }
+    }
+}
+%>
+
+<% for(let name in model.statenet) {
+     let state = model.statenet[name];
+     let ename = model.name + '.' + name;
+     ename = ename.toLowerCase();
+    if(global.events.hasOwnProperty(ename)) {
+        event = global.events[ename];
+        for(let pkg in event.handlers) {
+            let hs = event.handlers[pkg];
+            for(let i in hs.handlers) {
+                let handler = hs.handlers[i];
+                let action = "";
+                if(handler.hasOwnProperty('action')) {
+                    action = '/' + global.topPackage.name + handler.action;
+                } else {
+                    action = pkg + '/Function';
+                }
+                estate = getStates(action);
+ %>
+ <%- estate.states %>
+ <%= name %> -[#black]--> <%= estate.sname %>
+ <%     }
+      }
+    }
+ } %>
+@enduml

@@ -1,0 +1,27 @@
+@startuml
+
+left to right direction
+<% for(let ucname in package.usecases) {
+    let usecase = package.usecases[ucname];
+    for(let aname in usecase.actors) {
+        let anameNoSpace = aname.replace(/ /g, '');
+-%>
+Actor "<%= aname %>" as <%= anameNoSpace %>
+<% } }%>
+
+rectangle "<%= package.name %>" #<%= package.color.replace('#','') %> {
+<% for(let ucname in package.usecases) {
+    let usecase = package.usecases[ucname];
+    let ucnameNoSpace = ucname.replace(/ /g, '');
+-%>
+usecase "<%= ucname %>" as <%= ucnameNoSpace %>
+    <% for(let aname in usecase.actors) {
+    let anameNoSpace = aname.replace(/ /g, '');
+    -%>
+<%= anameNoSpace %> --> <%= ucnameNoSpace %>
+    <% } -%>
+<% } -%>
+}
+
+
+@enduml

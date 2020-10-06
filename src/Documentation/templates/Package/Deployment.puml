@@ -1,0 +1,146 @@
+@startuml
+<%
+const colors = [ "#black", "#blue", "#red", "#orange", "#darkgreen", "#darkgray" ];
+let i = 1;
+for(let nname in deploy.networks) {
+    deploy.networks[nname].color = colors[i++];
+}
+if(Object.keys(deploy.ports).length > 0) {
+%>
+card external #black [
+    <b><color:white>external</color></b>
+]
+    <% for(let port in deploy.ports) { %>
+interface <%= port %>
+    <% }
+}
+for(let nname in deploy.ingress) {
+    let ncolor = deploy.networks[deploy.ingress[nname].name].color;
+%>
+boundary <%= nname %> <%= ncolor %>
+<% } %>
+<% for(let nname in deploy.egress) {
+    let ncolor = deploy.networks[deploy.egress[nname].name].color;
+%>
+entity <%= nname %> <%= ncolor %>
+<% } %>
+
+package  "<%= package.name %>" #<%= package.color.replace('#','') %> {
+<% for(let nname in deploy.networks) {
+    let network = deploy.networks[nname];
+-%>
+    card <%= nname %> <%= network.color %> [
+        <b><color:white><%= nname %></color></b>
+    ]
+    <% if(network.attachable) { %>
+    <%= network.name %> -[<%= network.color %>]- <%= nname %>
+    <% } %>
+    <% if(network.external) { %>
+    <%= network.name %> -[<%= network.color %>]- <%= nname %>
+    <% } %>
+<% } -%>
+    artifact images #ffffff {
+        <% for(let image in deploy.images) { %>
+        file "<%= image %>"
+        <% } %>
+    }
+<% for(let name in deploy.services) {
+    let service = deploy.services[name];
+%>
+    node <%= name %>
+    <%= name %> .. <%= service.image %>
+    <% for(let j in service.networks) {
+        let nname = "";
+        let networkColor = "#black"
+        if(deploy.networks.hasOwnProperty(j)) {
+            nname = j;
+            networkColor = deploy.networks[nname].color;
+        }
+        else {
+            nname = service.networks[j];
+            networkColor = deploy.networks[nname].color;
+        }
+    %>
+        <%= nname %> -[<%= networkColor %>]- <%= name %>
+    <% } %>
+<% } %>
+
+<% for(let name in deploy.ports) {
+    let port = deploy.ports[name];
+%>
+    <%= name %> -[#black]- "<%= port.port %>" external
+    external -[#black]- <%= port.service %>
+<% } %>
+
+    <%
+      let traefik = null;
+      for(let sname in deploy.services) {
+        let service = deploy.services[sname];
+        if(service.image.includes('traefik')) {
+            traefik = sname;
+        }
+      }
+      if(traefik) {
+          for(let sname in deploy.services) {
+            let service = deploy.services[sname];
+            if(service.hasOwnProperty('deploy')) {
+                let path = "";
+                let network = "";
+                let ncolor = "";
+                let port = "";
+                for(let j in service.deploy.labels) {
+                    let label = service.deploy.labels[j];
+                    if(label.includes('rule=')) {
+                        path = label.replace(/^.*Path\(\`/, '').replace(/\`.*$/, '');
+                    }
+                    if(label.includes('network=')) {
+                        network = label.replace(/^.*=/, '').replace(/\$\{.*\}/, '');
+                        if(deploy.ingress.hasOwnProperty(network)) {
+                            ncolor = deploy.networks[deploy.ingress[network].name].color;
+                        }
+                        if(deploy.egress.hasOwnProperty(network)) {
+                            ncolor = deploy.networks[deploy.egress[network].name].color;
+                        }
+                        if(deploy.networks.hasOwnProperty(network)) {
+                            ncolor = deploy.networks[network].color;
+                        }
+                    }
+                    if(label.includes('port=')) {
+                        port = label.replace(/^.*=/, '');
+                    }
+                }
+             %>
+             <%= traefik %> "<%= port %>" -[<%= ncolor %>]-  "<%= path %>" <%= sname %>
+             <%
+            }
+          }
+      }
+        %>
+}
+
+<% for(let sname in package.subpackages) {
+    let spkg = package.subpackages[sname];
+%>
+package  "<%= sname %>"  #lightgray {
+    card <%= sname %>parent <%= deploy.networks.children.color %> [
+        <b><color:white>parent</color></b>
+    ]
+    <%= sname %>parent ==[<%= deploy.networks.children.color %>]= children
+}
+
+<% } %>
+
+<%
+    let parent = package.prefix.split('/');
+    if(parent.length > 2) {
+    parent.pop();
+    parent = parent.pop();
+%>
+package <%= parent %> #lightgray {
+    card <%= parent %>children <%= deploy.networks.parent.color %> [
+        <b><color:white>children</color></b>
+    ]
+    <%= parent %>children ==[<%= deploy.networks.parent.color %>]= parent
+}
+<% } %>
+@enduml

@@ -1,0 +1,37 @@
+@startuml
+  interface CLI
+  interface Web
+  interface WebSocket
+package "<%= package.name %>" #<%= package.color.replace('#','') %> {
+  component express as REST
+  component socket.io as socket
+  folder bin #ffffff {
+    component "<%= package.prefix.replace('/','') %>" as binName
+  }
+  binName --> REST
+
+  folder deploy #ffffff {
+  <% for(let bname in package.deploy.build) {
+    let build = package.deploy.build[bname];
+    let bcmd = build.cmd;
+    if(!bcmd) { bcmd = bname }
+  %>
+    file "<%= bcmd %>" as <%= bname %>_container
+    REST --> <%= bname %>_container
+    socket ---> <%= bname %>_container
+  <% } %>
+  }
+  folder images #ffffff {
+  <% for(let bname in package.deploy.build) {
+      let build = package.deploy.build[bname];
+    %>
+      artifact <%= build.tag %>
+      <%= bname %>_container --> <%= build.tag %>
+    <% } %>
+  }
+}
+CLI -- binName
+Web - REST
+WebSocket -- socket
+
+@enduml

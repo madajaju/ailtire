@@ -192,6 +192,7 @@ const packageGenerator = (package, output, urlPath) => {
             ':shortname:/SubPackage.puml': {template: '/templates/Package/SubPackage.puml'},
             ':shortname:/Deployment.puml': {template: '/templates/Package/Deployment.puml'},
             ':shortname:/Physical.puml': {template: '/templates/Package/Physical.puml'},
+            ':shortname:/Process.puml': {template: '/templates/Package/Process.puml'},
             ':shortname:/ScenarioMapping.puml': {template: '/templates/Package/ScenarioMapping.puml'}
         }
     };

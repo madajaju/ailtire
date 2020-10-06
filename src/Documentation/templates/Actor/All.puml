@@ -1,0 +1,41 @@
+@startuml
+
+left to right direction
+<%
+let pkgMapping = {};
+for(let p in global.packages) {
+    let pkg = global.packages[p];
+    pkgMapping[pkg.prefix] = pkg;
+}
+for(let i in actors) {
+    let actor = actors[i];
+    let anameNoSpace = actor.name.replace(/ /g, '') %>
+Actor "<%= actor.name %>" as <%= anameNoSpace %>
+<% } %>
+
+<%
+let j = 0;
+for(let pname in actorPackages) {
+    j++;
+    let package = actorPackages[pname];
+    let pkg = global.packages[pname];
+    let pkgs = pkg.prefix.split(/\//);
+    pkg = pkgMapping['/' + pkgs[1] + '/' + pkgs[2]];
+%>
+rectangle "<%= pkg.name %>" as <%= pkg.shortname %>  #<%= pkg.color.replace('#','') %> {
+    <% for(let uname in package.usecases) {
+        let usecase = package.usecases[uname];
+    -%>
+    usecase "<%= usecase.name %>" as <%= uname %>
+    <%
+    for(let aname in usecase.actors) {
+        %>
+        <%= aname.replace(/ /g, '') %> <%='-'.repeat(j % 2) %>--> <%= uname %>
+        <%
+    }
+    %>
+<% } %>
+}
+<% } %>
+
+@enduml

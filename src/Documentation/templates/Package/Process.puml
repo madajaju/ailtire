@@ -1,0 +1,111 @@
+@startuml
+left to right direction
+<%
+    const messageMap = {};
+    const stateMap = {};
+    const getMessage = (from, to) => {
+        if(!messageMap.hasOwnProperty(from+to)) {
+            messageMap[from+to] = 1;
+            return `${from} ---> ${to}`;
+        }
+        return "";
+    }
+    const getStates = (name) => {
+    if(stateMap.hasOwnProperty(name)) {
+        return stateMap[name];
+    }
+    let names = name.split(/\//);
+    let asName = '';
+    let retval = '';
+    names.shift(); // Shift off the first item that is blank.
+    let pkgName = names.shift();
+    let package = global.packages[pkgName];
+    let slen = 0;
+    for(let i in names) {
+        let aname = names[i];
+        if(aname.length > 0) {
+            slen++;
+            if(package.hasOwnProperty('subpackages')) {
+                if(package.subpackages.hasOwnProperty(aname)) {
+                    package = package.subpackages[aname];
+                }
+            }
+            asName += aname;
+            retval += `state \"${aname}\" as ${asName.toLowerCase()} #${package.color.replace('#','')} {\n`;
+        }
+    }
+    retval += '}\n'.repeat(slen);
+    asName = asName.toLowerCase();
+    if(!asName) {
+        asName = global.topPackage.name.toLowerCase();
+    }
+
+    stateMap[name] = {sname:asName, states:'', color:package.color.replace('#','')};
+    return {sname:asName, states:retval, color:package.color.replace('#','')};
+};
+%>
+<%
+    let pstate = getStates(package.prefix);
+%>
+<%- pstate.states %>
+
+state <%= pstate.sname %> #<%= pstate.color.replace('#','') %> {
+    state "Custom Function" as <%= package.shortname.toLowerCase() %>function {
+    }
+}
+<% for(let i in package.interface) {
+        let spstate = getStates(i); %>
+        <%- spstate.states %>
+<% } %>
+
+<% for(let i in package.handlers) {
+    let handler = package.handlers[i];
+    let snames;
+    let epkg = handler.emitter.definition.package;
+    let ecls = handler.emitter;
+    let message = getStates(epkg.prefix + '/' + ecls.definition.name + '/' + handler.name.split(/\./).pop());
+    %>
+    <%- message.states %>
+    <% for(let k in handler.handlers) {
+        let hdlr = handler.handlers[k];
+        let astate = {}
+        if(hdlr.action) {
+            astate = getStates(global.topPackage.prefix + '/' + hdlr.action);
+        } else {
+            astate = getStates(package.prefix + '/Function');
+       }
+   %>
+    <%- astate.states %>
+    <%- getMessage(message.sname, astate.sname) %>
+  <% } %>
+<% } %>
+<% for(let i in package.messages) {
+    let message = package.messages[i];
+    let ename = message.emitter.definition.name;
+    let pkgs = message.handlers;
+    for(let j in pkgs) {
+        let handler = pkgs[j];
+        for(let k in handler.handlers) {
+            let hdlr = handler.handlers[k];
+            // First build the from state
+            let efname = message.emitter.definition.package.prefix + '/' + ename + '/' + handler.name.split('.').pop();
+            let estates = getStates(efname);
+            // Now build the to state
+            let hstate = {};
+            if(hdlr.hasOwnProperty('action')) {
+                hstate = getStates(global.topPackage.prefix + hdlr.action);
+            }
+            else {
+                hstate = getStates(j + '/Function');
+            }
+%>
+    <%- estates.states %>
+    <%- hstate.states %>
+        <%- getMessage(estates.sname, hstate.sname) %>
+       <%
+       }
+   }
+}
+%>
+
+@enduml
