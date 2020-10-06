@@ -22,7 +22,7 @@ for(let pname in actorPackages) {
     let pkgs = pkg.prefix.split(/\//);
     pkg = pkgMapping['/' + pkgs[1] + '/' + pkgs[2]];
 %>
-rectangle "<%= pkg.name %>" as <%= pkg.shortname %>  #<%= pkg.color.replace('#','') %> {
+rectangle "<%= pkg.name %>" as <%= pkg.shortname %>  <%= pkg.color %> {
     <% for(let uname in package.usecases) {
         let usecase = package.usecases[uname];
     -%>

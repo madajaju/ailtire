@@ -1,0 +1,29 @@
+version: "3.7"
+services:
+  gw:
+    image: traefik:latest
+    command:
+    - --api=true
+    - --api.dashboard=true
+    - --api.insecure=true
+    - --api.debug=true
+    - --log.level=DEBUG
+    - --providers.docker=true
+    - --providers.docker.swarmMode=true
+    - --providers.docker.network=children
+    - --providers.docker.exposedbydefault=false
+    - --entrypoints.http.address=:80
+    - --entrypoints.https.address=:443
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+    - children
+    - parent
+networks:
+  children:
+    driver: overlay
+    attachable: true
+    name: ${AILTIRE_STACKNAME}__family
+  parent:
+    external: true
+    name: ${AILTIRE_APPNAME}__family

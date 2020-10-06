@@ -11,6 +11,7 @@ left to right direction
         return "";
     }
     const getStates = (name) => {
+    console.log("NAME:", name);
     if(stateMap.hasOwnProperty(name)) {
         return stateMap[name];
     }
@@ -19,6 +20,9 @@ left to right direction
     let retval = '';
     names.shift(); // Shift off the first item that is blank.
     let pkgName = names.shift();
+    console.log("PKGNAME:", pkgName);
+    if(global.packages.hasOwnProperty(pkgName)) {
+    console.log("Made it:", pkgName);
     let package = global.packages[pkgName];
     let slen = 0;
     for(let i in names) {
@@ -31,7 +35,7 @@ left to right direction
                 }
             }
             asName += aname;
-            retval += `state \"${aname}\" as ${asName.toLowerCase()} #${package.color.replace('#','')} {\n`;
+            retval += `state \"${aname}\" as ${asName.toLowerCase()} ${package.color} {\n`;
         }
     }
     retval += '}\n'.repeat(slen);
@@ -40,8 +44,13 @@ left to right direction
         asName = global.topPackage.name.toLowerCase();
     }
 
-    stateMap[name] = {sname:asName, states:'', color:package.color.replace('#','')};
-    return {sname:asName, states:retval, color:package.color.replace('#','')};
+    stateMap[name] = {sname:asName, states:'', color:package.color};
+    return {sname:asName, states:retval, color:package.color};
+    }
+    else {
+        console.log("Made it:", pkgName);
+        return {sname:asName, states:"", color:"white"};
+    }
 };
 %>
 <%
@@ -49,7 +58,7 @@ left to right direction
 %>
 <%- pstate.states %>
 
-state <%= pstate.sname %> #<%= pstate.color.replace('#','') %> {
+state <%= pstate.sname %> <%= pstate.color %> {
     state "Custom Function" as <%= package.shortname.toLowerCase() %>function {
     }
 }

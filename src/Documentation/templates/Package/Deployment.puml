@@ -1,4 +1,5 @@
 @startuml
+
 <%
 const colors = [ "#black", "#blue", "#red", "#orange", "#darkgreen", "#darkgray" ];
 let i = 1;
@@ -25,7 +26,7 @@ boundary <%= nname %> <%= ncolor %>
 entity <%= nname %> <%= ncolor %>
 <% } %>
 
-package  "<%= package.name %>" #<%= package.color.replace('#','') %> {
+package  "<%= package.name %>"  <%= package.color %> {
 <% for(let nname in deploy.networks) {
     let network = deploy.networks[nname];
 -%>
@@ -143,4 +144,5 @@ package <%= parent %> #lightgray {
     <%= parent %>children ==[<%= deploy.networks.parent.color %>]= parent
 }
 <% } %>
+
 @enduml

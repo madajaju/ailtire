@@ -5,8 +5,8 @@ const sLoader = require('../../Server/Loader');
 const fs = require('fs');
 
 module.exports = {
-    friendlyName: 'uninstall',
-    description: 'Uninstall an app',
+    friendlyName: 'create',
+    description: 'Create an app',
     static: true,
     inputs: {
         env: {

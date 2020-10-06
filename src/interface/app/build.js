@@ -5,8 +5,8 @@ const sLoader = require('../../Server/Loader');
 const fs = require('fs');
 
 module.exports = {
-    friendlyName: 'build',
-    description: 'Build an app',
+    friendlyName: 'create',
+    description: 'Create an app',
     static: true,
     inputs: {
         env: {
@@ -52,10 +52,10 @@ function buildPackage(package, opts) {
             let buildconfig = require(apath);
             for(let name in buildconfig) {
                 let bc = buildconfig[name];
+
                 for(ename in bc.env) {
                     process.env[ename] = bc.env[ename];
                 }
-                console.log("Working Directory:", package.deploy.dir);
                 console.log("==== ContainerName ====", bc.tag);
                 proc = spawn('docker', ['build', '-t', bc.tag, '-f', bc.file, bc.dir], {
                     cwd: package.deploy.dir,

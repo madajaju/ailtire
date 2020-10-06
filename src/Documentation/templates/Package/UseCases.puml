@@ -9,7 +9,7 @@ left to right direction
 Actor "<%= aname %>" as <%= anameNoSpace %>
 <% } }%>
 
-rectangle "<%= package.name %>" #<%= package.color.replace('#','') %> {
+rectangle "<%= package.name %>" <%= package.color %> {
 <% for(let ucname in package.usecases) {
     let usecase = package.usecases[ucname];
     let ucnameNoSpace = ucname.replace(/ /g, '');

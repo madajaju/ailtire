@@ -9,7 +9,14 @@ module.exports = {
                 }
             }
         }
-        throw new Error("Package Not Found:" + className);
+        // Now check the short name
+        for(let name in global.packages) {
+            let pkg = global.packages[name];
+            if(pkg.shortname === pkgName) {
+                return pkg;
+            }
+        }
+        throw new Error("Package Not Found:" + pkgName);
     }
 }
 

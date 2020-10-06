@@ -3,6 +3,7 @@ const spawn = require('child_process').spawnSync;
 const api = require('../../Documentation/api');
 const sLoader = require('../../Server/Loader');
 const APackage = require('../../Server/APackage');
+const Generator = require('../../Documentation/Generator');
 const fs = require('fs');
 
 module.exports = {
@@ -43,16 +44,42 @@ module.exports = {
         // Make sure to call docker stack deploy first then go down.
         let name = inputs.name;
         let apath = path.resolve('.');
-        console.log("Start Build");
+        console.log("Start Build:", apath);
         let topPackage = sLoader.processPackage(apath);
         // Find the package
         console.log("Packages:", global.packages);
         let pkg = APackage.getPackage(name);
-
+        console.log("Build Package:", pkg);
         buildPackage(pkg, {name: name,recursive:inputs.recursive});
+        buildService(pkg, {name: name});
         return `Building Application`;
     }
 };
+
+function buildService(package, opts) {
+    // Build process will build an docker image that will start the stack if there is one.
+    let apath = path.resolve(package.deploy.dir + '/deploy.js');
+    if(fs.existsSync(apath)) {
+        let deploy = require(apath);
+        // Create the Dockerfile from the template with contexts set from the deploy
+        let files = {
+            context: {
+                contexts: deploy.contexts,
+            },
+            targets: {
+                'run': {template: '/templates/Package/deploy/run'},
+                'Dockerfile': {template: '/templates/Package/deploy/Dockerfile-Service'},
+            }
+        };
+        Generator.process(files, package.deploy.dir);
+        // using the CNAB construct.
+        proc = spawn('docker', ['build', '-t', deploy.name, '-f', 'Dockerfile', '.'], {
+            cwd: package.deploy.dir,
+            stdio: 'inherit',
+            env: process.env
+        });
+    }
+}
 
 function buildPackage(package, opts) {
     if(package.deploy) {

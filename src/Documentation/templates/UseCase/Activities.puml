@@ -1,0 +1,21 @@
+@startuml
+<% let ucNoSpace = usecase.name.replace(/ /g, '') %>
+
+usecase "<%= usecase.name %>" as <%= ucNoSpace %>
+<% for(let aname in usecase.actors) {
+aname = aname.replace(/\s/g, '');
+let actor = actors[aname];
+%>
+Actor "<%= actor.name %>" as <%= aname %>
+
+<%= aname %> --> <%= ucNoSpace %>
+<% } %>
+
+<% for(let sname in usecase.scenarios) {
+let snameNoSpace = sname.replace(/ /g, '')
+%>
+usecase "<%= sname %>" as <%= snameNoSpace %> #lightgrey
+
+<%= ucNoSpace %> --> <%= snameNoSpace %>
+<% } %>
+@enduml

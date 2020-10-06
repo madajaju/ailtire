@@ -1,0 +1,209 @@
+<head>
+    <script src="/js/aframe.js"></script>
+    <script src="/js/three.js"></script>
+    <script src="/js/3d-force-graph.js"></script>
+    <script src="/js/d3-force-3d.js"></script>
+    <script src="/js/d3-octree.js"></script>
+    <script src="/js/Graph3D.js"></script>
+    <script src="/js/socket.io.js"></script>
+</head>
+<div class="modelActionBar">
+    <%- partial('./model/_actionBar.ejs', {definition: definition, obj:null, className:className}) %>
+</div>
+<%
+let model = definition;
+%>
+<div style="display:none;">
+    <div id="scratchspace" style="display:none;">
+        <a-scene embedded height="0px" width="0px">
+            <a-entity id="ObjectGarden" position="-10 20 -100">
+                <a-sphere id="default3D" position="0 0 0" radius="10" color="#cccccc"></a-sphere>
+                <a-sphere id="default3DSelected" position="0 0 0" radius="10" color="#ffff00"></a-sphere>
+                <a-sphere id="default3DTargeted" position="0 0 0" radius="10" color="#ff0000"></a-sphere>
+                <a-sphere id="default3DSourced" position="0 0 0" radius="10" color="#00ff00"></a-sphere>
+                <% for(let cname in global.classes) {
+                    let cls = global.classes[cname];
+                console.log("CLS:", cls.definition.name);
+                if(cls.definition.view) {
+                %>
+                    <%- cls.definition.view.object3d() %>
+                <% } } %>
+            </a-entity>
+        </a-scene>
+    </div>
+</div>
+<script>
+    const socket = io('http://localhost:8080');
+    socket.on('<%= className.toLowerCase() %>.create', (data) => {
+        let obj = data.obj;
+        let list = document.getElementById("<%= className %>-list");
+        let innerHTML = "";
+        innerHTML += '<tr id="<%= className %>-' + obj._attributes.id + '" >';
+        innerHTML += '<td>' + obj._attributes.id + '</td>';
+        innerHTML += '<td><a href="/<%= className %>?id=' +
+            obj._attributes.id +'">' + obj._attributes.name + '</a></td>';
+        <%
+        for(let name in definition.attributes) {
+        %>
+            innerHTML += '<td>' + obj._attributes["<%= name %>"] + '</td>';
+        <% }
+        for(let name in definition.associations) {
+        %>
+            if(obj._associations["<%= name %>"]) {
+                <%
+                if(definition.associations[name].cardinality === 1) {
+                %>
+                innerHTML += '<td><a href="/' + obj._associations[<%= name %>].className + '/show?id=' + obj._associations[<%= name %>].id> + '">' + obj._associations[<%= name %>].name + '</a></td>\n';
+                <%
+                } else {
+                %>
+                innerHTML += '<td> ' + obj._associations["<%= name %>"].length + '</td>';
+                <% } %>
+            } else {
+            innerHTML += "<td>NA</td>";
+            }
+        <% } %>
+        let ih = list.innerHTML.replace("</table","");
+        innerHTML = ih + innerHTML + "</table>";
+        list.innerHTML = innerHTML;
+    });
+    socket.on('<%= className %>.update', (data) => {
+    });
+    socket.on('<%= className %>.destroy', (data) => {
+    });
+</script>
+<div class="ModelParentList">
+    <caption>List <%= className %> objects</caption>
+    <table class="ModelList" id="<%= className %>-list">
+        <thead>
+            <tr>
+                <th><div>ID</div>
+                <th><div>Name</div>
+                <th><div>State</div>
+            <% for(let name in definition.attributes) {
+            %>
+                <th align="center"><div><%= name %></div>
+            <% } %>
+            <% for(let name in definition.associations) {
+            %>
+                <th align="center"><div><%= name %></div>
+            <% } %>
+            </tr>
+        </thead>
+        <tbody>
+        <% for(let i in objs) {
+        let obj = objs[i];
+        %>
+        <tr id="<%=obj.id%>" class="hoverable state<%= obj.state %>" onmouseover="window.graph.selectNodeByID('<%= obj.id %>');">
+            <td><%= obj.id %></td>
+            <td><a href="/<%= className %>?id=<%= obj.id %>"><%= obj.toString() %></a></td>
+            <td class="state<%= obj.state %>"><%= obj.state %></td>
+            <%
+            for(let name in definition.attributes) {
+            %>
+            <td><%= obj[name] %></td>
+            <% } %>
+            <% for(let name in definition.associations) {
+            if(obj[name]) {
+            if(definition.associations[name].cardinality === 1) {
+            %>
+            <td><a href="/<%= definition.associations[name].type %>?id=<%= obj[name].id %>"><%= obj[name].toString() %></a></td>
+            <%
+            } else {
+            %>
+            <td><%= obj[name].length %></td>
+            <%
+            }
+            } else { %>
+            <td> NA</td>
+            <% } %>
+            <% } %>
+            <% } %>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="modelGraph" id="DrawingArea">
+    <script type="module">
+        const socket = io('http://localhost:3000',{ transport : ['websocket'] } );
+        // let graph = new Graph("DrawingArea");
+        let data = {nodes: {}, links: []};
+        <% for(let i in objs) {
+            let obj = objs[i];
+            let oid = i;
+            let otype = obj.className;
+            let mview = ""
+
+        %>
+            data.nodes["<%= oid %>"] = {id:"<%= oid %>", name:"<%= obj.name %>", group: "<%= otype %>", level:'<%= obj.package.name.replace(/ /g,'') %>', view:'<%= otype %>3D'};
+            <% for (let aname in definition.associations) {
+                if(obj[aname]) {
+                    let linkValue = 10;
+                    if(definition.associations[aname].owner) {
+                        linkValue = 5;
+                    }
+                    if(definition.associations[aname].composition) {
+                        linkValue = 1;
+                    }
+                    if(definition.associations[aname].cardinality === 1) {
+                        let aoid = obj[aname].id;
+                        let otype = obj[aname].className;
+                %>
+                    data.nodes["<%= aoid %>"] = {id:"<%= aoid  %>", name:"<%= obj[aname].name %>", group: '<%= otype %>', level:'<%= obj[aname].package.name.replace(/ /g,"") %>', view:'<%- otype %>3D' };
+                    data.links.push({source:"<%= oid %>", target:"<%= aoid %>", value: <%= linkValue %>});
+                    <% } else {
+                        for(let j in obj[aname]) {
+                            let aoid = obj[aname][j].id;
+                            let otype = obj[aname][j].className;
+                        %>
+                            data.nodes["<%= aoid %>"] = {id:"<%= aoid  %>", name:"<%= obj[aname][j].name %>", group: '<%= otype %>', level:'<%= obj[aname][j].package.name.replace(/ /g,"") %>', view:'<%- otype %>3D'};
+                            data.links.push({source:"<%= oid %>", target:"<%= aoid %>", value:<%= linkValue %>});
+                        <%}
+                    }
+                }
+            }
+        } %>
+        let graph = new Graph3D("DrawingArea", data, {background:"#005555", width:1000, height:600});
+
+        socket.on('<%= className %>.create', (res) => {
+            let obj = res.obj;
+            let oid = obj._attributes.id;
+            data.nodes[oid] = {id: oid, name: obj._attributes.name, group:"<%= className %>", level: obj.package };
+            let aname = "";
+            let aoid = "";
+            let otype = "";
+            let aobj = null;
+            <% for (let aname in definition.associations) { %>
+                aname = "<%= aname %>";
+                if(obj._associations[aname]) {
+                    <%
+                    let linkValue = 10;
+                    if(definition.associations[aname].owner) {
+                        linkValue = 5;
+                    }
+                    if(definition.associations[aname].composition) {
+                        linkValue = 1;
+                    }
+                    if(definition.associations[aname].cardinality === 1) {
+                    %>
+                        otype = "<%= definition.associations[aname.type] %>";
+                        aobj = obj._associations[aname];
+                        aoid = obj._associations[aname].id;
+                        data.nodes[aoid] = {id: aoid, name:obj._associations[aname].name, group: otype, level:obj.package};
+                        data.links.push({source:oid, target:aoid, value:<%= linkValue %>});
+                    <% } else { %>
+                        for(let j in obj._associations[aname]) {
+                            aobj = obj._associations[aname][j];
+                            otype = aobj.className;
+                            aoid = aobj._attributes.id;
+                            data.nodes[aoid] = {id: aoid, name: obj._associations[aname][j]._attributes.name, group: otype, level:obj.package};
+                            data.links.push({source:oid, target:aoid, value:<%= linkValue %>});
+                        }
+                    <% } %>
+                }
+            <% } %>
+            graph.simulate(data);
+        });
+    </script>
+</div>

@@ -185,11 +185,14 @@ const loadDeploy = (pkg, prefix, dir) => {
     apath = path.resolve(dir + '/deploy.js');
     if (isFile(apath)) {
         let deploy = require(dir + '/' + 'deploy.js');
-        for (let env in deploy) {
+        let contexts = deploy;
+        if(deploy.hasOwnProperty('contexts')) { contexts = deploy.contexts; }
+
+        for (let env in contexts) {
             // Now get the file from the deploy and read it in.
-            let compose = YAML.load(dir + '/' + deploy[env].file);
+            let compose = YAML.load(dir + '/' + contexts[env].file);
             pkg.deploy.envs[env] = {
-                tag: deploy[env].tag,
+                tag: contexts[env].tag,
                 definition: compose
             };
         }

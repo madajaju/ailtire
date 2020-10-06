@@ -13,22 +13,23 @@ module.exports = {
     execute: (action, inputs, env) => {
         return execute(action, inputs, env);
     },
-    load: (server, prefix, mDir) => {
+    load: (server, prefix, mDir, config) => {
         loadActions(prefix, mDir);
         mapToServices();
         if (server) {
-            mapToServer(server);
+            mapToServer(server, config);
         }
     },
     defaults: (server) => {
         addForModels(server);
     },
-    mapRoutes: (server, routes) => {
+    mapRoutes: (server, config) => {
         // Routes are mapped to action paths.
-        for (let i in routes) {
+        for (let i in config.routes) {
             // Get Action handler from the actions.
-            let route = i.toLowerCase();
+            let route = config.urlPrefix + i.toLowerCase();
             if (global.actions.hasOwnProperty(routes[i])) {
+                console.log("Route:", route);
                 server.all(route, (req, res) => {
                     execute(global.actions[routes[i]], req.query, {req: req, res: res});
                 });
@@ -179,15 +180,15 @@ const loadActions = (prefix, mDir) => {
     }
 };
 
-const mapToServer = (server) => {
+const mapToServer = (server, config) => {
     for (let i in global.actions) {
         let gaction = global.actions[i];
         if (i[0] != '/') {
             i = '/' + i;
         }
-        let normalizedName = i.replace('/' + global.topPackage.shortname,'' );
-        normalizedName = normalizedName.toLowerCase();
+        let normalizedName = config.urlPrefix + i.replace('/' + global.topPackage.shortname,'' );
         server.all(normalizedName, (req, res) => {
+            // console.log("Server Call:", normalizedName);
             execute(gaction, req.query, {req: req, res: res});
         });
     }
@@ -229,7 +230,7 @@ const execute = (action, inputs, env) => {
             for (let i in env.req.body) {
                 inputs[i] = env.req.body[i];
             }
-            
+
         }
     }
     let finputs = {};
