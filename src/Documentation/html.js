@@ -8,10 +8,10 @@ module.exports = {
         indexGenerator(name, output);
     },
     model: (model, output) => {
-        modelGenerator(model, output);
+        modelGenerator(model, output, '');
     },
     package: (package, output) => {
-        packageGenerator(package, output);
+        packageGenerator(package, output, '');
     },
     actors: (actors, output) => {
         actorsGenerator(actors, output + '/actors');
@@ -44,19 +44,19 @@ const appGenerator = (app, output) => {
             'views/layouts/default.ejs': {copy: '/templates/App/default.ejs'},
             'bin/:nameNoSpace:': {copy: '/templates/App/bin'},
             'bin/init': {copy: '/templates/App/init'},
-            'assets/js/d3.js': {copy: '/templates/App/js/d3.js'},
-            'assets/js/three.js': {copy: '/templates/App/js/three.js'},
-            'assets/js/Graph.js': {copy: '/templates/App/js/Graph.js'},
-            'assets/js/Graph2D.js': {copy: '/templates/App/js/Graph2D.js'},
-            'assets/js/Graph3D.js': {copy: '/templates/App/js/Graph3D.js'},
-            'assets/js/3d-force-graph.js': {copy: '/templates/App/js/3d-force-graph.js'},
-            'assets/js/d3-force-d3.js': {copy: '/templates/App/js/d3-force-3d.js'},
-            'assets/js/less.js': {copy: '/templates/App/js/less.js'},
-            'assets/js/socket.io.js': {copy: '/templates/App/js/socket.io.js'},
-            'assets/styles/color.less': {copy: '/templates/App/styles/color.less'},
-            'assets/styles/graph.less': {copy: '/templates/App/styles/graph.less'},
-            'assets/styles/importer.less': {copy: '/templates/App/styles/importer.less'},
-            'assets/styles/top.less': {copy: '/templates/App/styles/top.less'},
+            '../assets/js/d3.js': {copy: '/templates/App/js/d3.js'},
+            '../assets/js/three.js': {copy: '/templates/App/js/three.js'},
+            '../assets/js/Graph.js': {copy: '/templates/App/js/Graph.js'},
+            '../assets/js/Graph2D.js': {copy: '/templates/App/js/Graph2D.js'},
+            '../assets/js/Graph3D.js': {copy: '/templates/App/js/Graph3D.js'},
+            '../assets/js/3d-force-graph.js': {copy: '/templates/App/js/3d-force-graph.js'},
+            '../assets/js/d3-force-d3.js': {copy: '/templates/App/js/d3-force-3d.js'},
+            '../assets/js/less.js': {copy: '/templates/App/js/less.js'},
+            '../assets/js/socket.io.js': {copy: '/templates/App/js/socket.io.js'},
+            '../assets/styles/color.less': {copy: '/templates/App/styles/color.less'},
+            '../assets/styles/graph.less': {copy: '/templates/App/styles/graph.less'},
+            '../assets/styles/importer.less': {copy: '/templates/App/styles/importer.less'},
+            '../assets/styles/top.less': {copy: '/templates/App/styles/top.less'},
             'bin/lib/subcommander.js': {copy: '/templates/App/subcommander.js'},
             'deploy/docker-compose.yml': {template: '/templates/App/deploy/docker-compose.yml'},
             'deploy/build.js': {template: '/templates/App/deploy/build.js'},
@@ -81,35 +81,39 @@ const indexGenerator = (name, output) => {
         },
         targets: {
             './index.html': {template: '/templates/App/index.ejs'},
-            'assets/js/d3.js': {copy: '/templates/App/js/d3.js'},
-            'assets/js/three.js': {copy: '/templates/App/js/three.js'},
-            'assets/js/aframe.js': {copy: '/templates/App/js/aframe.js'},
-            'assets/js/Graph.js': {copy: '/templates/App/js/Graph.js'},
-            'assets/js/Graph2D.js': {copy: '/templates/App/js/Graph2D.js'},
-            'assets/js/Graph3D.js': {copy: '/templates/App/js/Graph3D.js'},
-            'assets/js/3d-force-graph.js': {copy: '/templates/App/js/3d-force-graph.js'},
-            'assets/js/d3-force-3d.js': {copy: '/templates/App/js/d3-force-3d.js'},
-            'assets/js/less.js': {copy: '/templates/App/js/less.js'},
-            'assets/js/socket.io.js': {copy: '/templates/App/js/socket.io.js'},
-            'assets/styles/color.less': {copy: '/templates/App/styles/color.less'},
-            'assets/styles/graph.less': {copy: '/templates/App/styles/graph.less'},
-            'assets/styles/importer.less': {copy: '/templates/App/styles/importer.less'},
-            'assets/styles/top.less': {copy: '/templates/App/styles/top.less'},
+            '../assets/js/d3.js': {copy: '/templates/App/js/d3.js'},
+            '../assets/js/three.js': {copy: '/templates/App/js/three.js'},
+            '../assets/js/aframe.js': {copy: '/templates/App/js/aframe.js'},
+            '../assets/js/Graph.js': {copy: '/templates/App/js/Graph.js'},
+            '../assets/js/Graph2D.js': {copy: '/templates/App/js/Graph2D.js'},
+            '../assets/js/Graph3D.js': {copy: '/templates/App/js/Graph3D.js'},
+            '../assets/js/3d-force-graph.js': {copy: '/templates/App/js/3d-force-graph.js'},
+            '../assets/js/d3-force-3d.js': {copy: '/templates/App/js/d3-force-3d.js'},
+            '../assets/js/Graph3DLogical.js': {copy: '/templates/App/js/Graph3DLogical.js'},
+            '../assets/js/d3-octree.js': {copy: '/templates/App/js/d3-octree.js'},
+            '../assets/js/forceInACube.js': {copy: '/templates/App/js/forceInACube.js'},
+            '../assets/js/less.js': {copy: '/templates/App/js/less.js'},
+            '../assets/js/socket.io.js': {copy: '/templates/App/js/socket.io.js'},
+            '../assets/styles/color.less': {copy: '/templates/App/styles/color.less'},
+            '../assets/styles/graph.less': {copy: '/templates/App/styles/graph.less'},
+            '../assets/styles/importer.less': {copy: '/templates/App/styles/importer.less'},
+            '../assets/styles/top.less': {copy: '/templates/App/styles/top.less'},
             './app.html': {template: '/templates/App/app.ejs'},
-            'assets/js/less.js': {copy: '/templates/App/js/less.js'},
-            'assets/styles/importer.less': {copy: '/templates/App/styles/docimporter.less'},
-            'assets/styles/doc.less': {copy: '/templates/App/styles/doc.less'},
+            '../assets/js/less.js': {copy: '/templates/App/js/less.js'},
+            '../assets/styles/importer.less': {copy: '/templates/App/styles/docimporter.less'},
+            '../assets/styles/doc.less': {copy: '/templates/App/styles/doc.less'},
         }
     };
     Generator.process(files, output);
 };
-const modelGenerator = (model, output) => {
+const modelGenerator = (model, output, urlpath) => {
     let files = {
         context: {
             model: model,
             shortname: model.name.replace(/ /g, ''),
             modelname: model.name,
-            modelnamenospace: model.name.replace(/ /g, ''),
+            modelnamenospace: model.name.replace(/ /g, '').toLowerCase(),
+            pageDir: '.' + urlpath + '/' + model.name.replace(/ /g,'').toLowerCase()
         },
         targets: {
             './:modelnamenospace:/index.html': {template: '/templates/Model/index.ejs'},
@@ -117,10 +121,10 @@ const modelGenerator = (model, output) => {
             './:modelnamenospace:/StateNet.puml': {template: '/templates/Model/StateNet.puml'},
         }
     };
-    Generator.process(files, output);
-    addDocs(model, files, output);
+    Generator.process(files, output + urlPath);
+    addDocs(model, files, output + urlPath);
 };
-const packageGenerator = (package, output) => {
+const packageGenerator = (package, output, urlPath) => {
     let actors = {};
     for(let ucname in package.usecases) {
         let usecase = package.usecases[ucname];
@@ -175,8 +179,9 @@ const packageGenerator = (package, output) => {
             package: package,
             actors: actors,
             packageName: package.name,
-            shortname: package.shortname.replace(/ /g, ''),
+            shortname: package.shortname.replace(/ /g, '').toLowerCase(),
             packageNameNoSpace: package.name.replace(/ /g, ''),
+            pageDir: '.' + urlPath + '/' + package.shortname.replace(/ /g, '').toLowerCase()
         },
         targets: {
             ':shortname:/index.html': {template: '/templates/Package/index.ejs'},
@@ -187,31 +192,31 @@ const packageGenerator = (package, output) => {
             ':shortname:/SubPackage.puml': {template: '/templates/Package/SubPackage.puml'},
             ':shortname:/Deployment.puml': {template: '/templates/Package/Deployment.puml'},
             ':shortname:/Physical.puml': {template: '/templates/Package/Physical.puml'},
-            ':shortname:/Process.puml': {template: '/templates/Package/Process.puml'},
             ':shortname:/ScenarioMapping.puml': {template: '/templates/Package/ScenarioMapping.puml'}
         }
     };
     // Get the doc from the package and add them to the targets list
-    Generator.process(files, output);
-    addDocs(package, files,output);
+    Generator.process(files, output + urlPath);
+    addDocs(package, files,output + urlPath);
     for (let cname in package.classes) {
-        modelGenerator(package.classes[cname].definition, output + '/' + files.context.shortname + '/models/');
+        modelGenerator(package.classes[cname].definition, output, urlPath + '/' + files.context.shortname + '/models/');
     }
     for (let spname in package.subpackages) {
-        packageGenerator(package.subpackages[spname], output + '/' + files.context.shortname);
+        packageGenerator(package.subpackages[spname], output, urlPath + '/' + files.context.shortname);
     }
     for (let ucname in package.usecases) {
-        useCaseGenerator(package.usecases[ucname], output + '/' + files.context.shortname + '/usecases');
+        useCaseGenerator(package.usecases[ucname], output, urlPath + '/' + files.context.shortname + '/usecases');
     }
 };
-const useCaseGenerator = (usecase, output) => {
+const useCaseGenerator = (usecase, output, urlPath) => {
     let files = {
         context: {
             usecase: usecase,
             shortname: usecase.name.replace(/ /g, ''),
             usecaseName: usecase.name,
-            usecaseNameNoSpace: usecase.name.replace(/ /g, ''),
-            actors: global.actors
+            usecaseNameNoSpace: usecase.name.replace(/ /g, '').toLowerCase(),
+            actors: global.actors,
+            pageDir: '.' + urlPath + '/' + usecase.name.replace(/ /g,'').toLowerCase()
         },
         targets: {
             ':usecaseNameNoSpace:/index.html': {template: '/templates/UseCase/index.ejs'},
@@ -219,13 +224,13 @@ const useCaseGenerator = (usecase, output) => {
         }
     };
     // Get the doc from the package and add them to the targets list
-    Generator.process(files, output);
+    Generator.process(files, output + urlPath);
     for (let i in usecase.scenarios) {
-        scenarioGenerator(usecase, usecase.scenarios[i], output + '/' + usecase.name.replace(/\s/g,''));
+        scenarioGenerator(usecase, usecase.scenarios[i], output, '/' + usecase.name.replace(/\s/g,''));
     }
-    addDocs(usecase, files, output);
+    addDocs(usecase, files, output + urlPath);
 };
-const scenarioGenerator = (usecase, scenario, output) => {
+const scenarioGenerator = (usecase, scenario, output, urlPath) => {
     let pkg = global.packages[usecase.package.replace(/\s/g,'')];
     let files = {
         context: {
@@ -240,7 +245,7 @@ const scenarioGenerator = (usecase, scenario, output) => {
         }
     };
     // Get the doc from the package and add them to the targets list
-    Generator.process(files, output);
+    Generator.process(files, output + urlPath);
 };
 const actorsGenerator = (actors, output) => {
     let apackages = {};
@@ -264,7 +269,8 @@ const actorsGenerator = (actors, output) => {
     let files = {
         context: {
             actors: actors,
-            actorPackages: apackages
+            actorPackages: apackages,
+            pageDir: output
         },
         targets: {
             '/index.html': {template: '/templates/Actor/all.ejs'},
@@ -295,7 +301,8 @@ const actorGenerator = (actor, output) => {
             actor: actor,
             basedir: output,
             actorNameNoSpace: actor.shortname,
-            actorPackages: apackages
+            actorPackages: apackages,
+            pageDir: './actors/' + actor.shortname
         },
         targets: {
             ':actorNameNoSpace:/index.html': {template: '/templates/Actor/index.ejs'},

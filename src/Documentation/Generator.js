@@ -52,7 +52,9 @@ const processItem = (item, target, objects) => {
             let apath = path.resolve(target);
             let dirname = path.dirname(apath);
             fs.mkdirSync(dirname, {recursive: true});
-            fs.writeFileSync(apath, str);
+            if(str) {
+                fs.writeFileSync(apath, str);
+            }
         });
     }
     else if (item.action === 'folder') {

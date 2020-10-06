@@ -7,6 +7,7 @@ module.exports = {
         // Render page first and then inject it into the layout.
         let tmpString = renderPage(page,objs);
         objs.body = tmpString;
+        objs.config = global.ailtire.config
         if(!layout) {
             layout = "default"
         }

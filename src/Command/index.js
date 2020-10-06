@@ -9,3 +9,4 @@ module.exports = {
         Action.load(null, '', path.resolve('../src/interface'));
     }
 }
+
