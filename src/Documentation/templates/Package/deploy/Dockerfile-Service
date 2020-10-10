@@ -1,14 +1,11 @@
-FROM docker:latest
-RUN mkdir /cnab
+FROM ailtire_service:swarm
 
-RUN apk update && apk add dos2unix
+WORKDIR /usr/src/app
 
-COPY . /cnab
+COPY ./docker-compose.yml .
 
-RUN dos2unix /cnab/run && apk del dos2unix
+EXPOSE 3000
 
-RUN chmod 777 /cnab/run
+ENTRYPOINT [ "node" ]
 
-WORKDIR "cnab"
-
-CMD "./run"
+CMD [ "./server.js" ]

@@ -1,10 +1,7 @@
 const path = require('path');
-const spawn = require('child_process').spawnSync;
-const api = require('../../Documentation/api');
 const sLoader = require('../../Server/Loader');
 const APackage = require('../../Server/APackage');
-const Generator = require('../../Documentation/Generator');
-const fs = require('fs');
+const Build = require('../../Services/Build');
 
 module.exports = {
     friendlyName: 'build',
@@ -47,69 +44,13 @@ module.exports = {
         console.log("Start Build:", apath);
         let topPackage = sLoader.processPackage(apath);
         // Find the package
-        console.log("Packages:", global.packages);
         let pkg = APackage.getPackage(name);
         console.log("Build Package:", pkg);
-        buildPackage(pkg, {name: name,recursive:inputs.recursive});
-        buildService(pkg, {name: name});
+        if(!inputs.recursive) {
+            inputs.recursive = true
+        }
+        Build.pkg(pkg, {name: name,recursive:inputs.recursive});
         return `Building Application`;
     }
 };
-
-function buildService(package, opts) {
-    // Build process will build an docker image that will start the stack if there is one.
-    let apath = path.resolve(package.deploy.dir + '/deploy.js');
-    if(fs.existsSync(apath)) {
-        let deploy = require(apath);
-        // Create the Dockerfile from the template with contexts set from the deploy
-        let files = {
-            context: {
-                contexts: deploy.contexts,
-            },
-            targets: {
-                'run': {template: '/templates/Package/deploy/run'},
-                'Dockerfile': {template: '/templates/Package/deploy/Dockerfile-Service'},
-            }
-        };
-        Generator.process(files, package.deploy.dir);
-        // using the CNAB construct.
-        proc = spawn('docker', ['build', '-t', deploy.name, '-f', 'Dockerfile', '.'], {
-            cwd: package.deploy.dir,
-            stdio: 'inherit',
-            env: process.env
-        });
-    }
-}
-
-function buildPackage(package, opts) {
-    if(package.deploy) {
-        let apath = path.resolve(package.deploy.dir + '/build.js');
-        if(fs.existsSync(apath)) {
-            let buildconfig = require(apath);
-            for(let name in buildconfig) {
-                let bc = buildconfig[name];
-                for(ename in bc.env) {
-                    process.env[ename] = bc.env[ename];
-                }
-                console.log("Working Directory:", package.deploy.dir);
-                console.log("==== ContainerName ====", bc.tag);
-                proc = spawn('docker', ['build', '-t', bc.tag, '-f', bc.file, bc.dir], {
-                    cwd: package.deploy.dir,
-                    stdio: 'inherit',
-                    env: process.env
-                });
-            }
-        }
-        else {
-            console.error("Could not find build.js for", package.name);
-        }
-    }
-
-    // Iterate over the subsystems and build the docker images
-    if(opts.recursive) {
-        for (let i in package.subpackages) {
-            buildPackage(package.subpackages[i], opts);
-        }
-    }
-}
 

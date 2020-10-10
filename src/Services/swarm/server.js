@@ -35,6 +35,7 @@ let proc = exec('docker', ['stack', 'ps', stackName], {cwd: '.', stdio: 'inherit
 // If it isn't then get it started.
 proc = exec('docker', ['stack', 'deploy', '-c', 'docker-compose.yml', stackName], {cwd: '.', stdio: 'inherit', env:process.env});
 // console.log("proc:", proc.stdout.toString('utf8'));
+setInterval(checkStatus, 10000);
 
 server.get('/update', (req, res) => {
     console.log("Update stack:");
@@ -65,6 +66,7 @@ server.get('*', (req, res) => {
     res.send("Did Nothing");
 });
 
+
 app = http.listen("3000");
 
 process.once('SIGINT', (code) => {
@@ -74,3 +76,15 @@ process.once('SIGINT', (code) => {
     process.exit();
 });
 
+
+function checkStatus() {
+    console.log("Checking ", stackName);
+    let proc = exec('docker', ['stack', 'ps', stackName], {cwd: '.', stdio: 'pipe', env:process.env});
+    if(proc.status !== 0) {
+        console.error(proc.stderr.toString('utf8'));
+        proc = exec('docker', ['stack', 'deploy', '-c', 'docker-compose.yml', stackName], {cwd: '.', stdio: 'inherit', env:process.env});
+    }
+    else {
+        console.log(proc.stdout.toString('utf8'));
+    }
+}

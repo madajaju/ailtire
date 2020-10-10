@@ -4,7 +4,7 @@ module.exports = {
         dir: '..',
         cmd: 'node web/server.js',
         file: 'web/Dockerfile',
-        tag: 'examplestacks_t_web',
+        tag: 'examplestacks_t2_web',
         env: {
 
         }
@@ -13,7 +13,7 @@ module.exports = {
         dir: '..',
         cmd: 'node gateway/server.js',
         file: 'gateway/Dockerfile',
-        tag: 'examplestacks_t_gw',
+        tag: 'examplestacks_t2_gw',
         env: {
 
         }

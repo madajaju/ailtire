@@ -1,5 +1,35 @@
 version: "3.7"
 services:
+  top:
+    image: examplestacks_t:latest
+    stop_grace_period: 1m
+    stop_signal: SIGINT
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      replicas: 1
+    environment:
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_TASK={{.Task.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT=${AILTIRE_APPNAME}
+      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
+    networks:
+      - children
+  top2:
+    image: examplestacks_t2:latest
+    stop_grace_period: 1m
+    stop_signal: SIGINT
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      replicas: 1
+    environment:
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT=${AILTIRE_APPNAME}
+      - AILTIRE_TASK={{.Task.Name}}-{{.Task.Slot}}
+      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
+    networks:
+      - children
   pubsub:
     image: redis
     networks:
@@ -73,6 +103,6 @@ networks:
   children:
     driver: overlay
     attachable: true
-    name: ${APPNAME}_family
+    name: ${AILTIRE_APPNAME}_family
   sibling:
     driver: overlay

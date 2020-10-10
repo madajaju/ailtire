@@ -1,5 +1,35 @@
 version: "3.7"
 services:
+  stack21:
+    image: t_s21:latest
+    stop_grace_period: 1m
+    stop_signal: SIGINT
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      replicas: 3
+    environment:
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_TASK={{.Task.Name}}-{{.Task.Slot}}
+      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
+      - AILTIRE_PARENT=${AILTIRE_STACKNAME}
+    networks:
+      - children
+  stack22:
+    image: t_s22:latest
+    stop_grace_period: 1m
+    stop_signal: SIGINT
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      replicas: 2
+    environment:
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_TASK={{.Task.Name}}-{{.Task.Slot}}
+      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
+      - AILTIRE_PARENT=${AILTIRE_STACKNAME}
+    networks:
+      - children
   frontend:
     image: examplestacks_t_web
     networks:
@@ -14,14 +44,13 @@ services:
       sibling:
         aliases:
           - gateway
-
 networks:
   children:
     driver: overlay
     attachable: true
-    name: ${APPNAME}__t_family
+    name: n_${AILTIRE_STACKNAME}_family
   sibling:
     driver: overlay
   parent:
     external: true
-    name: ${APPNAME}__family
+    name: n_${AILTIRE_PARENT}_family
