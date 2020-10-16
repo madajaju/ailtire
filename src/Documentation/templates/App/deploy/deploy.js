@@ -10,13 +10,13 @@ module.exports = {
         },
         test: {
             type: 'swarm',
-            tag: '<%= name %>_dev',
+            tag: '<%= name %>_test',
             file: 'docker-compose.yml',
             env: {}
         },
         prod: {
             type: 'swarm',
-            tag: '<%= name %>_dev',
+            tag: '<%= name %>_prod',
             file: 'docker-compose.yml',
             env: {}
         }
