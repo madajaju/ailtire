@@ -48,13 +48,16 @@ function installPackage(package, opts) {
     if (package.deploy) {
         let stackName = opts.name + '_' + package.deploy.prefix.toLowerCase().replace(/\//,'').replace(/\//g, '_');
         console.log("Stack Name:", stackName);
-        process.env.STACKNAME = stackName;
-        process.env.APPNAME = opts.name;
+        process.env.AILTIRE_STACKNAME = stackName;
+        process.env.AILTIRE_APPNAME = opts.name;
         // let proc = exec('pwd', [], {cwd: package.deploy.dir, stdio: 'inherit'});
         let proc = exec('docker', ['stack', 'deploy', '-c', 'docker-compose.yml', stackName], {cwd: package.deploy.dir, stdio: 'inherit', env:process.env});
     }
     // Iterate over the subsystems and build the docker images
+    /*
     for (let i in package.subpackages) {
         installPackage(package.subpackages[i], opts);
     }
+
+     */
 }

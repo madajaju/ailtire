@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ailtire</title>
+    <!-- Viewport mobile tag for sensible mobile support -->
+    <link rel="stylesheet/less" type="text/css" href="styles/importer.less"/>
+    <!--STYLES END-->
+    <script src="js/less.js" type="text/javascript"></script>
+    <script src="js/socket.io.js"></script>
+    <style>
+        .Running {
+            color: white;
+            background: green;
+        }
+
+        .Ready {
+            color: black;
+            background: lightgreen;
+        }
+
+        .Shutdown {
+            color: black;
+            background: yellow;
+        }
+
+        .Rejected {
+            color: black;
+            background: red;
+        }
+
+        .Failed {
+            color: white;
+            background: pink;
+        }
+
+        .Starting {
+            color: white;
+            background: blue;
+        }
+
+        .Preparing {
+            color: black;
+            background: lightblue;
+        }
+
+        .Error {
+            color: white;
+            background: red;
+        }
+
+        .Warning {
+            color: black;
+            background: lightyellow;
+        }
+    </style>
+</head>
+
+<body>
+<header>ailtire</header>
+<script>
+    function toggle(id) {
+        let stackdiv = document.getElementById(id);
+        if (stackdiv.style.display === "none") {
+            stackdiv.style.display = "block";
+        } else {
+            stackdiv.style.display = "none";
+        }
+    }
+
+    const socket = io('http://localhost/admin', {transport: ['websocket']});
+    socket.on('status', (res) => {
+    });
+</script>
+<%
+function serviceStatus(services, name, offset = 0) {
+    let retval = '';
+    let status = "Ready";
+    for (let sname in services) {
+        let sstatus = services[sname].status;
+        if (sstatus === 'Starting' || sstatus === 'Preparing') {
+            status = 'Starting';
+        } else if (sstatus === 'Failed') {
+            status = 'Failed';
+        } else if (sstatus !== 'Ready' || sstatus !== 'Running') {
+            status = 'Warning';
+        }
+    }
+    retval += `<div id="${name}Drop" class="${status}">`;
+    retval += `<table>`;
+    for (let sname in services) {
+        let service = services[sname];
+        retval += `<tr class="${service.status}" id="${sname}">`;
+        if (service.type === 'stack') {
+            retval += `<td><a onclick=toggle('${sname}Drop');>${service.type}</td>`;
+        } else {
+            retval += '<td></td>';
+        }
+        retval += `<td>${sname}</td>`;
+        retval += `<td>${service.image}</td>`;
+        retval += `<td>${service.status}</td>`;
+        retval += `<td>${service.line}</td>`;
+        if (service.type === 'stack') {
+            retval += `</tr><tr><td colspan=5>`;
+            retval += serviceStatus(service.services, sname, offset + 1);
+            retval += `</td>`;
+        }
+        retval += `</tr>`
+    }
+    retval += `</table>`;
+    retval += `</div>`;
+    return retval;
+}
+%>
+<div>
+    <%- serviceStatus(stats, "Base", 0); %>
+</div>
+</body>
+<footer>Darren Pulsipher</footer>
+</html>

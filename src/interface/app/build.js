@@ -1,12 +1,10 @@
 const path = require('path');
-const spawn = require('child_process').spawnSync;
-const api = require('../../Documentation/api');
 const sLoader = require('../../Server/Loader');
-const fs = require('fs');
+const Build = require('../../Services/Build');
 
 module.exports = {
-    friendlyName: 'create',
-    description: 'Create an app',
+    friendlyName: 'build',
+    description: 'Build an app',
     static: true,
     inputs: {
         env: {
@@ -37,41 +35,10 @@ module.exports = {
         // Make sure to call docker stack deploy first then go down.
         let name = inputs.name;
         let apath = path.resolve('.');
-        console.log("Start Build");
         let topPackage = sLoader.processPackage(apath);
-        console.log("Start Build2" + topPackage);
-        buildPackage(topPackage, {name: name});
+        Build.services(topPackage);
+        Build.pkg(topPackage, {name: name,recursive:true});
         return `Building Application`;
     }
 };
-
-function buildPackage(package, opts) {
-    if(package.deploy) {
-        let apath = path.resolve(package.deploy.dir + '/build.js');
-        if(fs.existsSync(apath)) {
-            let buildconfig = require(apath);
-            for(let name in buildconfig) {
-                let bc = buildconfig[name];
-
-                for(ename in bc.env) {
-                    process.env[ename] = bc.env[ename];
-                }
-                console.log("==== ContainerName ====", bc.tag);
-                proc = spawn('docker', ['build', '-t', bc.tag, '-f', bc.file, bc.dir], {
-                    cwd: package.deploy.dir,
-                    stdio: 'inherit',
-                    env: process.env
-                });
-            }
-        }
-        else {
-            console.error("Could not find build.js for", package.name);
-        }
-    }
-
-    // Iterate over the subsystems and build the docker images
-    for (let i in package.subpackages) {
-        buildPackage(package.subpackages[i], opts);
-    }
-}
 
