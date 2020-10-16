@@ -1,5 +1,27 @@
 version: "3.7"
 services:
+  admin:
+    image: examplestacks:latest
+    stop_grace_period: 1m
+    stop_signal: SIGINT
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - AILTIRE_STACKNAME=${AILTIRE_APPNAME}
+      - AILTIRE_PARENT=${AILTIRE_APPNAME}
+      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
+    networks:
+      children:
+        aliases:
+          - admin
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${AILTIRE_APPNAME}_family
+        - traefik.http.services.admin.loadbalancer.server.port=3000
+        - traefik.http.routers.admin.rule=PathPrefix(`/admin`)
+        - traefik.http.routers.admin.service=admin
+        - traefik.http.routers.admin.entrypoints=http
   top:
     image: examplestacks_t:latest
     stop_grace_period: 1m
@@ -10,8 +32,8 @@ services:
       replicas: 1
     environment:
       - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
-      - AILTIRE_TASK={{.Task.Name}}-{{.Task.Slot}}
       - AILTIRE_PARENT=${AILTIRE_APPNAME}
+      - AILTIRE_PARENTHOST=admin
       - AILTIRE_APPNAME=${AILTIRE_APPNAME}
     networks:
       - children
@@ -26,7 +48,7 @@ services:
     environment:
       - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
       - AILTIRE_PARENT=${AILTIRE_APPNAME}
-      - AILTIRE_TASK={{.Task.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENTHOST=admin
       - AILTIRE_APPNAME=${AILTIRE_APPNAME}
     networks:
       - children
@@ -42,7 +64,7 @@ services:
     deploy:
       labels:
         - traefik.enable=true
-        - traefik.docker.network=${APPNAME}_family
+        - traefik.docker.network=${AILTIRE_APPNAME}_family
         - traefik.http.services.pubsub.loadbalancer.server.port=6379
         - traefik.http.routers.pubsub_http.rule=Path(`/pubsub`)
         - traefik.http.routers.pubsub_http.service=pubsub
@@ -79,7 +101,7 @@ services:
     deploy:
       labels:
         - traefik.enable=true
-        - traefik.docker.network=${APPNAME}_family
+        - traefik.docker.network=${AILTIRE_APPNAME}_family
         - traefik.http.services.web.loadbalancer.server.port=3000
         - traefik.http.routers.web.rule=PathPrefix(`/web`)
         - traefik.http.routers.web.service=web
@@ -94,7 +116,7 @@ services:
     deploy:
       labels:
         - traefik.enable=true
-        - traefik.docker.network=${APPNAME}_family
+        - traefik.docker.network=${AILTIRE_APPNAME}_family
         - traefik.http.services.doc.loadbalancer.server.port=8088
         - traefik.http.routers.doc.rule=PathPrefix(`/docs`)
         - traefik.http.routers.doc.service=doc

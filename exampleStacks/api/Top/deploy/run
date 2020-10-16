@@ -1,0 +1,49 @@
+#!/bin/sh
+
+DOCKER=docker
+CONTEXT=$AILTIRE_CONTEXT
+NAME=$AILTIRE_TAG
+env
+
+case $CONTEXT in
+
+dev)
+    COMPOSE_FILE=docker-compose.yml
+    APP_NAME=$NAME-examplestacks_t_dev
+    ;;
+
+test)
+    COMPOSE_FILE=docker-compose.yml
+    APP_NAME=$NAME-examplestacks_t_dev
+    ;;
+
+prod)
+    COMPOSE_FILE=docker-compose.yml
+    APP_NAME=$NAME-examplestacks_t_dev
+    ;;
+esac
+
+case $ACTION in
+    install)
+        echo "Deploying Stack"
+        $DOCKER stack deploy --compose-file $COMPOSE_FILE $APP_NAME
+        ;;
+    uninstall)
+        echo "Removing Stack"
+        $DOCKER stack rm $APP_NAME
+        ;;
+    upgrade)
+        echo "Upgrading stack"
+        $DOCKER stack deploy --compose-file $COMPOSE_FILE $APP_NAME
+        ;;
+    status)
+        $DOCKER stack ps $APP_NAME
+        ;;
+    *)
+        echo "Deploying Stack"
+        $DOCKER stack deploy --compose-file $COMPOSE_FILE $APP_NAME
+        ;;
+esac
+
+echo "Action $ACTION complete for $NAME"
+

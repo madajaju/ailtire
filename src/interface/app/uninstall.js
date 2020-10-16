@@ -38,17 +38,12 @@ module.exports = {
         let name = inputs.name;
         let apath = path.resolve('.');
         let topPackage = sLoader.processPackage(apath);
-        installPackage(topPackage, {name: name});
-        return `Building Application`;
+        uninstallPackage(topPackage, {name: name});
+        return `Uninstall Application`;
     }
 };
 
-function installPackage(package, opts) {
-
-    // Iterate over the subsystems and build the docker images
-    for (let i in package.subpackages) {
-        installPackage(package.subpackages[i], opts);
-    }
+function uninstallPackage(package, opts) {
 
     if (package.deploy) {
         let stackName = opts.name + '_' + package.deploy.prefix.toLowerCase().replace(/\//,'').replace(/\//g, '_');

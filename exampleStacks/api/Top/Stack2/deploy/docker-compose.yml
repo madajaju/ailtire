@@ -19,9 +19,9 @@ networks:
   children:
     driver: overlay
     attachable: true
-    name: n_${AILTIRE_STACKNAME}_family
+    name: ${AILTIRE_STACKNAME}_family
   sibling:
     driver: overlay
   parent:
     external: true
-    name: n_${AILTIRE_PARENT}_family
+    name: ${AILTIRE_PARENT}_family

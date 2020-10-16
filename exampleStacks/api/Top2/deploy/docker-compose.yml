@@ -10,11 +10,12 @@ services:
       replicas: 3
     environment:
       - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
-      - AILTIRE_TASK={{.Task.Name}}-{{.Task.Slot}}
-      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
       - AILTIRE_PARENT=${AILTIRE_STACKNAME}
+      - AILTIRE_PARENTHOST=${AILTIRE_PARENTHOST}
+      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
     networks:
       - children
+      - parent
   stack22:
     image: t_s22:latest
     stop_grace_period: 1m
@@ -25,11 +26,12 @@ services:
       replicas: 2
     environment:
       - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
-      - AILTIRE_TASK={{.Task.Name}}-{{.Task.Slot}}
-      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
       - AILTIRE_PARENT=${AILTIRE_STACKNAME}
+      - AILTIRE_PARENTHOST=${AILTIRE_PARENTHOST}
+      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
     networks:
       - children
+      - parent
   frontend:
     image: examplestacks_t_web
     networks:
@@ -48,9 +50,9 @@ networks:
   children:
     driver: overlay
     attachable: true
-    name: n_${AILTIRE_STACKNAME}_family
+    name: ${AILTIRE_STACKNAME}_family
   sibling:
     driver: overlay
   parent:
     external: true
-    name: n_${AILTIRE_PARENT}_family
+    name: ${AILTIRE_PARENT}_family
