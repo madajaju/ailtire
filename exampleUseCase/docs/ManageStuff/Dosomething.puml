@@ -1,0 +1,47 @@
+@startuml
+
+actor "Actor"
+
+
+entity EventBus
+
+box Top Package lightblue
+    boundary tp #white
+    participant DataModel #white
+end box
+
+
+"Actor" -> tp: Do something
+
+
+box "Top Package" #lightblue
+    tp -> "mymodel": create (name: name1)
+end box
+
+
+
+
+box "Top Package" #lightblue
+    tp -> "mymodel": create (name: name2)
+end box
+
+
+
+
+box "Top Package" #lightblue
+    tp -> "mymodel": create (name: name3)
+end box
+
+
+
+
+    tp -> "mypkg/mymodel": list ()
+
+
+
+
+DataModel --/ EventBus : Model.Event
+
+
+EventBus --/ tp : method2()
+@enduml

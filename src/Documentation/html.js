@@ -2,6 +2,7 @@ let ejs = require('ejs');
 let path = require('path');
 let Generator = require('./Generator.js');
 const AClass = require('../Server/AClass');
+const Action = require('../Server/Action');
 
 module.exports = {
     index: (name, output) => {
@@ -106,14 +107,14 @@ const indexGenerator = (name, output) => {
     };
     Generator.process(files, output);
 };
-const modelGenerator = (model, output, urlpath) => {
+const modelGenerator = (model, output, urlPath) => {
     let files = {
         context: {
             model: model,
             shortname: model.name.replace(/ /g, ''),
             modelname: model.name,
             modelnamenospace: model.name.replace(/ /g, '').toLowerCase(),
-            pageDir: '.' + urlpath + '/' + model.name.replace(/ /g,'').toLowerCase()
+            pageDir: '.' + urlPath + '/' + model.name.replace(/ /g,'').toLowerCase()
         },
         targets: {
             './:modelnamenospace:/index.html': {template: '/templates/Model/index.ejs'},
@@ -213,6 +214,7 @@ const useCaseGenerator = (usecase, output, urlPath) => {
     let files = {
         context: {
             usecase: usecase,
+            useCaseDirectory: usecase,
             shortname: usecase.name.replace(/ /g, ''),
             usecaseName: usecase.name,
             usecaseNameNoSpace: usecase.name.replace(/ /g, '').toLowerCase(),
@@ -233,6 +235,12 @@ const useCaseGenerator = (usecase, output, urlPath) => {
 };
 const scenarioGenerator = (usecase, scenario, output, urlPath) => {
     let pkg = global.packages[usecase.package.replace(/\s/g,'')];
+    for(let i in scenario.steps) {
+        let step = scenario.steps[i];
+        let act = Action.find(`/${step.action.toLowerCase()}`);
+        step.act = act;
+    }
+
     let files = {
         context: {
             usecase: usecase,

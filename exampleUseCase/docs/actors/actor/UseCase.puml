@@ -1,0 +1,16 @@
+@startuml
+
+left to right direction
+
+
+Actor "Actor" as Actor
+
+
+rectangle "Top Package" as tp  lightblue {
+        usecase "Manage Stuff" as ManageStuff
+    Actor --> ManageStuff
+
+}
+
+
+@enduml

@@ -68,9 +68,14 @@ const addForModels = (server) => {
     const listAction = require('./actions/list.js');
     const showAction = require('./actions/show.js');
     const addAction = require('./actions/add.js');
+    let act;
+
     for (let name in global.classes) {
         let cls = AClass.getClass(name);
-        setAction(`/${name}/new`, newAction);
+        act = setAction(`/${name}/new`, newAction);
+        act.obj = cls.definition.name;
+        act.pkg = cls.definition.package;
+
         // Check if Create method exists
         if(cls.definition.methods.hasOwnProperty('create')) {
             let ninputs = {};
@@ -90,13 +95,21 @@ const addForModels = (server) => {
                 exits: updateAction.exits,
                 fn: createAction.fn
             }
-            setAction(`/${name}/create`, newCreate);
+            act = setAction(`/${name}/create`, newCreate);
+            act.obj = cls.definition.name;
+            act.pkg = cls.definition.package;
         }
         else {
-            setAction(`/${name}/create`, createAction);
+            act = setAction(`/${name}/create`, createAction);
+            act.obj = cls.definition.name;
+            act.pkg = cls.definition.package;
         }
-        setAction(`/${name}/list`, listAction);
-        setAction(`/${name}/destory`, destroyAction);
+        act = setAction(`/${name}/list`, listAction);
+        act.obj = cls.definition.name;
+        act.pkg = cls.definition.package;
+        act = setAction(`/${name}/destory`, destroyAction);
+        act.obj = cls.definition.name;
+        act.pkg = cls.definition.package;
         let inputs = {};
         for(let aname in cls.definition.attributes) {
             let attr = cls.definition.attributes[aname];
@@ -119,7 +132,9 @@ const addForModels = (server) => {
                     assocName: aname,
                     fn: addAction.fn
                 };
-                setAction(`/${name}/add${assocUpper}`, newAddAction);
+                act = setAction(`/${name}/add${assocUpper}`, newAddAction);
+                act.obj = cls.definition.name;
+                act.pkg = cls.definition.package;
             } else {
                 inputs[aname] = {
                     type: 'object',
@@ -129,7 +144,9 @@ const addForModels = (server) => {
             }
         }
 
-        setAction(`/${name}`, showAction);
+        act = setAction(`/${name}`, showAction);
+        act.obj = cls.definition.name;
+        act.pkg = cls.definition.package;
         inputs.id = {
             type: 'string',
             description: 'ID of the item to update',
@@ -148,7 +165,9 @@ const addForModels = (server) => {
             exits: updateAction,
             fn: updateAction.fn
         }
-        setAction(`/${name}/update`, newUpdateAction);
+        act = setAction(`/${name}/update`, newUpdateAction);
+        act.obj = cls.definition.name;
+        act.pkg = cls.definition.package;
     }
 };
 
@@ -160,6 +179,7 @@ const setAction = (route, action) => {
     else {
         console.log('Action', route, 'already exists');
     }
+    return global.actions[route];
 };
 
 const loadActions = (prefix, mDir) => {
