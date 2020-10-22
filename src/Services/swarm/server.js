@@ -86,12 +86,18 @@ function setupExpress() {
         let retval = renderPage('./views/main.ejs', {stats:status});
         res.end(retval);
     });
-    server.get('*', (req, res) => {
-        console.log("Request:", req);
-        console.log("Do Nothing from Default");
-        res.send("Did Nothing");
+    server.get('*/log', async (req, res) => {
+        let sname = req.query.name;
+        console.log(`SERVICENAME:${sname}:`);
+        let retval = getLogs(sname);
+        res.end(retval);
     });
-
+    server.get('*', async (req, res) => {
+        let apath = path.resolve('./views/main.ejs');
+        let status = await getStats();
+        let retval = renderPage('./views/main.ejs', {stats:status});
+        res.end(retval);
+    });
     app = http.listen(port);
 
     process.once('SIGINT', (code) => {
@@ -182,6 +188,21 @@ function parseStatus(input) {
                 line: lines[line],
             }
         }
+    }
+    return retval;
+}
+function getLogs(name) {
+    let sname = name.replace(/-[0-9]+$/,'');
+    let proc = exec('docker', ['service', 'logs', sname], {cwd: '.', stdio: 'pipe', env: process.env});
+    let status = parseStatus(proc.stdout.toString('utf8'));
+    if(status != 0) {
+        console.log("Error:", proc.stderr.toString('utf8'));
+        return proc.stderr.toString('utf8');
+    }
+    let logs = status.stdout.toString('utf-8').split(/\n/);
+    let retval = "";
+    for(let i in logs) {
+        retval += log[i].replace(/.+\|/, '');
     }
     return retval;
 }

@@ -98,8 +98,9 @@ function serviceStatus(services, name, offset = 0) {
         retval += `<td>${sname}</td>`;
         retval += `<td>${service.image}</td>`;
         retval += `<td>${service.status}</td>`;
-        retval += `<td>${service.line}</td>`;
-        if (service.type === 'stack') {
+        retval += `<td><a href="http://localhost/admin/log?name=${sname}" target="logs">Logs</a>`;
+//        retval += `<td>${service.line}</td>`;
+        if (service.type === 'stack' && service.hasOwnProperty('services')) {
             retval += `</tr><tr><td colspan=5>`;
             retval += serviceStatus(service.services, sname, offset + 1);
             retval += `</td>`;
@@ -111,9 +112,16 @@ function serviceStatus(services, name, offset = 0) {
     return retval;
 }
 %>
-<div>
-    <%- serviceStatus(stats, "Base", 0); %>
-</div>
+<table>
+    <tr>
+        <td width="50%">
+            <%- serviceStatus(stats, "Base", 0); %>
+        </td>
+        <td width="50%">
+            <iframe name="logs" height="100%" width="100%" title="Service Logs"></iframe>
+        </td>
+    </tr>
+</table>
 </body>
 <footer>Darren Pulsipher</footer>
 </html>

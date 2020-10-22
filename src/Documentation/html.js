@@ -106,14 +106,14 @@ const indexGenerator = (name, output) => {
     };
     Generator.process(files, output);
 };
-const modelGenerator = (model, output, urlpath) => {
+const modelGenerator = (model, output, urlPath) => {
     let files = {
         context: {
             model: model,
             shortname: model.name.replace(/ /g, ''),
             modelname: model.name,
             modelnamenospace: model.name.replace(/ /g, '').toLowerCase(),
-            pageDir: '.' + urlpath + '/' + model.name.replace(/ /g,'').toLowerCase()
+            pageDir: '.' + urlPath + '/' + model.name.replace(/ /g,'').toLowerCase()
         },
         targets: {
             './:modelnamenospace:/index.html': {template: '/templates/Model/index.ejs'},
