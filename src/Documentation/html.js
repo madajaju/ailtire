@@ -212,6 +212,7 @@ const packageGenerator = (package, output, urlPath) => {
 const useCaseGenerator = (usecase, output, urlPath) => {
     let files = {
         context: {
+            config: global.ailtire.config,
             usecase: usecase,
             shortname: usecase.name.replace(/ /g, ''),
             usecaseName: usecase.name,

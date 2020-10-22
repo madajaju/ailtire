@@ -24,7 +24,6 @@
                 <a-sphere id="default3DSourced" position="0 0 0" radius="10" color="#00ff00"></a-sphere>
                 <% for(let cname in global.classes) {
                 let cls = global.classes[cname];
-                console.log("CLS:", cls.definition.name);
                 if(cls.definition.view) {
                 %>
                 <%- cls.definition.view.object3d() %>

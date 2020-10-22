@@ -40,7 +40,7 @@ module.exports = {
         htmlGenerator.index(config.prefix, apath + '/docs');
         htmlGenerator.package(global.topPackage, apath + '/docs');
         htmlGenerator.actors(global.actors, apath + '/docs');
-
+        console.log("CONFIG PATH:", config.urlPrefix);
         standardFileTypes(config,server);
         server.get(`${config.urlPrefix}/doc/actor/*`, (req, res) => {
             let actorName = req.url.replace(config.urlPrefix,'').replace(/\/doc\/actor\//, '');
@@ -90,6 +90,7 @@ module.exports = {
         });
         server.get('*', (req,res) => {
             console.log("Nothing routed:", req.url);
+            console.log("Config urlPrefix:", config.urlPrefix);
             res.redirect(`.${config.urlPrefix}/index.html`);
         });
 
