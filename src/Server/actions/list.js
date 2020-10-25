@@ -4,8 +4,8 @@ const renderer = require('../../Documentation/Renderer.js');
 const AClass = require('../../Server/AClass');
 
 module.exports = {
-    friendlyName: 'new',
-    description: 'New called for web interface',
+    friendlyName: 'list',
+    description: 'List of model objects',
     static: true, // True is for Class methods. False is for object based.
     inputs: {},
 

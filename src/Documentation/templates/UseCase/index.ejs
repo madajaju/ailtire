@@ -13,7 +13,7 @@
 <ul>
 <% for(let aname in usecase.actors) {
     aname = aname.replace(/\s/g,'');
-    let actor = actors[aname];kj
+    let actor = actors[aname];
 -%>
     <li><a href='doc/actor/<%= aname %>'><%= actor.name %></a></li>
 <% } %>
@@ -23,8 +23,10 @@
 <ul>
 <% for(let sname in usecase.scenarios) {
 let nameNoSpaces = sname.replace(/ /g, '');
+let ucName = usecase.name.replace(/ /g,'');
+let prefix = usecase.prefix;
 -%>
-<li><a href='#Scenario-<%= nameNoSpaces %>'><%= sname %></a></li>
+    <li> <a href='doc/usecase<%- prefix %>/<%- ucName %>#Scenario-<%- nameNoSpaces %>'><%= sname %></a></li>
 <% } %>
 </ul>
 <% for(let sname in usecase.scenarios) {
@@ -36,16 +38,33 @@ let pkgPath = global.packages[usecase.package.replace(/ /g, '')].prefix;
 <%= scenario.description %>
 <img src="<%= pageDir %>/<%= scenario.name.replace(/\s/g,'') %>.puml">
 
-<h4>Action</h4>
-<a href='doc/package<%= pkgPath %>#Action-<%= scenario.method.replace(/\//g, '-') %>'><%= scenario.method %>(...)</a>
+<h4>Steps</h4>
+<%
+if(scenario.steps) {
+    for(let si in scenario.steps) {
+        let step = scenario.steps[si];
+        let parameters = "";
+        if(step.parameters) {
+            let items = [];
+            for (let name in step.parameters) {
+                items.push(`${name}: ${step.parameters[name]}`);
+            }
+            parameters = items.join(',');
+        }
+%>
+<a href='doc/action/<%= step.action %>'><%= step.action%>(<%- parameters %>)</a>
+<% }
+} else { %>
+To Be Defined
+<% } %>
+
 <h4>Actors</h4>
 <ul>
 <% for(let aname in scenario.actors) {
     aname = aname.replace(/\s/g,'');
     let actor = global.actors[aname];
-%>
+-%>
 <li><a href='doc/actor/<%= actor.shortname %>'><%= actor.name %> </a></li>
-</ul>
-
 <% } %>
+</ul>
 <% } %>

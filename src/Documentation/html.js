@@ -2,6 +2,7 @@ let ejs = require('ejs');
 let path = require('path');
 let Generator = require('./Generator.js');
 const AClass = require('../Server/AClass');
+const Action = require('../Server/Action');
 
 module.exports = {
     index: (name, output) => {
@@ -214,6 +215,7 @@ const useCaseGenerator = (usecase, output, urlPath) => {
         context: {
             config: global.ailtire.config,
             usecase: usecase,
+            useCaseDirectory: usecase,
             shortname: usecase.name.replace(/ /g, ''),
             usecaseName: usecase.name,
             usecaseNameNoSpace: usecase.name.replace(/ /g, '').toLowerCase(),
@@ -234,6 +236,12 @@ const useCaseGenerator = (usecase, output, urlPath) => {
 };
 const scenarioGenerator = (usecase, scenario, output, urlPath) => {
     let pkg = global.packages[usecase.package.replace(/\s/g,'')];
+    for(let i in scenario.steps) {
+        let step = scenario.steps[i];
+        let act = Action.find(`/${step.action.toLowerCase()}`);
+        step.act = act;
+    }
+
     let files = {
         context: {
             usecase: usecase,

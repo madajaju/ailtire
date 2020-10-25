@@ -31,7 +31,6 @@ module.exports = {
 };
 
 const processItem = (item, target, objects) => {
-
     let relfile = __dirname + '/' + item.name;
     let apath = path.resolve(relfile);
     if(!fs.existsSync(apath)) {

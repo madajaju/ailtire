@@ -13,7 +13,32 @@ end box
 <% for(let aname in actors) {
 %>
 "<%= aname %>" -> <%= package.shortname %>: <%= scenario.name %>
-<%= package.shortname %> -> <%= package.shortname %>: <%= scenario.method %>
+<% for(let i in scenario.steps) {
+    let step = scenario.steps[i];
+    let names = step.action.split('/');
+    let method = names.pop();
+    let object = names.join('/');
+    if(step.act) {
+        step.act.obj;
+    }
+    let parameters = "";
+    if(step.parameters) {
+        let items = [];
+        for(let name in step.parameters) {
+            items.push(`${name}: ${step.parameters[name]}`);
+        }
+        parameters = items.join(',');
+    }
+%>
+<% if(step.act) { %>
+box "<%= step.act.pkg.name %>" #<%= step.act.pkg.color %>
+    <%= package.shortname %> -> "<%= object %>": <%= method %> (<%= parameters %>)
+end box
+<% } else { %>
+    <%= package.shortname %> -> "<%= object %>": <%= method %> (<%= parameters %>)
+<% } %>
+
+<% } %>
 <% } %>
 DataModel --/ EventBus : Model.Event
 

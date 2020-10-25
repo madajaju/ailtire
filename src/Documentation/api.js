@@ -171,6 +171,8 @@ const usecaseGenerator = (pkg, name, output) => {
         let files = {
             context: {
                 name: name,
+                pkgName: pkgObj.name.split(/\s/g, ''),
+                useCaseDirectory: ucDir,
                 nameNoSpace: nameNoSpace,
             },
             targets: {
@@ -178,6 +180,19 @@ const usecaseGenerator = (pkg, name, output) => {
             }
         };
         Generator.process(files, pkgObj.dir);
+        files = {
+            context: {
+                name: name,
+                appName: global.ailtire.config.prefix,
+                pkgName: pkgObj.name.replace(/\s/g, ''),
+                useCaseDirectory: ucDir,
+                nameNoSpace: nameNoSpace,
+            },
+            targets: {
+                '/test/bin/:pkgName:/:nameNoSpace:.test.js': {template: '/templates/UseCase/usecase.test.js'},
+            }
+        };
+        Generator.process(files, '.');
     }
     return {name: name, dir: ucDir};
 };
