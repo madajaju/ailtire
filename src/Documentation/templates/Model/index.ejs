@@ -106,7 +106,7 @@
     for(let mname in model.methods) {
         let method = model.methods[mname];
 %>
-    <li> <a href="#Action-<%= model.name %>-<%= mname %>"><%= mname %>() - <%= method.description %></a>
+    <li> <a href="doc/action/<%= mname %>"><%= mname %>() - <%= method.description %></a>
     <% } %>
 </ul>
 <h2>Method Details</h2>
@@ -114,8 +114,6 @@
         let method = model.methods[mname];
         method.name = mname;
 %>
-        <div id="Action-<%= model.name %>-<%= mname %>">
 <%- partial("./templates/Action/_index.ejs", {action: method}) %>
-        </div>
 <% } %>
 

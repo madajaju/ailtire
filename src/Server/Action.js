@@ -61,6 +61,9 @@ const mergeMaps = (target, source) => {
     }
 };
 const addForModels = (server) => {
+    // This are the same actions for all of the standard action for the Models.
+    // They are not copies but are references to the actions.
+    // Anything you attach to these actions will show up in all of the default model actions.
     const newAction = require('./actions/new.js');
     const createAction = require('./actions/create.js');
     const destroyAction = require('./actions/destroy.js');
@@ -73,8 +76,10 @@ const addForModels = (server) => {
     for (let name in global.classes) {
         let cls = AClass.getClass(name);
         act = setAction(`/${name}/new`, newAction);
-        act.obj = cls.definition.name;
-        act.pkg = cls.definition.package;
+
+        act.obj = "Model";
+        act.pkg = global.topPackage
+        act.cls = "Model";
 
         // Check if Create method exists
         if(cls.definition.methods.hasOwnProperty('create')) {
@@ -96,20 +101,24 @@ const addForModels = (server) => {
                 fn: createAction.fn
             }
             act = setAction(`/${name}/create`, newCreate);
-            act.obj = cls.definition.name;
-            act.pkg = cls.definition.package;
+            act.obj = "Model";
+            act.pkg = global.topPackage
+            act.cls = "Model";
         }
         else {
             act = setAction(`/${name}/create`, createAction);
-            act.obj = cls.definition.name;
-            act.pkg = cls.definition.package;
+            act.obj = "Model";
+            act.pkg = global.topPackage
+            act.cls = "Model";
         }
         act = setAction(`/${name}/list`, listAction);
-        act.obj = cls.definition.name;
-        act.pkg = cls.definition.package;
+        act.obj = "Model";
+        act.pkg = global.topPackage
+        act.cls = "Model";
         act = setAction(`/${name}/destory`, destroyAction);
-        act.obj = cls.definition.name;
-        act.pkg = cls.definition.package;
+        act.obj = "Model";
+        act.pkg = global.topPackage
+        act.cls = "Model";
         let inputs = {};
         for(let aname in cls.definition.attributes) {
             let attr = cls.definition.attributes[aname];
@@ -133,8 +142,9 @@ const addForModels = (server) => {
                     fn: addAction.fn
                 };
                 act = setAction(`/${name}/add${assocUpper}`, newAddAction);
-                act.obj = cls.definition.name;
-                act.pkg = cls.definition.package;
+                act.obj = "Model";
+                act.pkg = global.topPackage
+                act.cls = "Model";
             } else {
                 inputs[aname] = {
                     type: 'object',
@@ -145,8 +155,10 @@ const addForModels = (server) => {
         }
 
         act = setAction(`/${name}`, showAction);
-        act.obj = cls.definition.name;
-        act.pkg = cls.definition.package;
+
+        act.obj = "Model";
+        act.pkg = global.topPackage
+        act.cls = "Model";
         inputs.id = {
             type: 'string',
             description: 'ID of the item to update',
@@ -166,15 +178,16 @@ const addForModels = (server) => {
             fn: updateAction.fn
         }
         act = setAction(`/${name}/update`, newUpdateAction);
-        act.obj = cls.definition.name;
-        act.pkg = cls.definition.package;
+        act.obj = "Model";
+        act.pkg = global.topPackage
+        act.cls = "Model";
     }
 };
 
 const setAction = (route, action) => {
     route = route.toLowerCase();
     if (!global.actions.hasOwnProperty(route)) {
-        global.actions[route] = action;
+        global.actions[route] = action ;
     }
     else {
         console.log('Action', route, 'already exists');
@@ -285,8 +298,12 @@ const execute = (action, inputs, env) => {
 };
 const find = (name) => {
     name = name.toLowerCase();
+    // If you match the action name directly return.
     if(global.actions.hasOwnProperty(name)) {
         return global.actions[name];
+    }
+    else if(global.actions.hasOwnProperty('/' + name)) {
+        return global.actions['/' + name];
     }
     else {
         let items = name.replace(/[\/\\]/g, '/').replace(/^\//, '').split('/');

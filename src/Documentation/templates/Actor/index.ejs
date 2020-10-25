@@ -27,10 +27,11 @@ TBD
 <% for(let uname in actor.usecases) {
     let ucname = actor.usecases[uname].prefix + '/' + uname;
     let name = actor.usecases[uname].name;
+    let action = actor.usecases[uname].method;
     let method = actor.usecases[uname].method.replace(/\//g, ' ');
     let prefix = actor.usecases[uname].prefix.replace(/\//g, ' ');
     let description = actor.usecases[uname].description;
     let href = actor.usecases[uname].prefix + '/index.html#Action-' + prefix.replace(/\s/g, '-') + '-' + method.replace(/\s/g, '-');
 -%>
-    <li><a href="<%= pageDir %>/<%= href %>"><%= prefix %> <%= method %></a> - <%= description %></li>
+    <li><a href='doc/action/<%= action %>'><%= prefix %> <%= method %></a> - <%= description %></li>
 <% } %>

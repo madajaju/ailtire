@@ -46,7 +46,7 @@ users interact with the system.
 <% for(let mname in package.interface) {
 let method = package.interface[mname]
 -%>
-<li><a href='#Action-<%= mname.replace(/\//g, '-') %>'><%= mname %>(...)</a></li>
+<li><a href='doc/action/<%= mname %>'><%= mname %>(...)</a></li>
 <% } %>
 </ul>
 
@@ -73,7 +73,7 @@ and their structure.
     let cls = package.classes[cname].definition;
     let clsNoSpace = package.prefix + '/' + cls.name.replace(/ /g, '');
 -%>
-<li><a href='/doc/model<%= clsNoSpace %>'><%= cls.name %></a>
+<li><a href='doc/model<%= clsNoSpace %>'><%= cls.name %></a>
 <% } %>
 </ul>
 
@@ -149,7 +149,5 @@ the subsystem's logic.
     let method = package.interface[mname]
     method.name = mname;
 -%>
-<div id="Action-<%= mname.replace(/\//g, '-') %>">
 <%- partial("./templates/Action/_index.ejs", {action: method}) %>
-</div>
 <% } %>
