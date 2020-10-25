@@ -1,0 +1,38 @@
+@startuml
+  interface CLI
+  interface Web
+  interface WebSocket
+package "exampleUseCase" lightgreen {
+  component express as REST
+  component socket.io as socket
+  folder bin #ffffff {
+    component "exampleusecase" as binName
+  }
+  binName --> REST
+
+  folder deploy #ffffff {
+
+    file "web" as web_container
+    REST --> web_container
+    socket ---> web_container
+
+    file "doc" as doc_container
+    REST --> doc_container
+    socket ---> doc_container
+
+  }
+  folder images #ffffff {
+
+      artifact exampleUseCase_web
+      web_container --> exampleUseCase_web
+
+      artifact exampleUseCase_doc
+      doc_container --> exampleUseCase_doc
+
+  }
+}
+CLI -- binName
+Web - REST
+WebSocket -- socket
+
+@enduml

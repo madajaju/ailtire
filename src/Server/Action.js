@@ -76,6 +76,7 @@ const addForModels = (server) => {
     for (let name in global.classes) {
         let cls = AClass.getClass(name);
         act = setAction(`/${name}/new`, newAction);
+
         act.obj = "Model";
         act.pkg = global.topPackage
         act.cls = "Model";
@@ -100,7 +101,6 @@ const addForModels = (server) => {
                 fn: createAction.fn
             }
             act = setAction(`/${name}/create`, newCreate);
-
             act.obj = "Model";
             act.pkg = global.topPackage
             act.cls = "Model";
@@ -155,6 +155,7 @@ const addForModels = (server) => {
         }
 
         act = setAction(`/${name}`, showAction);
+
         act.obj = "Model";
         act.pkg = global.topPackage
         act.cls = "Model";

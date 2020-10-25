@@ -1,0 +1,13 @@
+@startuml
+
+actor "Actor" as actor
+
+
+
+
+actor -> "Top Package": Manage Stuff
+"Top Package" -> bin: data/govern
+bin -> REST: data/govern
+
+
+@enduml

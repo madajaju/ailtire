@@ -1,0 +1,20 @@
+@startuml
+left to right direction
+
+
+
+
+state  white {
+    state "Custom Function" as tpfunction {
+    }
+}
+
+
+
+
+
+
+
+
+
+@enduml
