@@ -30,8 +30,41 @@ let prefix = usecase.prefix;
 <% } %>
 </ul>
 <% for(let sname in usecase.scenarios) {
+let nameNoSpaces = sname.replace(/ /g, '');
 let scenario = usecase.scenarios[sname];
 let pkgPath = global.packages[usecase.package.replace(/ /g, '')].prefix;
 -%>
-<%- partial("./templates/Scenario/_index.ejs", {pageDir: pageDir,scenario:scenario}) %>
+<h3 id='Scenario-<%= nameNoSpaces %>'><%= sname %></h3>
+<%= scenario.description %>
+<img src="<%= pageDir %>/<%= scenario.name.replace(/\s/g,'') %>.puml">
+
+<h4>Steps</h4>
+<%
+if(scenario.steps) {
+    for(let si in scenario.steps) {
+        let step = scenario.steps[si];
+        let parameters = "";
+        if(step.parameters) {
+            let items = [];
+            for (let name in step.parameters) {
+                items.push(`${name}: ${step.parameters[name]}`);
+            }
+            parameters = items.join(',');
+        }
+%>
+<a href='doc/action/<%= step.action %>'><%= step.action%>(<%- parameters %>)</a>
+<% }
+} else { %>
+To Be Defined
+<% } %>
+
+<h4>Actors</h4>
+<ul>
+<% for(let aname in scenario.actors) {
+    aname = aname.replace(/\s/g,'');
+    let actor = global.actors[aname];
+-%>
+<li><a href='doc/actor/<%= actor.shortname %>'><%= actor.name %> </a></li>
+<% } %>
+</ul>
 <% } %>

@@ -1,0 +1,26 @@
+@startuml
+
+
+
+package "exampleUseCase" #lightgreen {
+
+    interface "exampleUseCase" as i {
+
+    }
+}
+
+CLI ()-- i
+REST ()-- i
+Web ()-- i
+
+package "exampleUseCase" #lightgreen {
+
+
+rectangle "Top Package" #white {
+}
+
+}
+
+
+
+@enduml

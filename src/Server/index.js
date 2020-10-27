@@ -11,7 +11,8 @@ const Renderer = require('../Documentation/Renderer');
 const server = express();
 const http = require('http').createServer(server);
 const io = require('socket.io')(http);
-const pumlGenerator = require('../Documentation/puml');
+
+// plantuml.useNailgun();
 
 // Here we are configuring express to use body-parser as middle-ware.
 server.use(function(req, res, next) {
@@ -23,9 +24,10 @@ server.use(bodyParser.urlencoded({extended: false}));
 server.use(bodyParser.json());
 
 module.exports = {
-    docBuild: (config) => {
+    doc: (config) => {
         normalizeConfig(config);
         global.ailtire = { config: config };
+        // const plantuml = require('node-plantuml');
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
         sLoader.analyze(topPackage);
@@ -38,21 +40,6 @@ module.exports = {
         htmlGenerator.index(config.prefix, apath + '/docs');
         htmlGenerator.package(global.topPackage, apath + '/docs');
         htmlGenerator.actors(global.actors, apath + '/docs');
-    },
-    doc: (config) => {
-        http.listen(config.listenPort);
-        return;
-        normalizeConfig(config);
-        global.ailtire = { config: config };
-        let apath = path.resolve(config.baseDir);
-        let topPackage = sLoader.processPackage(apath);
-        sLoader.analyze(topPackage);
-
-        Action.defaults(server);
-        //let ailPath = __dirname + "/../../interface";
-        // Action.load(server, '', path.resolve(ailPath)); // Load the ailtire defaults from the interface directory.
-        Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'), config);
-        // Action.mapRoutes(server, config.routes);
         standardFileTypes(config,server);
         server.get(`${config.urlPrefix}/doc/actor/*`, (req, res) => {
             console.log('ACTOR:', req.url);
@@ -81,14 +68,10 @@ module.exports = {
             console.log("Calling Action Name:", name);
             let names = name.split('/');
             let action = Action.find(name);
-            if(action) {
-                let pkg = action.pkg
-                let apath = `${config.urlPrefix}${pkg.prefix}/index.html#Action-${name.replace(/\//g, '-')}`;
-                res.redirect(apath);
-            } else {
-                console.log("Action Not Found:", name);
-                res.end(`Action ${name} not found!`);
-            }
+            let pkg = action.pkg
+            let apath = `${config.urlPrefix}${pkg.prefix}/index.html#Action-${name.replace(/\//g,'-')}`;
+            res.redirect(apath);
+            // res.sendFile('index.html', {root: apath});
         });
         server.get(`${config.urlPrefix}/doc/model/*`, (req, res) => {
             console.log("Calling Model:", req.url);
@@ -301,10 +284,11 @@ function standardFileTypes(config,server) {
     });
     server.get('*.puml', (req, res) => {
         let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,''));
-        let svgPath = apath.replace(/.puml$/, '.svg');
-        if(fs.existsSync(svgPath)) {
+        if (fs.existsSync(apath)) {
             res.set('Content-Type', 'image/svg+xml');
-            res.sendFile(svgPath);
+            //let gen = plantuml.generate(apath, {format: 'svg'});
+            // gen.out.pipe(res);
+            res.end("");
         } else {
             console.log(req.url.replace(config.urlPrefix,'') + ' not found!');
             console.log(apath + ' file not found!');

@@ -1,0 +1,12 @@
+@startuml
+
+class "MyModel" as Model {
+ string name
+
+
+}
+
+
+
+
+@enduml

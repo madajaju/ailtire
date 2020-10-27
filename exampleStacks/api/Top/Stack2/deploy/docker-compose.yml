@@ -1,11 +1,11 @@
 version: "3.7"
 services:
   frontend:
-    image: t_s_web
+    image: t_s2_web
     networks:
       - sibling
   gw:
-    image: t_s_gw
+    image: t_s2_gw
     networks:
       children:
         aliases:
@@ -19,9 +19,9 @@ networks:
   children:
     driver: overlay
     attachable: true
-    name: ${APPNAME}_t_s_family
+    name: ${AILTIRE_STACKNAME}_family
   sibling:
     driver: overlay
   parent:
     external: true
-    name: ${APPNAME}_t_family
+    name: ${AILTIRE_PARENT}_family
