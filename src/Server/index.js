@@ -38,6 +38,18 @@ module.exports = {
         htmlGenerator.index(config.prefix, apath + '/docs');
         htmlGenerator.package(global.topPackage, apath + '/docs');
         htmlGenerator.actors(global.actors, apath + '/docs');
+        console.log("Built the Documentation");
+        return;
+    },
+    doc: (config) => {
+        normalizeConfig(config);
+        global.ailtire = { config: config };
+        let apath = path.resolve(config.baseDir);
+        let topPackage = sLoader.processPackage(apath);
+        sLoader.analyze(topPackage);
+
+        Action.defaults(server);
+        Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'), config);
         standardFileTypes(config,server);
         server.get(`${config.urlPrefix}/doc/actor/*`, (req, res) => {
             console.log('ACTOR:', req.url);
