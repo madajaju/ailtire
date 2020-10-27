@@ -2,6 +2,7 @@ let ejs = require('ejs');
 let path = require('path');
 let Generator = require('./Generator.js');
 const AClass = require('../Server/AClass');
+const Action = require('../Server/Action');
 
 module.exports = {
     index: (name, output) => {
@@ -57,6 +58,7 @@ const appGenerator = (app, output) => {
             '../assets/styles/graph.less': {copy: '/templates/App/styles/graph.less'},
             '../assets/styles/importer.less': {copy: '/templates/App/styles/importer.less'},
             '../assets/styles/top.less': {copy: '/templates/App/styles/top.less'},
+            'plantuml.jar': {copy: '/templates/App/plantuml.jar'},
             'bin/lib/subcommander.js': {copy: '/templates/App/subcommander.js'},
             'deploy/docker-compose.yml': {template: '/templates/App/deploy/docker-compose.yml'},
             'deploy/build.js': {template: '/templates/App/deploy/build.js'},
@@ -67,8 +69,8 @@ const appGenerator = (app, output) => {
             'docs/plantuml.jar': {copy: '/templates/App/plantuml.jar'}
         }
     };
+    addDocs(app, files, output,"./");
     Generator.process(files, output);
-    addDocs(app, files, output);
 };
 const indexGenerator = (name, output) => {
 
@@ -99,6 +101,7 @@ const indexGenerator = (name, output) => {
             '../assets/styles/importer.less': {copy: '/templates/App/styles/importer.less'},
             '../assets/styles/top.less': {copy: '/templates/App/styles/top.less'},
             './app.html': {template: '/templates/App/app.ejs'},
+            './plantuml.jar': {copy: '/templates/App/plantuml.jar'},
             '../assets/js/less.js': {copy: '/templates/App/js/less.js'},
             '../assets/styles/importer.less': {copy: '/templates/App/styles/docimporter.less'},
             '../assets/styles/doc.less': {copy: '/templates/App/styles/doc.less'},
@@ -106,14 +109,14 @@ const indexGenerator = (name, output) => {
     };
     Generator.process(files, output);
 };
-const modelGenerator = (model, output, urlpath) => {
+const modelGenerator = (model, output, urlPath) => {
     let files = {
         context: {
             model: model,
             shortname: model.name.replace(/ /g, ''),
             modelname: model.name,
             modelnamenospace: model.name.replace(/ /g, '').toLowerCase(),
-            pageDir: '.' + urlpath + '/' + model.name.replace(/ /g,'').toLowerCase()
+            pageDir: '.' + urlPath + '/' + model.name.replace(/ /g,'').toLowerCase()
         },
         targets: {
             './:modelnamenospace:/index.html': {template: '/templates/Model/index.ejs'},
@@ -121,8 +124,8 @@ const modelGenerator = (model, output, urlpath) => {
             './:modelnamenospace:/StateNet.puml': {template: '/templates/Model/StateNet.puml'},
         }
     };
+    addDocs(model, files, output + urlPath, urlPath);
     Generator.process(files, output + urlPath);
-    addDocs(model, files, output + urlPath);
 };
 const packageGenerator = (package, output, urlPath) => {
     let actors = {};
@@ -175,7 +178,7 @@ const packageGenerator = (package, output, urlPath) => {
     let files = {
         context: {
             deploy: deploy,
-            basedir: output + '/' + package.shortname,
+            basedir: output + urlPath + '/' + package.shortname,
             package: package,
             actors: actors,
             packageName: package.name,
@@ -197,8 +200,8 @@ const packageGenerator = (package, output, urlPath) => {
         }
     };
     // Get the doc from the package and add them to the targets list
+    addDocs(package, files,output + urlPath, urlPath);
     Generator.process(files, output + urlPath);
-    addDocs(package, files,output + urlPath);
     for (let cname in package.classes) {
         modelGenerator(package.classes[cname].definition, output, urlPath + '/' + files.context.shortname + '/models/');
     }
@@ -212,7 +215,9 @@ const packageGenerator = (package, output, urlPath) => {
 const useCaseGenerator = (usecase, output, urlPath) => {
     let files = {
         context: {
+            config: global.ailtire.config,
             usecase: usecase,
+            useCaseDirectory: usecase,
             shortname: usecase.name.replace(/ /g, ''),
             usecaseName: usecase.name,
             usecaseNameNoSpace: usecase.name.replace(/ /g, '').toLowerCase(),
@@ -225,14 +230,20 @@ const useCaseGenerator = (usecase, output, urlPath) => {
         }
     };
     // Get the doc from the package and add them to the targets list
+    addDocs(usecase, files, output + urlPath,urlPath);
     Generator.process(files, output + urlPath);
     for (let i in usecase.scenarios) {
-        scenarioGenerator(usecase, usecase.scenarios[i], output, '/' + usecase.name.replace(/\s/g,''));
+        scenarioGenerator(usecase, usecase.scenarios[i], output + urlPath, '/' + usecase.name.replace(/\s/g,''));
     }
-    addDocs(usecase, files, output + urlPath);
 };
 const scenarioGenerator = (usecase, scenario, output, urlPath) => {
     let pkg = global.packages[usecase.package.replace(/\s/g,'')];
+    for(let i in scenario.steps) {
+        let step = scenario.steps[i];
+        let act = Action.find(`/${step.action.toLowerCase()}`);
+        step.act = act;
+    }
+
     let files = {
         context: {
             usecase: usecase,
@@ -326,20 +337,27 @@ const actorGenerator = (actor, output) => {
     Generator.process(files, output);
 };
 
-const addDocs = (obj, files, output) => {
-    files.targets = {};
+const addDocs = (obj, files, output, urlPath) => {
+    let newFiles = {
+        targets: {},
+        context: {}
+    }
+    for(let name in files.context) {
+        newFiles.context[name] = files.context[name];
+    }
+    newFiles.context.pageDir = '.' + urlPath + '/' + files.context.shortname;
 
     if(obj.hasOwnProperty('doc')) {
         for (let i in obj.doc.files) {
             let file = obj.doc.files[i];
             let sourcefile = path.resolve(obj.doc.basedir + file);
             if(file.includes('.ejs')) {
-                files.targets[`:shortname:/${file}`] = {template:`${sourcefile}`};
+                newFiles.targets[`:shortname:/${file}`] = {template:`${sourcefile}`};
             }
             else {
-                files.targets[`:shortname:/${file}`] = {copy:`${sourcefile}`};
+                newFiles.targets[`:shortname:/${file}`] = {copy:`${sourcefile}`};
             }
         }
     }
-   Generator.process(files, output);
+   Generator.process(newFiles, output);
 }

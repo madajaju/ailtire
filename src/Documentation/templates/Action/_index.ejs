@@ -1,28 +1,47 @@
-<h3><%= action.name %></h3>
-<ul>
-<li>REST - <%= action.name %></li>
-<li>bin - <%= action.name.replace(/\//g, ' '); %></li>
-<li>js - <%= action.name.replace(/\//g, '.'); %></li>
-</ul>
+<%
+let restparam = [];
+let binparam = [];
+let jsparam = [];
 
-<%= action.description %>
-
-<table class="MethodTable">
-    <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Required</th>
-        <th>Description</th>
-    </tr>
-<% for(let iname in action.inputs)  {
+for(let iname in action.inputs)  {
     let input = action.inputs[iname];
+    restparam.push(iname + '=' + input.type);
+    binparam.push('--' + iname + ' <' + input.type + '>');
+    jsparam.push(iname + ':' + input.type);
+}
+restparam = restparam.join('&');
+binparam = binparam.join(' ');
+jsparam = jsparam.join(',');
+
 %>
-    <tr>
-        <td><%= iname %></td>
-        <td><%= input.type%></td>
-        <td><%= input.required %></td>
-        <td><%= input.description %></td>
-    </tr>
-<% } %>
-</table>
+<br />
+<div class="Action">
+    <h3 id="Action-<%- action.name.replace(/\//g, '-') %>"><%= action.name %></h3>
+    <%= action.description %>
+    <h4>REST</h4>
+        <code>http://...<%= action.name %>?<%= restparam %></code>
+    <h4>bin</h4>
+        <code># <%= action.name.replace(/\//g, ' '); %> <%= binparam %></code>
+    <h4>javascript</h4>
+        <code>let retVal = await AService.call('<%= action.name.replace(/\//g, '.') %>', {<%= jsparam %>});</code>
+    <h4>Parameters</h4>
+    <table class="MethodTable">
+        <thead>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Description</th>
+        </thead>
+    <% for(let iname in action.inputs)  {
+        let input = action.inputs[iname];
+    %>
+        <tr>
+            <td><%= iname %></td>
+            <td><%= input.type %></td>
+            <td><%= input.required %></td>
+            <td><%= input.description %></td>
+        </tr>
+    <% } %>
+    </table>
+</div>
 

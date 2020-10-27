@@ -1,5 +1,7 @@
 @startuml
 
+left to right direction
+
 <%
 const colors = [ "#black", "#blue", "#red", "#orange", "#darkgreen", "#darkgray" ];
 let i = 1;
@@ -26,7 +28,7 @@ boundary <%= nname %> <%= ncolor %>
 entity <%= nname %> <%= ncolor %>
 <% } %>
 
-package  "<%= package.name %>"  <%= package.color %> {
+package  "<%= package.name %>" #<%= package.color.replace(/\#/,''); %> {
 <% for(let nname in deploy.networks) {
     let network = deploy.networks[nname];
 -%>
@@ -42,14 +44,14 @@ package  "<%= package.name %>"  <%= package.color %> {
 <% } -%>
     artifact images #ffffff {
         <% for(let image in deploy.images) { %>
-        file "<%= image %>"
+        file "<%= image %>" as <%- image.replace(':','') %>
         <% } %>
     }
 <% for(let name in deploy.services) {
     let service = deploy.services[name];
 %>
-    node <%= name %>
-    <%= name %> .. <%= service.image %>
+    node "<%= name %>" as <%= name %>Node
+    <%= name %>Node . <%= service.image.replace(':','') %>
     <% for(let j in service.networks) {
         let nname = "";
         let networkColor = "#black"
@@ -62,7 +64,7 @@ package  "<%= package.name %>"  <%= package.color %> {
             networkColor = deploy.networks[nname].color;
         }
     %>
-        <%= nname %> -[<%= networkColor %>]- <%= name %>
+        <%= name %>Node -[<%= networkColor %>]- <%= nname %>
     <% } %>
 <% } %>
 
@@ -85,10 +87,10 @@ package  "<%= package.name %>"  <%= package.color %> {
           for(let sname in deploy.services) {
             let service = deploy.services[sname];
             if(service.hasOwnProperty('deploy')) {
-                let path = "";
+                let path = "/" + sname;
                 let network = "";
-                let ncolor = "";
-                let port = "";
+                let ncolor = "#red";
+                let port = "3000";
                 for(let j in service.deploy.labels) {
                     let label = service.deploy.labels[j];
                     if(label.includes('rule=')) {
@@ -111,23 +113,24 @@ package  "<%= package.name %>"  <%= package.color %> {
                     }
                 }
              %>
-             <%= traefik %> "<%= port %>" -[<%= ncolor %>]-  "<%= path %>" <%= sname %>
+             <%= traefik %> "<%= port %>" -[<%= ncolor %>]-  "<%= path %>" <%= sname %>Node
              <%
             }
           }
       }
         %>
-}
 
 <% for(let sname in package.subpackages) {
     let spkg = package.subpackages[sname];
 %>
-package  "<%= sname %>"  #lightgray {
+package  "<%= sname %>" as pkg<%= sname %> #lightgray {
     card <%= sname %>parent <%= deploy.networks.children.color %> [
         <b><color:white>parent</color></b>
     ]
     <%= sname %>parent ==[<%= deploy.networks.children.color %>]= children
 }
+
+<%= spkg.deploy.name %>latest --> pkg<%= sname %>
 
 <% } %>
 
@@ -144,5 +147,5 @@ package <%= parent %> #lightgray {
     <%= parent %>children ==[<%= deploy.networks.parent.color %>]= parent
 }
 <% } %>
-
+}
 @enduml

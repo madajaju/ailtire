@@ -18,7 +18,7 @@
                 }
             }
             asName += aname;
-            retval += `state \"${aname}\" as ${asName} ${package.color} {\n`;
+            retval += `state \"${aname}\" as ${asName} #${package.color.replace('#','')} {\n`;
         }
     }
     retval += '}\n'.repeat(slen);
@@ -26,11 +26,11 @@
 };
 %>
 
-state <%= model.name %> <%= model.package.color %> {
+state <%= model.name %> #<%= model.package.color.replace('#','') %> {
 <% for(let name in model.statenet) {
     let state = model.statenet[name];
 %>
-    state <%= name %> <%= model.package.color %> {
+    state <%= name %> #<%= model.package.color.replace('#','') %> {
     }
 <% } %>
 }

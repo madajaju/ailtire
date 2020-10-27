@@ -1,7 +1,5 @@
 <head>
-
-    <base href="http://<%= global.ailitre.config.host %><%= global.ailtire.config.urlPrefix %>" >
-
+    <base href="http://<%= config.host %><%= config.urlPrefix %>/" >
     <link rel="stylesheet/less" type="text/css" href="styles/importer.less" />
     <script src="js/less.js" type="text/javascript"></script>
 </head>
@@ -15,7 +13,7 @@
 <ul>
 <% for(let aname in usecase.actors) {
     aname = aname.replace(/\s/g,'');
-    let actor = actors[aname];kj
+    let actor = actors[aname];
 -%>
     <li><a href='doc/actor/<%= aname %>'><%= actor.name %></a></li>
 <% } %>
@@ -25,29 +23,15 @@
 <ul>
 <% for(let sname in usecase.scenarios) {
 let nameNoSpaces = sname.replace(/ /g, '');
+let ucName = usecase.name.replace(/ /g,'');
+let prefix = usecase.prefix;
 -%>
-<li><a href='#Scenario-<%= nameNoSpaces %>'><%= sname %></a></li>
+    <li> <a href='doc/usecase<%- prefix %>/<%- ucName %>#Scenario-<%- nameNoSpaces %>'><%= sname %></a></li>
 <% } %>
 </ul>
 <% for(let sname in usecase.scenarios) {
-let nameNoSpaces = sname.replace(/ /g, '');
 let scenario = usecase.scenarios[sname];
 let pkgPath = global.packages[usecase.package.replace(/ /g, '')].prefix;
 -%>
-<h3 id='Scenario-<%= nameNoSpaces %>'><%= sname %></h3>
-<%= scenario.description %>
-<img src="<%= pageDir %>/<%= scenario.name.replace(/\s/g,'') %>.puml">
-
-<h4>Action</h4>
-<a href='doc/package<%= pkgPath %>#Action-<%= scenario.method.replace(/\//g, '-') %>'><%= scenario.method %>(...)</a>
-<h4>Actors</h4>
-<ul>
-<% for(let aname in scenario.actors) {
-    aname = aname.replace(/\s/g,'');
-    let actor = global.actors[aname];
-%>
-<li><a href='doc/actor/<%= actor.shortname %>'><%= actor.name %> </a></li>
-</ul>
-
-<% } %>
+<%- partial("./templates/Scenario/_index.ejs", {pageDir: pageDir,scenario:scenario}) %>
 <% } %>

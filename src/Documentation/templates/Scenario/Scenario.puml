@@ -5,7 +5,7 @@ actor "<%= aname %>"
 
 entity EventBus
 
-box <%= package.name %> <%= package.color %>
+box <%= package.name %> #<%= package.color.replace('#','') %>
     boundary <%= package.shortname %> #white
     participant DataModel #white
 end box
@@ -13,7 +13,32 @@ end box
 <% for(let aname in actors) {
 %>
 "<%= aname %>" -> <%= package.shortname %>: <%= scenario.name %>
-<%= package.shortname %> -> <%= package.shortname %>: <%= scenario.method %>
+<% for(let i in scenario.steps) {
+    let step = scenario.steps[i];
+    let names = step.action.split('/');
+    let method = names.pop();
+    let object = names.join('/');
+    if(step.act) {
+        step.act.obj;
+    }
+    let parameters = "";
+    if(step.parameters) {
+        let items = [];
+        for(let name in step.parameters) {
+            items.push(`${name}: ${step.parameters[name]}`);
+        }
+        parameters = items.join(',');
+    }
+%>
+<% if(step.act) { %>
+box "<%= step.act.pkg.name %>" #<%= step.act.pkg.color.replace('#','') %>
+    <%= package.shortname %> -> "<%= object %>": <%= method %> (<%= parameters %>)
+end box
+<% } else { %>
+    <%= package.shortname %> -> "<%= object %>": <%= method %> (<%= parameters %>)
+<% } %>
+
+<% } %>
 <% } %>
 DataModel --/ EventBus : Model.Event
 
@@ -21,7 +46,7 @@ DataModel --/ EventBus : Model.Event
     let  dpkg = package.depends[i];
     if(dpkg) {
 -%>
-box "<%= dpkg.name %>" <%= dpkg.color %>
+box "<%= dpkg.name %>" #<%= dpkg.color.replace('#','') %>
     boundary <%= dpkg.shortname %> #white
 end box
 EventBus -\ <%= dpkg.shortname %>: method()

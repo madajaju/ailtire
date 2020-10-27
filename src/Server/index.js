@@ -11,8 +11,7 @@ const Renderer = require('../Documentation/Renderer');
 const server = express();
 const http = require('http').createServer(server);
 const io = require('socket.io')(http);
-
-// plantuml.useNailgun();
+const pumlGenerator = require('../Documentation/puml');
 
 // Here we are configuring express to use body-parser as middle-ware.
 server.use(function(req, res, next) {
@@ -24,10 +23,9 @@ server.use(bodyParser.urlencoded({extended: false}));
 server.use(bodyParser.json());
 
 module.exports = {
-    doc: (config) => {
+    docBuild: (config) => {
         normalizeConfig(config);
         global.ailtire = { config: config };
-        // const plantuml = require('node-plantuml');
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
         sLoader.analyze(topPackage);
@@ -40,10 +38,28 @@ module.exports = {
         htmlGenerator.index(config.prefix, apath + '/docs');
         htmlGenerator.package(global.topPackage, apath + '/docs');
         htmlGenerator.actors(global.actors, apath + '/docs');
+    },
+    doc: (config) => {
+        http.listen(config.listenPort);
+        return;
+        normalizeConfig(config);
+        global.ailtire = { config: config };
+        let apath = path.resolve(config.baseDir);
+        let topPackage = sLoader.processPackage(apath);
+        sLoader.analyze(topPackage);
 
+        Action.defaults(server);
+        //let ailPath = __dirname + "/../../interface";
+        // Action.load(server, '', path.resolve(ailPath)); // Load the ailtire defaults from the interface directory.
+        Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'), config);
+        // Action.mapRoutes(server, config.routes);
         standardFileTypes(config,server);
         server.get(`${config.urlPrefix}/doc/actor/*`, (req, res) => {
-            let actorName = req.url.replace(config.urlPrefix,'').replace(/\/doc\/actor\//, '');
+            console.log('ACTOR:', req.url);
+            let actorName = req.url.replace(/\/doc\/actor\//, '');
+            console.log('ACTOR NAME1:', actorName);
+            actorName = actorName.replace(config.urlPrefix,'');
+            console.log('ACTOR NAME2:', actorName);
             let apath = `${config.urlPrefix}/actors/${actorName}/index.html`;
             res.redirect(apath)
             // res.sendFile('index.html', {root: apath});
@@ -58,8 +74,27 @@ module.exports = {
             let apath = `${config.urlPrefix}/${uidName}/usecases/${ucName}/index.html`;
             res.redirect(apath)
         });
+        server.get(`${config.urlPrefix}/doc/action/*`, (req, res) => {
+            console.log("Calling Action:", req.url);
+            let name = req.url.replace(/\/doc\/action\//, '');
+            name = name.replace(config.urlPrefix,'');
+            console.log("Calling Action Name:", name);
+            let names = name.split('/');
+            let action = Action.find(name);
+            if(action) {
+                let pkg = action.pkg
+                let apath = `${config.urlPrefix}${pkg.prefix}/index.html#Action-${name.replace(/\//g, '-')}`;
+                res.redirect(apath);
+            } else {
+                console.log("Action Not Found:", name);
+                res.end(`Action ${name} not found!`);
+            }
+        });
         server.get(`${config.urlPrefix}/doc/model/*`, (req, res) => {
-            let name = req.url.replace(config.urlPrefix,'').replace(/\/doc\/model\//, '');
+            console.log("Calling Model:", req.url);
+            let name = req.url.replace(/\/doc\/model\//, '');
+            name = name.replace(config.urlPrefix,'');
+            console.log("Calling Model Name:", name);
             let names = name.split('/');
             let apath = "";
             if(names.length === 1) {
@@ -78,21 +113,19 @@ module.exports = {
             // res.sendFile('index.html', {root: apath});
         });
         server.get(`${config.urlPrefix}/doc/package/*`, (req, res) => {
-            let name = req.url.replace(config.urlPrefix,'').replace(/\/doc\/package\//, '');
-            console.log("NAME of Package:", name);
+            let name = req.url.replace(/\/doc\/package\//, '');
+            name = name.replace(config.urlPrefix, '');
             let apath = `${config.urlPrefix}/${name}/index.html`;
-            console.log("NAME of APATH:", apath);
-            res.redirect(apath)
-            // res.sendFile('index.html', {root: apath});
+            res.redirect(apath);
         });
-        server.get(`${config.urlPrefix}/`, (req, res) => {
+        server.get(`${config.urlPrefix}`, (req, res) => {
             res.redirect(`.${config.urlPrefix}/index.html`);
         });
         server.get('*', (req,res) => {
             console.log("Nothing routed:", req.url);
+            console.log("Config urlPrefix:", config.urlPrefix);
             res.redirect(`.${config.urlPrefix}/index.html`);
         });
-
         console.log("Serving up documentation on Port:", config.listenPort);
         http.listen(config.listenPort);
     },
@@ -245,6 +278,7 @@ function standardFileTypes(config,server) {
     });
     server.get('*.html', (req, res) => {
         let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,'')).toLowerCase();
+        console.log('HTML:', apath);
         res.sendFile(apath);
     });
     server.get('*.png', (req, res) => {
@@ -267,14 +301,13 @@ function standardFileTypes(config,server) {
     });
     server.get('*.puml', (req, res) => {
         let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,''));
-        if (fs.existsSync(apath)) {
+        let svgPath = apath.replace(/.puml$/, '.svg');
+        if(fs.existsSync(svgPath)) {
             res.set('Content-Type', 'image/svg+xml');
-            //let gen = plantuml.generate(apath, {format: 'svg'});
-            // gen.out.pipe(res);
-            res.end("");
+            res.sendFile(svgPath);
         } else {
-            console.error(req.url.replace(config.urlPrefix,'') + ' not found!');
-            console.error(apath + ' file not found!');
+            console.log(req.url.replace(config.urlPrefix,'') + ' not found!');
+            console.log(apath + ' file not found!');
             res.end(req.url.replace(config.urlPrefix,'') + ' not found!');
         }
     });

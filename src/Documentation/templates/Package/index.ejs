@@ -8,6 +8,7 @@
 <h1><%= package.name %></h1>
 <%= package.description %>
 
+<h2> Document Insert Here</h2>
 <%- partial(basedir + '/doc.ejs', {obj:package}) %>
 
 <h1>Logical 3D</h1>
@@ -46,7 +47,7 @@ users interact with the system.
 <% for(let mname in package.interface) {
 let method = package.interface[mname]
 -%>
-<li><a href='#Action-<%= mname.replace(/\//g, '-') %>'><%= mname %>(...)</a></li>
+<li><a href='doc/action/<%= mname %>'><%= mname %>(...)</a></li>
 <% } %>
 </ul>
 
@@ -73,7 +74,7 @@ and their structure.
     let cls = package.classes[cname].definition;
     let clsNoSpace = package.prefix + '/' + cls.name.replace(/ /g, '');
 -%>
-<li><a href='/doc/model<%= clsNoSpace %>'><%= cls.name %></a>
+<li><a href='doc/model<%= clsNoSpace %>'><%= cls.name %></a>
 <% } %>
 </ul>
 
@@ -98,7 +99,7 @@ The <%= package.name %> subsystem provides the following activities and flows.
         <tr>
             <td><a href="doc/model/<%= global.events[handler.name].emitter.definition.name %>"><%= handler.name %> </a></td>
             <% if(h.hasOwnProperty('action')) { %>
-                <td> <%= h.action %> </td>
+                <td><a href="doc/action/<%= h.action %>"><%= h.action %></a></td>
             <% } else { %>
                 <td> Custom Action </td>
             <% } %>
@@ -149,7 +150,5 @@ the subsystem's logic.
     let method = package.interface[mname]
     method.name = mname;
 -%>
-<div id="Action-<%= mname.replace(/\//g, '-') %>">
 <%- partial("./templates/Action/_index.ejs", {action: method}) %>
-</div>
 <% } %>

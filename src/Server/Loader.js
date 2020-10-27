@@ -146,6 +146,7 @@ let reservedDirs = {
             let myUC = require(ucDir + '/index.js');
             myUC.package = pkg.name;
             myUC.prefix = pkg.prefix;
+            myUC.dir = ucDir;
             pkg.usecases[myUC.name.replace(/\s/g, '')] = myUC;
             loadDocs(myUC, ucDir + '/doc');
             loadUCScenarios(myUC, ucDir);
@@ -185,6 +186,12 @@ const loadDeploy = (pkg, prefix, dir) => {
     apath = path.resolve(dir + '/deploy.js');
     if (isFile(apath)) {
         let deploy = require(dir + '/' + 'deploy.js');
+        if(deploy.hasOwnProperty('name')) {
+            pkg.deploy.name = deploy.name;
+        } else {
+            pkg.deploy.name = pkg.shortname;
+        }
+        
         let contexts = deploy;
         if(deploy.hasOwnProperty('contexts')) { contexts = deploy.contexts; }
 
@@ -224,6 +231,7 @@ const loadHandlers = (pkg, prefix, mDir) => {
     }
     return handlers;
 };
+
 // These actions are from the models not the interface.
 const loadActions = (pkg, prefix, mDir) => {
     let actions = {};
@@ -237,6 +245,8 @@ const loadActions = (pkg, prefix, mDir) => {
         let apath = prefix + '/' + aname;
         apath = apath.toLowerCase();
         global.actions[apath] = require(file);
+        global.actions[apath].pkg = pkg;
+        global.actions[apath].obj = pkg.name;
         actions[apath] = global.actions[apath];
     }
     let dirs = getDirectories(mDir);
@@ -253,6 +263,7 @@ const loadActions = (pkg, prefix, mDir) => {
     }
     return actions;
 };
+
 const loadUCScenarios = (mUC, mDir) => {
     let files = getFiles(mDir);
     mUC.scenarios = {};

@@ -11,7 +11,6 @@
 <%- partial(basedir + '/doc.ejs', {obj:actor}) %>
 
 <h2>Use Cases</h2>
-<ul>
 <% for(let uname in actor.usecases) {
     let ucname = actor.usecases[uname].prefix + '/' + uname;
     let name = actor.usecases[uname].name;
@@ -24,13 +23,26 @@
 TBD
 
 <h2>Command Line Interface</h2>
+
+    <table>
+        <thead>
+        <th>Command</th>
+        <th>Descrition</th>
+        </thead>
+        <tbody>
 <% for(let uname in actor.usecases) {
     let ucname = actor.usecases[uname].prefix + '/' + uname;
     let name = actor.usecases[uname].name;
+    let action = actor.usecases[uname].method;
     let method = actor.usecases[uname].method.replace(/\//g, ' ');
     let prefix = actor.usecases[uname].prefix.replace(/\//g, ' ');
     let description = actor.usecases[uname].description;
     let href = actor.usecases[uname].prefix + '/index.html#Action-' + prefix.replace(/\s/g, '-') + '-' + method.replace(/\s/g, '-');
 -%>
-    <li><a href="<%= pageDir %>/<%= href %>"><%= prefix %> <%= method %></a> - <%= description %></li>
+<tr>
+    <td><a href='doc/action/<%= action %>'><%= prefix %> <%= method %></a></td>
+    <td><%= description %></td>
+</tr>
 <% } %>
+        </tbody>
+    </table>

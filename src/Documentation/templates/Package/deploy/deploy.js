@@ -10,13 +10,13 @@ module.exports = {
         },
         test: {
             type: 'swarm',
-            tag: '<%= ancestors %>_<%= shortname %>_dev',
+            tag: '<%= ancestors %>_<%= shortname %>_test',
             file: 'docker-compose.yml',
             env: {}
         },
         prod: {
             type: 'swarm',
-            tag: '<%= ancestors %>_<%= shortname %>_dev',
+            tag: '<%= ancestors %>_<%= shortname %>_prod',
             file: 'docker-compose.yml',
             env: {}
         }

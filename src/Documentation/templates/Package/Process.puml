@@ -35,7 +35,7 @@ left to right direction
                 }
             }
             asName += aname;
-            retval += `state \"${aname}\" as ${asName.toLowerCase()} ${package.color} {\n`;
+            retval += `state \"${aname}\" as ${asName.toLowerCase()} #${package.color.replace('#','')} {\n`;
         }
     }
     retval += '}\n'.repeat(slen);
@@ -58,7 +58,7 @@ left to right direction
 %>
 <%- pstate.states %>
 
-state <%= pstate.sname %> <%= pstate.color %> {
+state <%= pstate.sname %> #<%= pstate.color.replace('#','') %> {
     state "Custom Function" as <%= package.shortname.toLowerCase() %>function {
     }
 }

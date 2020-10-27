@@ -1,5 +1,21 @@
 version: "3.7"
 services:
+  child:
+    image: child_image:latest
+    stop_grace_period: 1m
+    stop_signal: SIGINT
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      replicas: 1
+    environment:
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT=${AILTIRE_STACKNAME}
+      - AILTIRE_PARENTHOST=${AILTIRE_PARENTHOST}
+      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
+    networks:
+      - children
+      - parent
   frontend:
     image: <%= ancestors %>_<%= shortname %>_web
     networks:
