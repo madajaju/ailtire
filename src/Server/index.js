@@ -12,7 +12,6 @@ const server = express();
 const http = require('http').createServer(server);
 const io = require('socket.io')(http);
 
-// plantuml.useNailgun();
 
 // Here we are configuring express to use body-parser as middle-ware.
 server.use(function(req, res, next) {
@@ -24,10 +23,9 @@ server.use(bodyParser.urlencoded({extended: false}));
 server.use(bodyParser.json());
 
 module.exports = {
-    doc: (config) => {
+    docBuild: (config) => {
         normalizeConfig(config);
         global.ailtire = { config: config };
-        // const plantuml = require('node-plantuml');
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
         sLoader.analyze(topPackage);
@@ -284,11 +282,10 @@ function standardFileTypes(config,server) {
     });
     server.get('*.puml', (req, res) => {
         let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,''));
-        if (fs.existsSync(apath)) {
+        let svgPath = apath.replace(/.puml$/, '.svg');
+        if (fs.existsSync(svgPath)) {
             res.set('Content-Type', 'image/svg+xml');
-            //let gen = plantuml.generate(apath, {format: 'svg'});
-            // gen.out.pipe(res);
-            res.end("");
+            res.sendFile(svgPath);
         } else {
             console.log(req.url.replace(config.urlPrefix,'') + ' not found!');
             console.log(apath + ' file not found!');
