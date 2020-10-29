@@ -257,7 +257,9 @@ const scenarioGenerator = (usecase, scenario, output, urlPath) => {
         }
     };
     // Get the doc from the package and add them to the targets list
-    Generator.process(files, output + urlPath);
+    let outputURL = output + urlPath;
+    outputURL = outputURL.toLowerCase();
+    Generator.process(files, outputURL);
 };
 const actorsGenerator = (actors, output) => {
     let apackages = {};

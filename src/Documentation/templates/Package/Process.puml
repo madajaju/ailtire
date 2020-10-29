@@ -11,7 +11,6 @@ left to right direction
         return "";
     }
     const getStates = (name) => {
-    console.log("NAME:", name);
     if(stateMap.hasOwnProperty(name)) {
         return stateMap[name];
     }
@@ -20,9 +19,7 @@ left to right direction
     let retval = '';
     names.shift(); // Shift off the first item that is blank.
     let pkgName = names.shift();
-    console.log("PKGNAME:", pkgName);
     if(global.packages.hasOwnProperty(pkgName)) {
-    console.log("Made it:", pkgName);
     let package = global.packages[pkgName];
     let slen = 0;
     for(let i in names) {
@@ -48,7 +45,6 @@ left to right direction
     return {sname:asName, states:retval, color:package.color};
     }
     else {
-        console.log("Made it:", pkgName);
         return {sname:asName, states:"", color:"white"};
     }
 };

@@ -25,6 +25,7 @@ module.exports = {
         }
         for (let file in targets) {
             let bfile = baseDir + '/' + file;
+            bfile = bfile.toLowerCase();
             processItem(targets[file], bfile, files.context);
         }
     }
