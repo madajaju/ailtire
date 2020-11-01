@@ -11,12 +11,12 @@
     <li><a href='doc/actor/<%= actor.shortname %>'><%= actor.name %></a> - <%= actor.description %></li>
     <% } %>
 </ul>
-
-<img src="./Actors.puml" >
-
 <% for(let i in actors) {
     let actor = actors[i];
 %>
+
+<img src="./Actors.puml" >
+
 <h2><%= actor.name %></h1>
 <p><%= actor.description %></p>
 <h3>Use Cases</h2>

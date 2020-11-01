@@ -271,11 +271,12 @@ function standardFileTypes(config,server) {
     });
     server.get('*.html', (req, res) => {
         let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,'')).toLowerCase();
-        console.log('HTML:', apath);
+        apath = apath.toLowerCase();
         res.sendFile(apath);
     });
     server.get('*.png', (req, res) => {
         let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,''));
+        apath = apth.toLowerCase();
         if (fs.existsSync(apath)) {
             res.sendFile(apath);
         }
@@ -285,6 +286,7 @@ function standardFileTypes(config,server) {
     });
     server.get('*.jpg', (req, res) => {
         let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,''));
+        apath = apth.toLowerCase();
         if (fs.existsSync(apath)) {
             res.sendFile(apath);
         }
@@ -294,6 +296,7 @@ function standardFileTypes(config,server) {
     });
     server.get('*.puml', (req, res) => {
         let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,''));
+        apath = apth.toLowerCase();
         let svgPath = apath.replace(/.puml$/, '.svg');
         if (fs.existsSync(svgPath)) {
             res.set('Content-Type', 'image/svg+xml');

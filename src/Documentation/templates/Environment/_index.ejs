@@ -1,0 +1,43 @@
+<h3><%= environ.name %></h3>
+<%= environ.description %>
+
+<h4>Deployment</h4>
+This subsystem is deployed using micro-services as shown in the diagram below.
+The subsystem also has an CLI, REST and Web Interface exposed through frontend service that routes
+all paths to the appropriate microservices.
+
+<img src='<%= pageDir %>/envs/<%= environ.name %>/Deployment.puml'> </img>
+
+<h4>Physical Architecture</h4>
+The <%= package.name %> subsystem is physically laid out on a hybrid cloud infrastructure.
+Each micro-service communicates with each other through overlay networks as defined in the diagram
+above. Each micro-service has three interfaces exposed Command Line Interface (CLI), Websocket (socket.io),
+and a REST interface. This allows for scripting, event programing and connectivity through a common
+REST interface.
+<img src='<%= pageDir %>/envs/<%= environ.name %>/Physical.puml'> </img>
+
+<h4>Micro-Services</h4>
+These are the micro-services for the deployment of the subsystem. The combination of the micro-services help implement
+the subsystem's logic.
+<table>
+    <thead>
+        <th>Name</th>
+        <th>Image</th>
+        <th>Mapping</th>
+        <th>Ports</th>
+        <th>Network</th>
+    </thead>
+    <tbody>
+    <% for(let sname in deploy.services) {
+        let service = deploy.services[sname];
+    %>
+    <tr>
+        <td><%= sname %></td>
+        <td><%= service.image %></td>
+        <td><%= service.path %></td>
+        <td><%= service.ports %></td>
+        <td><%= service.networks %></td>
+    </tr>
+    <% } %>
+    </tbody>
+</table>

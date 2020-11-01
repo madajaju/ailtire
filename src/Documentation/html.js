@@ -14,6 +14,9 @@ module.exports = {
     package: (package, output) => {
         packageGenerator(package, output, '');
     },
+    environment: (environ, output) => {
+        environmentGenerator(environ, output, '');
+    },
     actors: (actors, output) => {
         actorsGenerator(actors, output + '/actors');
         for(let i in actors) {
@@ -140,44 +143,8 @@ const packageGenerator = (package, output, urlPath) => {
             actors[aname].usecases[ucnameNoSpace] = usecase;
         }
     }
-    let deploy = {
-        ports: {},
-        networks: {},
-        services: {},
-        images: {},
-        ingress: {},
-        egress: {}
-    };
-    for(let ename in package.deploy.envs) {
-        let env = package.deploy.envs[ename];
-        deploy.networks = env.definition.networks;
-        deploy.services = env.definition.services;
-        for(let sname in env.definition.services) {
-           let service = env.definition.services[sname];
-           for(let i in service.ports) {
-                let maps = service.ports[i].replace(/"/g,'').split(':');
-                deploy.ports[maps[0]] = {
-                    port: maps[1],
-                    service: sname,
-                }
-           }
-           deploy.images[service.image] = service.image;
-        }
-        for(let nname in deploy.networks) {
-            let network = deploy.networks[nname];
-            if(network.hasOwnProperty("attachable")) {
-                network.name = network.name.replace(/\$\{.*\}/, '');
-                deploy.ingress[network.name] = {name: nname};
-            }
-            if(network.hasOwnProperty("external")) {
-                network.name = network.name.replace(/\$\{.*\}/, '');
-                deploy.egress[network.name] = {name: nname};
-            }
-        }
-    }
     let files = {
         context: {
-            deploy: deploy,
             basedir: output + urlPath + '/' + package.shortname,
             package: package,
             actors: actors,
@@ -193,8 +160,6 @@ const packageGenerator = (package, output, urlPath) => {
             ':shortname:/UserInteraction.puml': {template: '/templates/Package/UserInteraction.puml'},
             ':shortname:/Logical.puml': {template: '/templates/Package/Logical.puml'},
             ':shortname:/SubPackage.puml': {template: '/templates/Package/SubPackage.puml'},
-            ':shortname:/Deployment.puml': {template: '/templates/Package/Deployment.puml'},
-            ':shortname:/Physical.puml': {template: '/templates/Package/Physical.puml'},
             ':shortname:/Process.puml': {template: '/templates/Package/Process.puml'},
             ':shortname:/ScenarioMapping.puml': {template: '/templates/Package/ScenarioMapping.puml'}
         }
@@ -210,6 +175,10 @@ const packageGenerator = (package, output, urlPath) => {
     }
     for (let ucname in package.usecases) {
         useCaseGenerator(package.usecases[ucname], output, urlPath + '/' + files.context.shortname + '/usecases');
+    }
+    for(let ename in package.deploy.envs) {
+        package.deploy.envs[ename].name = ename;
+        environGenerator(package, package.deploy.envs[ename], output, urlPath + '/' + files.context.shortname + '/envs');
     }
 };
 const useCaseGenerator = (usecase, output, urlPath) => {
@@ -278,8 +247,8 @@ const actorsGenerator = (actors, output) => {
                 };
             }
             apackages[packageName].usecases[uname] = usecase;
+            }
         }
-    }
     let files = {
         context: {
             actors: actors,
@@ -292,6 +261,193 @@ const actorsGenerator = (actors, output) => {
         }
     };
     Generator.process(files, output);
+};
+const environGenerator = (pkg, env, output, urlPath) => {
+
+    let deploy = {
+        ports: {},
+        networks: {},
+        services: {},
+        images: {},
+        ingress: {},
+        egress: {},
+        frontend: {},
+        stacks: {}
+    };
+    const colors = [ "#black", "#blue", "#red", "#orange", "#darkgreen", "#darkgray" ];
+    let i = 0;
+    for(let nname in env.definition.networks) {
+        let network = env.definition.networks[nname];
+        network.color = colors[i++];
+        network.name = nname;
+        network.type = 'internal';
+        network.id = nname.replace(/\s/g,'') + 'net';
+        deploy.networks[nname] = network;
+        if(network.hasOwnProperty("attachable") && network.attachable) {
+            network.externalName = network.name.replace(/\$\{.*\}/, '');
+            network.type = 'ingress';
+            deploy.ingress[network.name] = network;
+        }
+        else if(network.hasOwnProperty("external") && network.external) {
+            network.externalName = network.name.replace(/\$\{.*\}/, '');
+            network.type = 'egress';
+            deploy.egress[network.name] = network;
+        }
+    }
+    deploy.services = env.definition.services;
+    for(let sname in env.definition.services) {
+        let service = env.definition.services[sname];
+        service.name = sname;
+        // Grab any ports that will be external
+        for (let i in service.ports) {
+            let maps = service.ports[i].replace(/"/g, '').split(':');
+            deploy.ports[maps[0]] = {
+                port: maps[1],
+                service: sname,
+            }
+        }
+        deploy.images[service.image] = {
+            name: service.image,
+            id: service.image.replace(/\:/,'') + 'image'
+        }
+        service.id = service.name.replace('/\s/g', '') + 'Service';
+        if(service.image.includes('traefik')) {
+            deploy.frontend.service = service;
+            deploy.frontend.image = service.image;
+            deploy.frontend.id = 'frontendService';
+            deploy.frontend.maps = [];
+        }
+        // Now get the right network from the network list.
+        let networks = {};
+        for(let i in service.networks) {
+            let network = "";
+            let net = service.networks[i];
+            if(typeof net === 'string') {
+                if(deploy.networks.hasOwnProperty(net)) {
+                    network = deploy.networks[net];
+                    networks[net] = network;
+                }
+            }
+            else {
+                if(deploy.networks.hasOwnProperty(i)) {
+                    network = deploy.networks[i];
+                    networks[i] = network;
+                }
+            }
+        }
+        service.networks = networks;
+        let label ="";
+        let network="";
+        let port="";
+        let route = "";
+        if(service.deploy) {
+            for (let j in service.deploy.labels) {
+                label = service.deploy.labels[j];
+                if (label.includes('rule=')) {
+                    route = label.replace(/^.*\(\`/, '').replace(/\`.*$/, '');
+                } else if (label.includes('network=')) {
+                    let networkname = label.replace(/^.*=/, '').replace(/\$\{.*\}/, '');
+                    if (deploy.egress.hasOwnProperty(networkname)) {
+                        network = deploy.egress[netowrkname];
+                    } else if (deploy.ingress.hasOwnProperty(networkname)) {
+                        network = deploy.egress[netowrkname];
+                    } else if (deploy.networks.hasOwnProperty(networkname)) {
+                        network = deploy.networks[networkname];
+                    }
+                    else {
+                       for(let nname in deploy.egress) {
+                           if(deploy.egress[nname].externalName === networkname) {
+                               network = deploy.egress[nname];
+                           }
+                       }
+                       for(let nname in deploy.ingress) {
+                           if(deploy.ingress[nname].externalName === networkname) {
+                               network = deploy.ingress[nname];
+                           }
+                       }
+                    }
+                } else if (label.includes('port=')) {
+                    port = label.replace(/^.*=/, '');
+                }
+            }
+            if(!network) {
+                network = {
+                    name:'Default',
+                    color:'#blue'
+                }
+            }
+            if(!deploy.frontend.hasOwnProperty('maps')) {
+                deploy.frontend.maps = [];
+            }
+            deploy.frontend.maps.push({
+                service: service,
+                port: port,
+                network: network,
+                path: route,
+                id: route.replace(/\//g, '') + 'map'
+            });
+        }
+    }
+    // Iterate through the images and find out which ones are stacks and which ones are images.
+    for(let iname in deploy.images) {
+        let image = deploy.images[iname];
+        let [name, version] = image.name.split(':');
+        let stack = getStack(name);
+        let newStack = null;
+        if(stack) {
+            let newStack = {
+                deploy: stack.deploy,
+                name: name,
+                networks: {},
+                id: name.replace(/ /g, '') + 'Stack',
+                image: iname
+            }
+            deploy.stacks[name] = newStack;
+            image.stack = newStack;
+            if (stack.deploy) {
+                for (let nname in deploy.networks) {
+                    let network = deploy.networks[nname];
+                    if (network.external) {
+                        newStack.networks[nname] = {
+                            externalName: network.name,
+                            name: nname,
+                            id: stack.id + nname
+                        }
+                        // network.name is the name of the network from the stack.
+                        // Find the network to attach to in the top stack.
+                        for (let snname in deploy.networks) {
+                            let snetwork = deploy.networks[snname];
+                            if (snetwork.externalName === network.name) {
+                                newStack.networks[nname].externalNetwork = snetwork;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // Remove the frontend service from the service list. It preventss it from being used twice
+    if(deploy.frontend.id) {
+        delete deploy.services[deploy.frontend.service.name];
+    }
+
+    let files = {
+        context: {
+            envName: env.name,
+            environ: env,
+            deploy: deploy,
+            pkg: pkg,
+            package: pkg,
+            pageDir: urlPath
+        },
+        targets: {
+            ':envName:/_index.ejs': {template: '/templates/Environment/_index.ejs'},
+            ':envName:/deployment.puml': {template: '/templates/Environment/Deployment.puml'},
+            ':envName:/physical.puml': {template: '/templates/Environment/Physical.puml'},
+        }
+    };
+    // Get the doc from the package and add them to the targets list
+    Generator.process(files, output + urlPath);
 };
 const actorGenerator = (actor, output) => {
     let apackages = {};
@@ -362,4 +518,14 @@ const addDocs = (obj, files, output, urlPath) => {
         }
     }
    Generator.process(newFiles, output);
+}
+
+const getStack = (name) => {
+    for(let pname in global.packages)  {
+        let pkg = global.packages[pname];
+        if(pkg.deploy.name === name) {
+            return pkg;
+        }
+    }
+    return null;
 }
