@@ -119,14 +119,14 @@ into the ecosystem. The following environments can be deployed.
 <% for(let env in package.deploy.envs) {
     let environ = package.deploy.envs[env];
 %>
-    <li><%= environ.name %></li>
+    <li><%= env %></li>
 <% } %>
 </ul>
 
 <% for(let env in package.deploy.envs) {
 let environ = package.deploy.envs[env];
 %>
-<%- partial(`${pageDir}/envs/${environ.name}/_index.ejs`, {package: package, environment: environ}) %>
+<%- partial(`${pageDir}/envs/${env}/_index.ejs`, {package: package, environment: environ}) %>
 <% } %>
 
 <h2>Interface Details</h2>

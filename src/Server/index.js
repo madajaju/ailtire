@@ -42,6 +42,7 @@ module.exports = {
         return;
     },
     doc: (config) => {
+        console.log("Serving documenration");
         normalizeConfig(config);
         global.ailtire = { config: config };
         let apath = path.resolve(config.baseDir);
@@ -52,11 +53,8 @@ module.exports = {
         Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'), config);
         standardFileTypes(config,server);
         server.get(`${config.urlPrefix}/doc/actor/*`, (req, res) => {
-            console.log('ACTOR:', req.url);
             let actorName = req.url.replace(/\/doc\/actor\//, '');
-            console.log('ACTOR NAME1:', actorName);
             actorName = actorName.replace(config.urlPrefix,'');
-            console.log('ACTOR NAME2:', actorName);
             let apath = `${config.urlPrefix}/actors/${actorName}/index.html`;
             res.redirect(apath)
             // res.sendFile('index.html', {root: apath});
@@ -276,7 +274,7 @@ function standardFileTypes(config,server) {
     });
     server.get('*.png', (req, res) => {
         let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,''));
-        apath = apth.toLowerCase();
+        apath = apath.toLowerCase();
         if (fs.existsSync(apath)) {
             res.sendFile(apath);
         }
@@ -286,7 +284,7 @@ function standardFileTypes(config,server) {
     });
     server.get('*.jpg', (req, res) => {
         let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,''));
-        apath = apth.toLowerCase();
+        apath = apath.toLowerCase();
         if (fs.existsSync(apath)) {
             res.sendFile(apath);
         }
@@ -296,7 +294,7 @@ function standardFileTypes(config,server) {
     });
     server.get('*.puml', (req, res) => {
         let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,''));
-        apath = apth.toLowerCase();
+        apath = apath.toLowerCase();
         let svgPath = apath.replace(/.puml$/, '.svg');
         if (fs.existsSync(svgPath)) {
             res.set('Content-Type', 'image/svg+xml');

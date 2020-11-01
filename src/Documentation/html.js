@@ -166,6 +166,14 @@ const packageGenerator = (package, output, urlPath) => {
     };
     // Get the doc from the package and add them to the targets list
     addDocs(package, files,output + urlPath, urlPath);
+
+    // Deployment must happen before the package is generated. 
+    // The Package has a dependency on the deployments. with the partial call.
+    for(let ename in package.deploy.envs) {
+        package.deploy.envs[ename].name = ename;
+        environGenerator(package, package.deploy.envs[ename], output, urlPath + '/' + files.context.shortname + '/envs');
+    }
+    
     Generator.process(files, output + urlPath);
     for (let cname in package.classes) {
         modelGenerator(package.classes[cname].definition, output, urlPath + '/' + files.context.shortname + '/models/');
@@ -175,10 +183,6 @@ const packageGenerator = (package, output, urlPath) => {
     }
     for (let ucname in package.usecases) {
         useCaseGenerator(package.usecases[ucname], output, urlPath + '/' + files.context.shortname + '/usecases');
-    }
-    for(let ename in package.deploy.envs) {
-        package.deploy.envs[ename].name = ename;
-        environGenerator(package, package.deploy.envs[ename], output, urlPath + '/' + files.context.shortname + '/envs');
     }
 };
 const useCaseGenerator = (usecase, output, urlPath) => {
@@ -379,6 +383,11 @@ const environGenerator = (pkg, env, output, urlPath) => {
             if(!deploy.frontend.hasOwnProperty('maps')) {
                 deploy.frontend.maps = [];
             }
+            service.path = route;
+            if(!service.hasOwnProperty('ports')) {
+                service.ports = [];
+            }
+            service.ports.push(port);
             deploy.frontend.maps.push({
                 service: service,
                 port: port,

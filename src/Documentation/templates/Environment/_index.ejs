@@ -36,7 +36,7 @@ the subsystem's logic.
         <td><%= service.image %></td>
         <td><%= service.path %></td>
         <td><%= service.ports %></td>
-        <td><%= service.networks %></td>
+        <td><%= Object.keys(service.networks) %></td>
     </tr>
     <% } %>
     </tbody>

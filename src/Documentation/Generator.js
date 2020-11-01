@@ -10,11 +10,10 @@ module.exports = {
             let nname = name;
             let target = '';
             for (let action in files.targets[name]) {
-                if(action === 'folder') {
+                if (action === 'folder') {
                     target = {name: name, action: action};
-                }
-                else {
-                    target = {name: files.targets[name][action], action:action};
+                } else {
+                    target = {name: files.targets[name][action], action: action};
                 }
             }
             for (let fname in files.context) {
@@ -34,16 +33,16 @@ module.exports = {
 const processItem = (item, target, objects) => {
     let relfile = __dirname + '/' + item.name;
     let apath = path.resolve(relfile);
-    if(!fs.existsSync(apath)) {
+    if (!fs.existsSync(apath)) {
         // Try the absolute Path
         relfile = item.name;
         apath = path.resolve(relfile);
     }
-    if(item.action === 'template') {
+    if (item.action === 'template') {
         objects.partial = partialProcess;
         ejs.renderFile(apath, objects, {}, (err, str) => {
             if (err) {
-                console.error("Error processing model:", objects, "with", item, "targeted to",target);
+                console.error("Error processing model:", objects, "with", item, "targeted to", target);
                 console.error(err);
                 console.error('=====');
                 console.error(str);
@@ -52,16 +51,14 @@ const processItem = (item, target, objects) => {
             let apath = path.resolve(target);
             let dirname = path.dirname(apath);
             fs.mkdirSync(dirname, {recursive: true});
-            if(str) {
+            if (str) {
                 fs.writeFileSync(apath, str);
             }
         });
-    }
-    else if (item.action === 'folder') {
+    } else if (item.action === 'folder') {
         let dirname = path.resolve(target);
         fs.mkdirSync(dirname, {recursive: true});
-    }
-    else if(item.action === 'copy') {
+    } else if (item.action === 'copy') {
         let str = fs.readFileSync(apath);
         let dest = path.resolve(target);
         let dirname = path.dirname(dest);
@@ -70,15 +67,22 @@ const processItem = (item, target, objects) => {
     }
 };
 const partialProcess = (file, objects) => {
+    let baseDirs = [
+        __dirname + '/' + file,
+        __dirname + '/docs/' + file,
+        process.cwd() + '/' + file,
+        process.cwd() + '/docs/' + file
+    ]
     let apath = path.resolve(file);
-    objects.partial = partialProcess;
-    if(!fs.existsSync(apath)) {
-       apath = path.resolve(__dirname + '/' + file);
-       if(!fs.existsSync(apath)) {
-          console.error("Could not find", file);
-          return "";
-       }
+    let i =0;
+    while(!fs.existsSync(apath) && i < baseDirs.length) {
+        apath = path.resolve(baseDirs[i++]);
     }
+    if(!fs.existsSync(apath)) {
+        console.error("Could not find", file);
+        return "";
+    }
+    objects.partial = partialProcess;
     try {
         let str = fs.readFileSync(apath, 'utf8');
         let retval = ejs.render(str, objects);
