@@ -42,8 +42,8 @@ entity <%= nname %> <%= ncolor %>
 for(let sname in deploy.stacks) {
     let stack = deploy.stacks[sname];
 -%>
-stack "<%= stack.name %>" as <%= stack.id %> {
-    queue <%= stack.id %> <%= egressColor %> [
+stack "<%= stack.name %>" as <%= stack.id %> #<%= stack.color.replace(/\#/, '')  %> {
+    queue <%= stack.id %>snet <%= egressColor %> [
         <b><color:white>parent</color></b>
     ]
 }
@@ -64,7 +64,9 @@ for(let nname in deploy.networks) {
     queue <%= network.id %> <%= network.color %> [
             <b><color:white><%= nname %></color></b>
     ]
-    <%= network.id %> -[<%= network.color %>]- <%= nname %>
+    <% if(network.externalName) { %>
+    <%= network.id %> -[<%= network.color %>]- <%= network.externalName %>
+    <% } %>
 <% } %>
 <%
 //////
@@ -163,6 +165,9 @@ for(let sname in deploy.stacks) {
     let image = deploy.images[stack.image]
 %>
 <%= image.id %> --> <%= stack.id %>
-<% } %>
+    <% if(stack.deploy.externalNetwork) { %>
+<%= stack.id %>snet --[<%= stack.deploy.externalNetwork.color %>]-- <%= stack.deploy.externalNetwork.externalName %>
+    <% }
+} %>
 
 @enduml

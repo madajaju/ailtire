@@ -191,7 +191,7 @@ const loadDeploy = (pkg, prefix, dir) => {
         } else {
             pkg.deploy.name = pkg.shortname;
         }
-        
+
         let contexts = deploy;
         if(deploy.hasOwnProperty('contexts')) { contexts = deploy.contexts; }
 
@@ -200,7 +200,8 @@ const loadDeploy = (pkg, prefix, dir) => {
             let compose = YAML.load(dir + '/' + contexts[env].file);
             pkg.deploy.envs[env] = {
                 tag: contexts[env].tag,
-                definition: compose
+                definition: compose,
+                file: contexts[env].file
             };
         }
     }

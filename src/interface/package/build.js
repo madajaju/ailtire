@@ -5,7 +5,7 @@ const Build = require('../../Services/Build');
 
 module.exports = {
     friendlyName: 'build',
-    description: 'Build an app',
+    description: 'Build an package',
     static: true,
     inputs: {
         env: {

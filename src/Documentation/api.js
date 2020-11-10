@@ -144,7 +144,7 @@ const packageGenerator = (pkg, output) => {
                         ':nameNoSpace:/deploy/build.js': {template: '/templates/Package/deploy/build.js'},
                         ':nameNoSpace:/deploy/deploy.js': {template: '/templates/Package/deploy/deploy.js'},
                         ':nameNoSpace:/deploy/web/Dockerfile': {template: '/templates/Package/deploy/Dockerfile'},
-                        ':nameNoSpace:/deploy/web/package.json': {template: '/templates/Package/deploy/package.doc.json'},
+                        ':nameNoSpace:/deploy/web/package.json': {template: '/templates/Package/deploy/package.json'},
                         ':nameNoSpace:/deploy/web/server.js': {template: '/templates/Package/deploy/server.js'},
                         ':nameNoSpace:/deploy/gateway/Dockerfile': {template: '/templates/Package/deploy/Dockerfile'},
                         ':nameNoSpace:/usecases': {folder: true},

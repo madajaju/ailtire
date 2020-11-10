@@ -167,13 +167,13 @@ const packageGenerator = (package, output, urlPath) => {
     // Get the doc from the package and add them to the targets list
     addDocs(package, files,output + urlPath, urlPath);
 
-    // Deployment must happen before the package is generated. 
+    // Deployment must happen before the package is generated.
     // The Package has a dependency on the deployments. with the partial call.
     for(let ename in package.deploy.envs) {
         package.deploy.envs[ename].name = ename;
         environGenerator(package, package.deploy.envs[ename], output, urlPath + '/' + files.context.shortname + '/envs');
     }
-    
+
     Generator.process(files, output + urlPath);
     for (let cname in package.classes) {
         modelGenerator(package.classes[cname].definition, output, urlPath + '/' + files.context.shortname + '/models/');
@@ -283,20 +283,21 @@ const environGenerator = (pkg, env, output, urlPath) => {
     for(let nname in env.definition.networks) {
         let network = env.definition.networks[nname];
         network.color = colors[i++];
-        network.name = nname;
         network.type = 'internal';
         network.id = nname.replace(/\s/g,'') + 'net';
         deploy.networks[nname] = network;
         if(network.hasOwnProperty("attachable") && network.attachable) {
-            network.externalName = network.name.replace(/\$\{.*\}/, '');
-            network.type = 'ingress';
-            deploy.ingress[network.name] = network;
+            network.externalName = network.name.replace(/[\$\{\}]/g, '').toLowerCase();
+            network.type = 'egress';
+            deploy.egress[network.name.replace(/[\$\{\}]/g,'').toLowerCase()] = network;
         }
         else if(network.hasOwnProperty("external") && network.external) {
-            network.externalName = network.name.replace(/\$\{.*\}/, '');
-            network.type = 'egress';
-            deploy.egress[network.name] = network;
+            network.externalName = network.name.replace(/[\$\{\}]/g, '').toLowerCase();
+            network.type = 'ingress';
+            deploy.ingress[network.name.replace(/[\$\{\}]/g,'').toLowerCase()] = network;
         }
+        // This needs to happen after we have captured the external name.
+        network.name = nname.replace(/[\$\{\}]/g,'').toLowerCase();
     }
     deploy.services = env.definition.services;
     for(let sname in env.definition.services) {
@@ -350,13 +351,13 @@ const environGenerator = (pkg, env, output, urlPath) => {
                 if (label.includes('rule=')) {
                     route = label.replace(/^.*\(\`/, '').replace(/\`.*$/, '');
                 } else if (label.includes('network=')) {
-                    let networkname = label.replace(/^.*=/, '').replace(/\$\{.*\}/, '');
+                    let networkname = label.replace(/^.*=/, '').replace(/[\$\{\}]/g, '').toLowerCase();
                     if (deploy.egress.hasOwnProperty(networkname)) {
-                        network = deploy.egress[netowrkname];
+                        network = deploy.egress[networkname];
                     } else if (deploy.ingress.hasOwnProperty(networkname)) {
-                        network = deploy.egress[netowrkname];
+                        network = deploy.egress[networkname];
                     } else if (deploy.networks.hasOwnProperty(networkname)) {
-                        network = deploy.networks[networkname];
+                        network = deploy.networks[nnetworkname];
                     }
                     else {
                        for(let nname in deploy.egress) {
@@ -409,27 +410,28 @@ const environGenerator = (pkg, env, output, urlPath) => {
                 name: name,
                 networks: {},
                 id: name.replace(/ /g, '') + 'Stack',
+                color: stack.color,
                 image: iname
             }
             deploy.stacks[name] = newStack;
             image.stack = newStack;
-            if (stack.deploy) {
-                for (let nname in deploy.networks) {
-                    let network = deploy.networks[nname];
-                    if (network.external) {
-                        newStack.networks[nname] = {
-                            externalName: network.name,
-                            name: nname,
-                            id: stack.id + nname
-                        }
-                        // network.name is the name of the network from the stack.
-                        // Find the network to attach to in the top stack.
-                        for (let snname in deploy.networks) {
-                            let snetwork = deploy.networks[snname];
-                            if (snetwork.externalName === network.name) {
-                                newStack.networks[nname].externalNetwork = snetwork;
-                            }
-                        }
+            // Now connect the substack in newstack to the current stack.
+            // Look at the stack.deploy and find the external network that has the same name as one
+            // in the parent stack's external name.
+            // Look in the same environment as the current stack.
+            if(stack.deploy && stack.deploy.envs[env.name]) {
+                let ssdeploy = stack.deploy.envs[env.name].definition;
+                // Iterate over the external networks and find the external Network in the deploy.networks that match
+                for(let ssnname in ssdeploy.networks) {
+                    let ssnet = ssdeploy.networks[ssnname];
+                    if(ssnet.external) {
+                        let ssename = ssnet.name.replace(/[\$\{\}]/g,'').toLowerCase();
+                        for(let nname in deploy.networks) {
+                           let net = deploy.networks[nname];
+                           if(net.externalName === ssename) {
+                               stack.deploy.externalNetwork = net;
+                           }
+                       }
                     }
                 }
             }

@@ -16,6 +16,7 @@ and a REST interface. This allows for scripting, event programing and connectivi
 REST interface.
 <img src='<%= pageDir %>/envs/<%= environ.name %>/Physical.puml'> </img>
 
+<h4>Networks</h4>
 <h4>Micro-Services</h4>
 These are the micro-services for the deployment of the subsystem. The combination of the micro-services help implement
 the subsystem's logic.
@@ -40,4 +41,49 @@ the subsystem's logic.
     </tr>
     <% } %>
     </tbody>
+</table>
+
+<h4>Networks</h4>
+The networks connect the microservices of this stack together in a micro-segmented network.
+There are also Ingress and Egress networks for connected to the stack (ingress) and connected from
+the stack (egress). Most of the egress networks are for substacks in the stack itself. This enables
+the creation of aggregation of stacks and substacks and still keep the microsegmentation of each
+stack in a layer of networks.
+<table>
+    <thead>
+        <th>Name</th>
+        <th>Type</th>
+        <th>External Name</th>
+        <th>Ports</th>
+    </thead>
+<% for(let nname in deploy.networks) {
+    let net = deploy.networks[nname];
+%>
+    <tr>
+        <td><%= net.name %></td>
+        <td><%= net.type %></td>
+        <td><%= net.externalName %></td>
+    </tr>
+<% }
+ %>
+</table>
+
+The Stack is micro-segmented off and there are a set of ports that are open for the ingress networks. The following
+table shows the ports available and the internal port mappings and services on those ports.
+
+<table>
+    <thead>
+        <th>External Access Port</th>
+        <th>To Port</th>
+        <th>Service</th>
+    </thead>
+<% for(let aport in deploy.ports) {
+    let map = deploy.ports[aport];
+%>
+    <tr>
+        <td><%= aport %></td>
+        <td><%= map.port %></td>
+        <td><%= map.service %></td>
+    </tr>
+<% } %>
 </table>

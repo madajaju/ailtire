@@ -6,11 +6,14 @@ package "<%= package.name %>" #<%= package.color.replace('#','') %> {
   component express as REST
   component socket.io as socket
   folder bin #ffffff {
-    component "<%= package.prefix.replace('/','') %>" as binName
+    component "<%= package.prefix.replace(/\//g,' ') %>" as binName
   }
   binName --> REST
 
   folder deploy #ffffff {
+      file "node server.js\n<%= environ.file %>" as <%= package.deploy.name %>_container
+      REST --> <%= package.deploy.name %>_container
+
   <% for(let bname in package.deploy.build) {
     let build = package.deploy.build[bname];
     let bcmd = build.cmd;
@@ -22,6 +25,11 @@ package "<%= package.name %>" #<%= package.color.replace('#','') %> {
   <% } %>
   }
   folder images #ffffff {
+    collections "<%= package.deploy.name %>" as <%= package.deploy.name %>image
+    artifact "ailtire:swarm" as ailtireswarm
+    <%= package.deploy.name %>image <|-- ailtireswarm
+    <%= package.deploy.name %>_container --> <%= package.deploy.name %>image
+
   <% for(let bname in package.deploy.build) {
       let build = package.deploy.build[bname];
     %>
@@ -30,8 +38,8 @@ package "<%= package.name %>" #<%= package.color.replace('#','') %> {
     <% } %>
   }
 }
-CLI -- binName
-Web - REST
-WebSocket -- socket
+CLI "<%= package.prefix.replace(/\//g, ' ') %>" -- binName
+Web "<%= package.prefix %>" - REST
+WebSocket "<%= package.prefix.replace(/\//g, '.') %>" -- socket
 
 @enduml

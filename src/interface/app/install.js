@@ -35,10 +35,11 @@ module.exports = {
         // Iterate down to the Packages the same thing.
         // continue down the tree.
         // Make sure to call docker stack deploy first then go down.
-        let name = inputs.name;
+        let name = inputs.name || "default";
+        let environ = inputs.env || 'local';
         let apath = path.resolve('.');
         let topPackage = sLoader.processPackage(apath);
-        installPackage(topPackage, {name: name});
+        installPackage(topPackage, {name: name, env: environ});
         return `Building Application`;
     }
 };
@@ -46,12 +47,20 @@ module.exports = {
 function installPackage(package, opts) {
 
     if (package.deploy) {
-        let stackName = opts.name + '_' + package.deploy.prefix.toLowerCase().replace(/\//,'').replace(/\//g, '_');
+        if(!package.deploy.envs.hasOwnProperty(opts.env)) {
+            console.log("Could not find the environment:", opts.env);
+            return "";
+        }
+        let stackName = opts.name + '_' + package.deploy.envs[opts.env].tag;
+        stackName = stackName.toLowerCase().replace(/\//,'').replace(/\//g, '_');
+        let dockerfile = package.deploy.envs[opts.env].file;
         console.log("Stack Name:", stackName);
+        console.log("Environment:", opts.env)
         process.env.AILTIRE_STACKNAME = stackName;
+        process.env.AILTIRE_ENV = opts.env;
         process.env.AILTIRE_APPNAME = opts.name;
         // let proc = exec('pwd', [], {cwd: package.deploy.dir, stdio: 'inherit'});
-        let proc = exec('docker', ['stack', 'deploy', '-c', 'docker-compose.yml', stackName], {cwd: package.deploy.dir, stdio: 'inherit', env:process.env});
+        let proc = exec('docker', ['stack', 'deploy', '-c', dockerfile, stackName], {cwd: package.deploy.dir, stdio: 'inherit', env:process.env});
     }
     // Iterate over the subsystems and build the docker images
     /*
