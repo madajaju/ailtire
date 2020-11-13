@@ -219,9 +219,12 @@ const mapToServer = (server, config) => {
         if (i[0] != '/') {
             i = '/' + i;
         }
-        let normalizedName = config.urlPrefix + i.replace('/' + global.topPackage.shortname,'' );
-        server.all(normalizedName, (req, res) => {
-            // console.log("Server Call:", normalizedName);
+        let normalizedName = i.replace('/' + global.topPackage.shortname,'' );
+        server.all('*' + normalizedName, (req, res) => {
+            execute(gaction, req.query, {req: req, res: res});
+        });
+        normalizedName = config.urlPrefix + normalizedName;
+        server.all('*' + normalizedName, (req, res) => {
             execute(gaction, req.query, {req: req, res: res});
         });
     }
@@ -277,7 +280,7 @@ const execute = (action, inputs, env) => {
                     console.error("Type Mismatch for: ", i, "expecting", input.type, "got", typeof inputs[i]);
                 }
             } else {
-               //  console.error("Required parameter does not exist:", i);
+                //  console.error("Required parameter does not exist:", i);
             }
         }
     }
