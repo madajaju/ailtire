@@ -179,16 +179,15 @@ module.exports = {
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
 
-        if (!config.hasOwnProperty('redis')) {
-            config.redis = {host: 'redis', port: 6379};
+        if (config.hasOwnProperty('redis')) {
+            io.adapter(redis({host: config.redis.host, port: config.redis.port}));
         }
-        io.adapter(redis({host: config.redis.host, port: config.redis.port}));
 
         Action.defaults(server);
         let ailPath = __dirname + "/../../interface";
         // Make sure the prefix from the config is put in here to handle forwarded url.
-        Action.load(server, config.prefix, path.resolve(ailPath)); // Load the ailtire defaults from the interface directory.
-        Action.load(server, config.prefix, path.resolve(config.baseDir + '/interface'));
+        Action.load(server, config.prefix, path.resolve(ailPath),config); // Load the ailtire defaults from the interface directory.
+        Action.load(server, config.prefix, path.resolve(config.baseDir + '/interface'),config);
 
         Action.mapRoutes(server, config.routes);
 
