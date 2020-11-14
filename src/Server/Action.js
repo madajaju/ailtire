@@ -308,6 +308,9 @@ const find = (name) => {
     else if(global.actions.hasOwnProperty('/' + name)) {
         return global.actions['/' + name];
     }
+    else if(global.actions.hasOwnProperty(name.replace('/', ''))) {
+        return global.actions[name.replace('/','')];
+    }
     else {
         let items = name.replace(/[\/\\]/g, '/').replace(/^\//, '').split('/');
         let nName = '/' + global.topPackage.shortname + '/' + items.join('/');

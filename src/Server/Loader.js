@@ -42,18 +42,18 @@ const analyzeApp = app => {
 }
 const analyzeClasses = classes => {
     // go through each association and set the dependant map on the type of the association.
-    for(let i in classes) {
+    for (let i in classes) {
         let cls = classes[i];
         let assocs = cls.definition.associations
-        for(let j in assocs) {
+        for (let j in assocs) {
             let assoc = assocs[j];
             let aType = assoc.type;
-            if(global.classes.hasOwnProperty(aType)) {
+            if (global.classes.hasOwnProperty(aType)) {
                 let gcls = global.classes[aType];
-                if(!gcls.definition.hasOwnProperty('dependant')) {
+                if (!gcls.definition.hasOwnProperty('dependant')) {
                     gcls.definition.dependant = [];
                 }
-                let d = {model: cls.definition, assoc:assoc}
+                let d = {model: cls.definition, assoc: assoc}
                 d.assoc.name = j;
                 gcls.definition.dependant.push(d);
             } else {
@@ -186,14 +186,16 @@ const loadDeploy = (pkg, prefix, dir) => {
     apath = path.resolve(dir + '/deploy.js');
     if (isFile(apath)) {
         let deploy = require(dir + '/' + 'deploy.js');
-        if(deploy.hasOwnProperty('name')) {
+        if (deploy.hasOwnProperty('name')) {
             pkg.deploy.name = deploy.name;
         } else {
             pkg.deploy.name = pkg.shortname;
         }
 
         let contexts = deploy;
-        if(deploy.hasOwnProperty('contexts')) { contexts = deploy.contexts; }
+        if (deploy.hasOwnProperty('contexts')) {
+            contexts = deploy.contexts;
+        }
 
         for (let env in contexts) {
             // Now get the file from the deploy and read it in.
@@ -467,7 +469,7 @@ const checkUseCase = (pkg, usecase) => {
             apiGenerator.action({name: aname, path: pathName}, pkg.interfaceDir);
         }
     }
-    for(let i in usecase.scenarios) {
+    for (let i in usecase.scenarios) {
         let scenario = usecase.scenarios[i];
         checkScenario(pkg, scenario);
     }

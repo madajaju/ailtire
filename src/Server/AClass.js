@@ -9,7 +9,6 @@ module.exports = {
                 }
             }
         }
-        throw new Error("Class Not Found:" + className);
         return 0;
     }
 }

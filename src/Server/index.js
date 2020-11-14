@@ -207,7 +207,12 @@ module.exports = {
         io.on('connection', function (msocket) {
             AEvent.addHandlers(msocket);
         });
-
+        if(config.servers) {
+            AEvent.addServers(config.servers);
+        }
+        if(config.post) {
+            config.post();
+        }
         console.log("Listening on Port:", config.listenPort);
         http.listen(config.listenPort);
     },
