@@ -187,7 +187,7 @@ module.exports = {
         let ailPath = __dirname + "/../../interface";
         // Make sure the prefix from the config is put in here to handle forwarded url.
         Action.load(server, config.prefix, path.resolve(ailPath),config); // Load the ailtire defaults from the interface directory.
-        Action.load(server, config.prefix, path.resolve(config.baseDir + '/interface'),config);
+        Action.load(server, config.prefix, path.resolve(config.baseDir + '/interface'), config);
 
         Action.mapRoutes(server, config.routes);
 

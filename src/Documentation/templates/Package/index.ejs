@@ -8,7 +8,6 @@
 <h1><%= package.name %></h1>
 <%= package.description %>
 
-<h2> Document Insert Here</h2>
 <%- partial(basedir + '/doc.ejs', {obj:package}) %>
 
 <h1>Logical 3D</h1>
@@ -99,7 +98,7 @@ The <%= package.name %> subsystem provides the following activities and flows.
         <tr>
             <td><a href="doc/model/<%= global.events[handler.name].emitter.definition.name %>"><%= handler.name %> </a></td>
             <% if(h.hasOwnProperty('action')) { %>
-                <td><a href="doc/action/<%= h.action %>"><%= h.action %></a></td>
+                <td> <%= h.action %> </td>
             <% } else { %>
                 <td> Custom Action </td>
             <% } %>
@@ -112,21 +111,37 @@ The <%= package.name %> subsystem provides the following activities and flows.
 <h3>Messages Sent</h3>
 
 
-<h2>Deployment Environments</h2>
-The <%= package.name %> subsystem can be deployed to multiple environments by deploying microservices
-into the ecosystem. The following environments can be deployed.
-<ul>
-<% for(let env in package.deploy.envs) {
-    let environ = package.deploy.envs[env];
-%>
-    <li><%= env %></li>
-<% } %>
-</ul>
+<h2>Deployment Architecture</h2>
+This subsystem is deployed using micro-services as shown in the diagram below. The 'micro' module is
+used to implement the micro-services in the system.
+The subsystem also has an CLI, REST and Web Interface exposed through a sailajs application. The sailsjs
+application will interface with the micro-services and can monitor and drive work-flows through the mesh of
+micro-services.
 
-<% for(let env in package.deploy.envs) {
-let environ = package.deploy.envs[env];
+<img src='<%= pageDir %>/Deployment.puml'> </img>
+
+<h2>Physical Architecture</h2>
+The <%= package.name %> subsystem is is physically laid out on a hybrid cloud infrastructure. Each microservice is shown
+how they connect to each other. All of the micro-services communicate to each other and the main app through a
+REST interface. A CLI, REST or Web interface for the app is how other subsystems or actors interact. Requests are
+forwarded to micro-services through the REST interface of each micro-service.
+
+<img src='<%= pageDir %>/Physical.puml'> </img>
+
+<h2>Micro-Services</h2>
+These are the micro-services for the subsystem. The combination of the micro-services help implement
+the subsystem's logic.
+<% for(let ename in package.deploy.envs) {
+    let env = package.deploy.envs[ename];
 %>
-<%- partial(`${pageDir}/envs/${env}/_index.ejs`, {package: package, environment: environ}) %>
+<h3><%= ename %></h3>
+<ul>
+    <% for(let sname in env.definition.services) {
+        let service = env.definition.services[sname];
+    %>
+        <li><%= sname %> : <%= service.image %></li>
+    <% } %>
+</ul>
 <% } %>
 
 <h2>Interface Details</h2>

@@ -251,8 +251,8 @@ const actorsGenerator = (actors, output) => {
                 };
             }
             apackages[packageName].usecases[uname] = usecase;
-            }
         }
+    }
     let files = {
         context: {
             actors: actors,

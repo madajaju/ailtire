@@ -74,11 +74,11 @@ const partialProcess = (file, objects) => {
         process.cwd() + '/docs/' + file
     ]
     let apath = path.resolve(file);
-    let i =0;
-    while(!fs.existsSync(apath) && i < baseDirs.length) {
+    let i = 0;
+    while (!fs.existsSync(apath) && i < baseDirs.length) {
         apath = path.resolve(baseDirs[i++]);
     }
-    if(!fs.existsSync(apath)) {
+    if (!fs.existsSync(apath)) {
         console.error("Could not find", file);
         return "";
     }
