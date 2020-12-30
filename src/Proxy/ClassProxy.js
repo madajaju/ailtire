@@ -93,7 +93,7 @@ module.exports = {
 };
 
 function findObject(obj, name, args) {
-    if(!global._instances) {
+    if (!global._instances) {
         return null;
     }
     if (!global._instances.hasOwnProperty(name)) {
@@ -102,9 +102,28 @@ function findObject(obj, name, args) {
         return global._instances[name][args[0]];
     } else {
         for (let i in global._instances[name]) {
-            let instances = global._instances[name][i];
-            if (instances.name === args[0]) {
-                return global._instances[name][i];
+            let instance = global._instances[name][i];
+            if (typeof args[0] === 'object') {
+                let foundMatch = false;
+                for (let key in args[0]) {
+                    let attr = instance._attributes;
+                    if (attr.hasOwnProperty(key)) {
+                        if (instance[key] === args[0][key]) {
+                            foundMatch = true;
+                        } else {
+                            foundMatch = false;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                if (foundMatch) {
+                    return global._instances[name][i];
+                }
+            } else {
+                if (instance.name === args[0]) {
+                    return global._instances[name][i];
+                }
             }
         }
         return null;

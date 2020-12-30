@@ -173,16 +173,16 @@ const packageGenerator = (package, output, urlPath) => {
         package.deploy.envs[ename].name = ename;
         environGenerator(package, package.deploy.envs[ename], output, urlPath + '/' + files.context.shortname + '/envs');
     }
-
     Generator.process(files, output + urlPath);
     for (let cname in package.classes) {
         modelGenerator(package.classes[cname].definition, output, urlPath + '/' + files.context.shortname + '/models/');
     }
-    for (let spname in package.subpackages) {
-        packageGenerator(package.subpackages[spname], output, urlPath + '/' + files.context.shortname);
-    }
     for (let ucname in package.usecases) {
         useCaseGenerator(package.usecases[ucname], output, urlPath + '/' + files.context.shortname + '/usecases');
+    }
+
+    for (let spname in package.subpackages) {
+        packageGenerator(package.subpackages[spname], output, urlPath + '/' + files.context.shortname);
     }
 };
 const useCaseGenerator = (usecase, output, urlPath) => {
@@ -211,16 +211,28 @@ const useCaseGenerator = (usecase, output, urlPath) => {
 };
 const scenarioGenerator = (usecase, scenario, output, urlPath) => {
     let pkg = global.packages[usecase.package.replace(/\s/g,'')];
+    let pkgs = {};
     for(let i in scenario.steps) {
         let step = scenario.steps[i];
         let act = Action.find(`/${step.action.toLowerCase()}`);
-        step.act = act;
+        if(act) {
+            step.act = act;
+            if (!pkgs.hasOwnProperty(act.pkg.shortname)) {
+                pkgs[act.pkg.shortname] = {
+                    pkg: act.pkg,
+                    models: {}
+                }
+            }
+            let name = act.cls.toLowerCase();
+            pkgs[act.pkg.shortname].models[name] = name;
+        }
     }
 
     let files = {
         context: {
             usecase: usecase,
             scenario: scenario,
+            pkgs: pkgs,
             package: pkg,
             shortname: scenario.name.replace(/ /g, ''),
             actors: scenario.actors
@@ -516,7 +528,7 @@ const addDocs = (obj, files, output, urlPath) => {
     }
     newFiles.context.pageDir = '.' + urlPath + '/' + files.context.shortname;
 
-    if(obj.hasOwnProperty('doc')) {
+    if(obj.hasOwnProperty('doc') && obj.doc) {
         for (let i in obj.doc.files) {
             let file = obj.doc.files[i];
             let sourcefile = path.resolve(obj.doc.basedir + file);

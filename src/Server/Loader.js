@@ -1,4 +1,5 @@
 const fs = require('fs');
+const funcHandler = require('../Proxy/MethodProxy');
 const path = require('path');
 const classProxy = require('../Proxy/ClassProxy');
 const packageProxy = require('../Proxy/PackageProxy');
@@ -18,6 +19,7 @@ module.exports = {
         global.classes = {};
         global.packages = {};
         global.topPackage = {};
+        global.usecases = {};
         global.appBaseDir = dir;
         global.topPackage = processDirectory(dir);
         for (let i in global.packages) {
@@ -129,7 +131,7 @@ let reservedDirs = {
             myClass.package = pkg;
             if (global.classes.hasOwnProperty(myClass.definition.name)) {
                 console.error('Class Already defined', myClass.definition.name, "in this model:", modelDir);
-                throw new Error('Class Already defined' + myClass.definition.name + "in this model:" + modelDir);
+                // throw new Error('Class Already defined' + myClass.definition.name + "in this model:" + modelDir);
             } else {
                 let myProxy = new Proxy(myClass, classProxy);
                 pkg.classes[myClass.definition.name] = myProxy;
@@ -151,6 +153,7 @@ let reservedDirs = {
             myUC.prefix = pkg.prefix;
             myUC.dir = ucDir;
             pkg.usecases[myUC.name.replace(/\s/g, '')] = myUC;
+            global.usecases[myUC.name.replace(/\s/g, '')] = myUC;
             loadDocs(myUC, ucDir + '/doc');
             loadUCScenarios(myUC, ucDir);
         }
@@ -290,6 +293,10 @@ const loadClassMethods = (mClass, mDir) => {
         let methodname = path.basename(file).replace('.js', '');
         if (methodname !== 'index') {
             mClass.definition.methods[methodname] = require(file);
+            mClass.prototype[methodname] = function(inputs) {
+                let retval =  funcHandler.run(mClass.definition.methods[methodname], this, inputs);
+                return retval;
+            }
         }
     }
 };
@@ -342,6 +349,7 @@ const checkPackage = (pkg) => {
     // Inheritance relationship check.
     for (let i in pkg.classes) {
         let cls = pkg.classes[i];
+        console.log("Class Check:", cls.definition.name)
         if (cls.definition.hasOwnProperty('extends')) {
             if (global.classes.hasOwnProperty(cls.definition.extends)) {
                 let parentCls = AClass.getClass(cls.definition.extends);
@@ -412,7 +420,11 @@ const checkPackage = (pkg) => {
                 cls.definition.messages = {};
             }
             cls.definition.messages[ename] = global.events[ename];
-            if (!cls.definition.package.definition.hasOwnProperty('messages')) {
+            if (!cls.definition.package.definition ) {
+                console.log("Class Definition package problem");
+                console.log(cls.definition.package);
+            }
+            if(!cls.definition.package.definition.hasOwnProperty('messages')) {
                 cls.definition.package.definition.messages = {};
             }
             cls.definition.package.definition.messages[ename] = global.events[ename];
@@ -576,9 +588,13 @@ const processModelIncludefile = (prefix, dir) => {
 
                 let myClass = require(incModelFile);
 
-                myClass.package = pkg;
+
+                myClass.package = global.packages[packageNameNoSpace];
                 if (global.classes.hasOwnProperty(myClass.definition.name)) {
-                    console.error('Class Already defined', myClass.definition.name, "in this model:", modelDir);
+                    let myProxy = global.classes[myClass.definition.name];
+                    pkg.classes[myClass.definition.name] = myProxy;
+                    global[myClass.definition.name] = myProxy;
+                    console.error('Class Already defined', myClass.definition.name, "in this model:");
                 } else {
                     let myProxy = new Proxy(myClass, classProxy);
                     pkg.classes[myClass.definition.name] = myProxy;

@@ -37,12 +37,17 @@ module.exports = {
         // send the event to all clients.
         let sdata = data.toJSON;
         if(!sdata) {
+            if(data.hasOwnProperty('obj')) {
+                sdata = data.obj.toJSON;
+            }
+        }
+        if(!sdata) {
             sdata = data;
         }
         for(let i in global.servers) {
             let server = global.servers[i];
             server.socket.emit(nevent, sdata);
-        } 
+        }
         global.io.emit(nevent, sdata);
         // Check to see if the current server handles this event.
         // If it does then call the Call the handlers defined.

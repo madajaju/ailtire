@@ -77,9 +77,9 @@ const addForModels = (server) => {
         let cls = AClass.getClass(name);
         act = setAction(`/${name}/new`, newAction);
 
-        act.obj = "Model";
-        act.pkg = global.topPackage
-        act.cls = "Model";
+        act.obj = cls.definition.name;
+        act.pkg = cls.definition.package;
+        act.cls = cls.definition.name;
 
         // Check if Create method exists
         if(cls.definition.methods.hasOwnProperty('create')) {
@@ -101,24 +101,24 @@ const addForModels = (server) => {
                 fn: createAction.fn
             }
             act = setAction(`/${name}/create`, newCreate);
-            act.obj = "Model";
-            act.pkg = global.topPackage
-            act.cls = "Model";
+            act.obj = cls.definition.name;
+            act.pkg = cls.definition.package
+            act.cls = cls.definition.name;
         }
         else {
             act = setAction(`/${name}/create`, createAction);
-            act.obj = "Model";
-            act.pkg = global.topPackage
-            act.cls = "Model";
+            act.obj = cls.definition.name;
+            act.pkg = cls.definition.package;
+            act.cls = cls.definition.name;
         }
         act = setAction(`/${name}/list`, listAction);
-        act.obj = "Model";
-        act.pkg = global.topPackage
-        act.cls = "Model";
+        act.obj = cls.definition.name;
+        act.pkg = cls.definition.package;
+        act.cls = cls.definition.name;
         act = setAction(`/${name}/destory`, destroyAction);
-        act.obj = "Model";
-        act.pkg = global.topPackage
-        act.cls = "Model";
+        act.obj = cls.definition.name;
+        act.pkg = cls.definition.package;
+        act.cls = cls.definition.name;
         let inputs = {};
         for(let aname in cls.definition.attributes) {
             let attr = cls.definition.attributes[aname];
@@ -142,9 +142,9 @@ const addForModels = (server) => {
                     fn: addAction.fn
                 };
                 act = setAction(`/${name}/add${assocUpper}`, newAddAction);
-                act.obj = "Model";
-                act.pkg = global.topPackage
-                act.cls = "Model";
+                act.obj = cls.definition.name;
+                act.pkg = cls.definition.package;
+                act.cls = cls.definition.name;
             } else {
                 inputs[aname] = {
                     type: 'object',
@@ -156,9 +156,9 @@ const addForModels = (server) => {
 
         act = setAction(`/${name}`, showAction);
 
-        act.obj = "Model";
-        act.pkg = global.topPackage
-        act.cls = "Model";
+        act.obj = cls.definition.name;
+        act.pkg = cls.definition.package;
+        act.cls = cls.definition.name;
         inputs.id = {
             type: 'string',
             description: 'ID of the item to update',
@@ -178,9 +178,9 @@ const addForModels = (server) => {
             fn: updateAction.fn
         }
         act = setAction(`/${name}/update`, newUpdateAction);
-        act.obj = "Model";
-        act.pkg = global.topPackage
-        act.cls = "Model";
+        act.obj = cls.definition.name;
+        act.pkg = cls.definition.package;
+        act.cls = cls.definition.name;
     }
 };
 
@@ -221,10 +221,12 @@ const mapToServer = (server, config) => {
         }
         let normalizedName = i.replace('/' + global.topPackage.shortname,'' );
         server.all('*' + normalizedName, (req, res) => {
+            req.url = req.url.replace(config.urlPrefix, '');
             execute(gaction, req.query, {req: req, res: res});
         });
         normalizedName = config.urlPrefix + normalizedName;
         server.all('*' + normalizedName, (req, res) => {
+            req.url = req.url.replace(config.urlPrefix, '');
             execute(gaction, req.query, {req: req, res: res});
         });
     }
@@ -257,7 +259,7 @@ const execute = (action, inputs, env) => {
     // This handles POST REST items.
     // This will overide the inputs from the query if they exist.
     if(env && env.hasOwnProperty('req') && env.req.hasOwnProperty('body')) {
-        if(env.req.body.hasOwnProperty('data')) {
+        if(env.req.body.data) {
             for (let i in env.req.body.data) {
                 inputs[i] = env.req.body.data[i];
             }
@@ -266,7 +268,6 @@ const execute = (action, inputs, env) => {
             for (let i in env.req.body) {
                 inputs[i] = env.req.body[i];
             }
-
         }
     }
     let finputs = {};

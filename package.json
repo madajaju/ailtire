@@ -1,6 +1,6 @@
 {
   "name": "ailtire",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "UML Architecture by coding and simulating the system architecture.",
   "main": "index.js",
   "scripts": {
@@ -20,8 +20,8 @@
     "ejs": "^3.0.1",
     "express": "^4.17.1",
     "mocha": "^7.1.1",
-    "socket.io": "^2.3.0",
-    "socket.io-redis": "^5.2.0",
+    "socket.io": "^3.0.4",
+    "socket.io-redis": "^6.0.1",
     "yamljs": "^0.3.0"
   }
 }

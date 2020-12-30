@@ -54,7 +54,7 @@ stack "<%= stack.name %>" as <%= stack.id %> #<%= stack.color.replace(/\#/, '') 
 // Main Stack for the diagram
 %>
 
-stack  "<%= pkg.deploy.name %>" #<%= pkg.color.replace(/\#/,''); %> {
+package "<%= pkg.deploy.name %>" #<%= pkg.color.replace(/\#/,''); %> {
 <%
 /////
 // Networks Ingress (external), Egress (attachable), other networks

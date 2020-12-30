@@ -93,22 +93,24 @@ state <%= pstate.sname %> #<%= pstate.color.replace('#','') %> {
         for(let k in handler.handlers) {
             let hdlr = handler.handlers[k];
             // First build the from state
-            let efname = message.emitter.definition.package.prefix + '/' + ename + '/' + handler.name.split('.').pop();
-            let estates = getStates(efname);
-            // Now build the to state
-            let hstate = {};
-            if(hdlr.hasOwnProperty('action')) {
-                hstate = getStates(global.topPackage.prefix + hdlr.action);
-            }
-            else {
-                hstate = getStates(j + '/Function');
-            }
+            if(message.emitter) {
+                let efname = message.emitter.definition.package.prefix + '/' + ename + '/' + handler.name.split('.').pop();
+                let estates = getStates(efname);
+                // Now build the to state
+                let hstate = {};
+                if(hdlr.hasOwnProperty('action')) {
+                    hstate = getStates(global.topPackage.prefix + hdlr.action);
+                }
+                else {
+                    hstate = getStates(j + '/Function');
+                }
 %>
     <%- estates.states %>
     <%- hstate.states %>
         <%- getMessage(estates.sname, hstate.sname) %>
        <%
        }
+    }
    }
 }
 %>

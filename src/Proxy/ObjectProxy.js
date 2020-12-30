@@ -140,6 +140,8 @@ function getHandler(obj, definition, prop) {
         return obj.definition.name;
     } else if (prop === 'package') {
         return obj.definition.package;
+    } else if (prop === '_state') {
+        return obj._state;
     } else if (prop === 'state') {
         return obj._state;
     } else if (prop === 'toJSON') {
@@ -357,12 +359,16 @@ function getHandler(obj, definition, prop) {
     }
     // Now check for methods that are called.
     else if (definition.methods.hasOwnProperty(prop)) {
+        let orgMethod = obj[prop];
         return function (...args) {
             if (!definition.methods[prop].static) {
                 if (hasStateNet(definition)) {
-                    return stateNetHandler.processEvent(this, obj, prop, args);
+                    let retval = stateNetHandler.processEvent(this, obj, prop, args);
+                    return retval;
                 } else {
-                    return funcHandler.run(definition.methods[prop], this, args[0]);
+                    // let retval =  orgMethod.apply(this,args);
+                    let retval = funcHandler.run(definition.methods[prop], this, args[0]);
+                    return retval;
                 }
             } else {
                 console.error("Cannot call class method with an object. Call with class from ", definition.name + "." + prop + "(...);");
@@ -370,6 +376,7 @@ function getHandler(obj, definition, prop) {
             }
         }
     } else {
+        console.log(`Error cloudnot find ${prop} on`,  obj);
         throw new Error(`Could not find ${prop}! on ${obj.name}`);
         return undefined;
     }

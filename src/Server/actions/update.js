@@ -12,7 +12,7 @@ module.exports = {
 
     fn: function (inputs, env) {
         // inputs contains the obj for the this method.
-        let modelName = env.req.originalUrl.split(/\//)[1];
+        let modelName = env.req.url.split(/\//)[1];
         for(let i in env.req.body) {
             inputs[i] = env.req.body[i];
         }
