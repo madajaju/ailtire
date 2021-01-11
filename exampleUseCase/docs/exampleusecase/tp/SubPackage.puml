@@ -7,7 +7,7 @@ package "Top Package" #lightblue {
     interface "Top Package" as i {
             /exampleusecase/tp/data/govern()
             /exampleusecase/tp/data/source/name()
-
+    
     }
 }
 

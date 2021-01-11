@@ -20,14 +20,14 @@ Description
         let mname = 'MyModel';
         let pkgName = 'Top Package';
         let view = null;
-
+        
 
         data.nodes[mname] = {id:mname, name:mname, group: mname, level:pkgName, view:view};
-
+        
         let dname;
         let dview = null;
         let dpkg;
-
+        
 
         let graph = new Graph2D("DrawingArea2D", data);
     </script>
@@ -48,7 +48,7 @@ Description
             <a-sphere id="default3DSelected" position="0 0 0" radius="10" color="#ffff00"></a-sphere>
             <a-sphere id="default3DTargeted" position="0 0 0" radius="10" color="#ff0000"></a-sphere>
             <a-sphere id="default3DSourced" position="0 0 0" radius="10" color="#00ff00"></a-sphere>
-
+    
         </a-entity>
     </a-scene>
 </div>
@@ -60,11 +60,11 @@ Description
         let pkgName = 'Top Package';
         let view = null;
         data.nodes[mname] = {id:mname, name:mname, group: mname, level:pkgName, view:mname +'3D'};
-
+        
         let dname;
         let dview = null;
         let dpkg;
-
+        
         let graph = new Graph3D("DrawingArea3D", data, {width:1000, height:300, background:"#444488", linkColor:"#ffffff"});
     </script>
 </div>
@@ -100,7 +100,7 @@ Description
         <th>Owner</th>
         <th>Description</th>
     </tr>
-
+    
 </table>
 
 
@@ -111,5 +111,5 @@ Description
 
 </ul>
 <h2>Method Details</h2>
-
+    
 
