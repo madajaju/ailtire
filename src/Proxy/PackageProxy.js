@@ -11,6 +11,9 @@ module.exports = {
                 }
             }
         }
+        if(prop === 'definition') {
+            return obj.definition;
+        }
         /*if (obj.definition.methods.hasOwnProperty(prop)) {
             return function (...args) {
                 if (obj.definition.methods[prop].static) {
@@ -51,7 +54,11 @@ module.exports = {
                 return retval;
             }
         }
-        return obj.definition[prop];
+        if(obj.definition.hasOwnProperty(prop)) {
+            return obj.definition[prop];
+        } else {
+            return obj[prop];
+        }
     },
     set: (obj, prop, value) => {
         if (!obj.hasOwnProperty('definition')) {

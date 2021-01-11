@@ -1,7 +1,23 @@
 const funcHandler = require('../Proxy/MethodProxy');
 const Action = require('../Server/Action');
+const clientio = require('socket.io-client');
 
 module.exports = {
+    // Pass an array of pattern and server url
+    addServers: (servers) => {
+        if(!global.hasOwnProperty('servers')) {
+            global.servers = [];
+        }
+        for(let i in servers) {
+            let server = servers[i];
+            let url = 'http://' + server.url;
+            global.servers.push( {
+                pattern: server.pattern,
+                socket: clientio(url),
+                url: server.url
+            })
+        }
+    },
     addHandlers: (socket) => {
         for (let event in global.handlers) {
             // Make sure the handlers are only installed once.
@@ -19,7 +35,20 @@ module.exports = {
         const nevent = event.toLowerCase();
         console.log("Event:", nevent);
         // send the event to all clients.
-        global.io.emit(nevent, data.toJSON);
+        let sdata = data.toJSON;
+        if(!sdata) {
+            if(data.hasOwnProperty('obj')) {
+                sdata = data.obj.toJSON;
+            }
+        }
+        if(!sdata) {
+            sdata = data;
+        }
+        for(let i in global.servers) {
+            let server = global.servers[i];
+            server.socket.emit(nevent, sdata);
+        }
+        global.io.emit(nevent, sdata);
         // Check to see if the current server handles this event.
         // If it does then call the Call the handlers defined.
         // This allows for a server to have events handled.

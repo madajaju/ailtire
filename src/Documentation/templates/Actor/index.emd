@@ -1,0 +1,38 @@
+---
+layout: default
+title: <%= actor.name %>
+permalink: actor-<%= actor.shortname %>
+parent: All Actors
+---
+
+# <%= actor.name %>
+
+<%= actor.description %>
+
+<%- partial(basedir + '/doc.emd', {obj:actor}) %>
+
+## Use Cases
+
+<% for(let uname in actor.usecases) {
+    let ucname = uname
+    let name = actor.usecases[uname].name;
+-%>
+* [<%= name %>](usecase-<%= ucname %>)
+<% } %>
+  
+![Use Case Diagram](./usecase.svg)
+
+## User Interface
+TBD
+
+## Command Line Interface
+<% for(let uname in actor.usecases) {
+    let ucname = actor.usecases[uname].prefix + '/' + uname;
+    let name = actor.usecases[uname].name;
+    let action = actor.usecases[uname].method;
+    let prefix = actor.usecases[uname].prefix.replace(/\//g, ' ');
+    let method = prefix.replace(/\s/g, '-') + '-' + actor.usecases[uname].method.replace(/\//g, '-');
+    let description = actor.usecases[uname].description;
+-%>
+* [<%= prefix %> <%= action %>](action-<%= method %>) - <%= description %>
+<% } %>

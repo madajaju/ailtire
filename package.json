@@ -1,6 +1,6 @@
 {
   "name": "ailtire",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "UML Architecture by coding and simulating the system architecture.",
   "main": "index.js",
   "scripts": {
@@ -13,15 +13,15 @@
   "author": "Darren W Pulsipher - darren@pulsipher.org",
   "license": "ISC",
   "dependencies": {
-    "bent": "^7.3.0",
+    "bent": "^7.3.12",
     "body-parser": "^1.19.0",
     "commander": "^4.1.0",
-    "debug": "latest",
-    "ejs": "^3.0.1",
+    "debug": "^4.3.1",
+    "ejs": "^3.1.5",
     "express": "^4.17.1",
-    "mocha": "^7.1.1",
-    "socket.io": "^2.3.0",
-    "socket.io-redis": "^5.2.0",
+    "mocha": "^7.2.0",
+    "socket.io": "^2.4.1",
+    "socket.io-redis": "^5.4.0",
     "yamljs": "^0.3.0"
   }
 }

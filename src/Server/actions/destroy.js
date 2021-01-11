@@ -18,7 +18,7 @@ module.exports = {
 
     fn: function (inputs, env) {
         // inputs contains the obj for the this method.
-        let modelName = env.req.originalUrl.split(/\//)[1];
+        let modelName = env.req.url.split(/\//)[1];
         // Remove the cls  from the inputs so they are not passed down to the constructor
         delete inputs.cls;
         AEvent.emit(modelName + '.destroy', { obj: newObj.toJSON });

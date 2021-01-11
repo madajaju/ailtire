@@ -1,0 +1,24 @@
+---
+layout: default
+title: usecases
+permalink: usecases
+has_children: true
+---
+# UseCases
+
+<% 
+let unames = Object.keys(global.usecases).sort();
+for(let i in unames) { 
+    let uname = unames[i];
+    let uc = global.usecases[uname];
+-%>
+* [<%= uc.name %>](usecase-<%= uname %>)
+<%  let snames = Object.keys(uc.scenarios);
+  for(let j in snames) {
+  let sname = snames[j];
+  let scen = uc.scenarios[sname];
+-%>
+  * [<%= scen.name %>](usecase-<%= uname %>#<%= sname %>)
+<% }
+}%>
+    

@@ -11,7 +11,6 @@ left to right direction
         return "";
     }
     const getStates = (name) => {
-    console.log("NAME:", name);
     if(stateMap.hasOwnProperty(name)) {
         return stateMap[name];
     }
@@ -20,9 +19,7 @@ left to right direction
     let retval = '';
     names.shift(); // Shift off the first item that is blank.
     let pkgName = names.shift();
-    console.log("PKGNAME:", pkgName);
     if(global.packages.hasOwnProperty(pkgName)) {
-    console.log("Made it:", pkgName);
     let package = global.packages[pkgName];
     let slen = 0;
     for(let i in names) {
@@ -35,7 +32,7 @@ left to right direction
                 }
             }
             asName += aname;
-            retval += `state \"${aname}\" as ${asName.toLowerCase()} ${package.color} {\n`;
+            retval += `state \"${aname}\" as ${asName.toLowerCase()} #${package.color.replace('#','')} {\n`;
         }
     }
     retval += '}\n'.repeat(slen);
@@ -48,7 +45,6 @@ left to right direction
     return {sname:asName, states:retval, color:package.color};
     }
     else {
-        console.log("Made it:", pkgName);
         return {sname:asName, states:"", color:"white"};
     }
 };
@@ -58,7 +54,7 @@ left to right direction
 %>
 <%- pstate.states %>
 
-state <%= pstate.sname %> <%= pstate.color %> {
+state <%= pstate.sname %> #<%= pstate.color.replace('#','') %> {
     state "Custom Function" as <%= package.shortname.toLowerCase() %>function {
     }
 }
@@ -70,23 +66,27 @@ state <%= pstate.sname %> <%= pstate.color %> {
 <% for(let i in package.handlers) {
     let handler = package.handlers[i];
     let snames;
-    let epkg = handler.emitter.definition.package;
-    let ecls = handler.emitter;
-    let message = getStates(epkg.prefix + '/' + ecls.definition.name + '/' + handler.name.split(/\./).pop());
-    %>
-    <%- message.states %>
-    <% for(let k in handler.handlers) {
+    if(handler.emitter) {
+        let epkg = handler.emitter.definition.package;
+        let ecls = handler.emitter;
+        let message = getStates(epkg.prefix + '/' + ecls.definition.name + '/' + handler.name.split(/\./).pop());
+        %>
+        <%- message.states %>
+        <%
+
+      for(let k in handler.handlers) {
         let hdlr = handler.handlers[k];
         let astate = {}
         if(hdlr.action) {
             astate = getStates(global.topPackage.prefix + '/' + hdlr.action);
         } else {
             astate = getStates(package.prefix + '/Function');
-       }
+     }
    %>
     <%- astate.states %>
     <%- getMessage(message.sname, astate.sname) %>
-  <% } %>
+  <%}
+   } %>
 <% } %>
 <% for(let i in package.messages) {
     let message = package.messages[i];
@@ -97,22 +97,24 @@ state <%= pstate.sname %> <%= pstate.color %> {
         for(let k in handler.handlers) {
             let hdlr = handler.handlers[k];
             // First build the from state
-            let efname = message.emitter.definition.package.prefix + '/' + ename + '/' + handler.name.split('.').pop();
-            let estates = getStates(efname);
-            // Now build the to state
-            let hstate = {};
-            if(hdlr.hasOwnProperty('action')) {
-                hstate = getStates(global.topPackage.prefix + hdlr.action);
-            }
-            else {
-                hstate = getStates(j + '/Function');
-            }
+            if(message.emitter) {
+                let efname = message.emitter.definition.package.prefix + '/' + ename + '/' + handler.name.split('.').pop();
+                let estates = getStates(efname);
+                // Now build the to state
+                let hstate = {};
+                if(hdlr.hasOwnProperty('action')) {
+                    hstate = getStates(global.topPackage.prefix + hdlr.action);
+                }
+                else {
+                    hstate = getStates(j + '/Function');
+                }
 %>
     <%- estates.states %>
     <%- hstate.states %>
         <%- getMessage(estates.sname, hstate.sname) %>
        <%
        }
+    }
    }
 }
 %>

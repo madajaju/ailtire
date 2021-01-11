@@ -24,7 +24,7 @@ for(let cname in package.classes) {
 for(let pname in pkgs) {
     let pkg = pkgs[pname];
 %>
-package "<%= pkg.name %>" <%= pkg.color %> {
+package "<%= pkg.name %>" #<%= pkg.color.replace('#', '') %> {
     <% for(let cname in pkg.classes) { %>
         class <%= cname %> {
         }
@@ -32,7 +32,7 @@ package "<%= pkg.name %>" <%= pkg.color %> {
 }
 <% } %>
 
-package "<%= package.name %>" <%= package.color %> {
+package "<%= package.name %>" #<%= package.color.replace('#', '') %> {
 
     interface "<%= package.name %>" as i {
     <% for (let iname in package.interface) {
@@ -47,7 +47,7 @@ CLI ()-- i
 REST ()-- i
 Web ()-- i
 
-package "<%= package.name %>" <%= package.color %> {
+package "<%= package.name %>" #<%= package.color.replace('#','') %> {
     <% for(let cname in package.classes) {
         let cls = package.classes[cname].definition;
     -%>

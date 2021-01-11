@@ -1,0 +1,173 @@
+@startuml
+
+left to right direction
+
+<%
+if(Object.keys(deploy.ports).length > 0) {
+%>
+queue external #black [
+    <b><color:white>external</color></b>
+]
+    <% for(let port in deploy.ports) { %>
+interface <%= port %>
+<%= port %> -- external
+    <% }
+}
+%>
+<%
+/////
+// Boundary for all of the ingress networks.
+let ingressColor = "#black";
+for(let nname in deploy.ingress) {
+    let ncolor = deploy.ingress[nname].color;
+    ingressColor = ncolor;
+-%>
+boundary <%= nname %> <%= ncolor %>
+<% }
+%>
+<%
+/////
+// Boundary for all of the egress networks
+let egressColor = "#blue";
+for(let nname in deploy.egress) {
+    let ncolor = deploy.egress[nname].color;
+    egressColor = ncolor;
+%>
+entity <%= nname %> <%= ncolor %>
+<% }
+%>
+<%
+//////
+// Now put all of the substacks here.
+for(let sname in deploy.stacks) {
+    let stack = deploy.stacks[sname];
+-%>
+rectangle "<%= stack.name %>" as <%= stack.id %> #<%= stack.color.replace(/\#/, '')  %> {
+    queue <%= stack.id %>snet <%= egressColor %> [
+        <b><color:white>parent</color></b>
+    ]
+}
+<% }
+%>
+<%
+/////
+// Main Stack for the diagram
+%>
+
+package "<%= pkg.deploy.name %>" #<%= pkg.color.replace(/\#/,''); %> {
+<%
+/////
+// Networks Ingress (external), Egress (attachable), other networks
+for(let nname in deploy.networks) {
+    let network = deploy.networks[nname];
+-%>
+    queue <%= network.id %> <%= network.color %> [
+            <b><color:white><%= nname %></color></b>
+    ]
+    <% if(network.externalName) { %>
+    <%= network.id %> -[<%= network.color %>]- <%= network.externalName %>
+    <% } %>
+<% } %>
+<%
+//////
+// frontend service if is exists
+// if it does then grab all of the mappings
+if(deploy.frontend.service) {
+    let fserve = deploy.frontend.service;
+%>
+node "<%= fserve.name %>" as <%= fserve.id %> {
+    <%  for(let mname in deploy.frontend.maps) {
+        let item = deploy.frontend.maps[mname];
+-%>
+card "<%= item.path %>" as <%= item.id %>
+    <% } %>
+}
+<% }
+/////
+// Put the services in the stack
+for(let sname in deploy.services) {
+    let service = deploy.services[sname];
+-%>
+node "<%= sname %>" as <%= service.id %>
+<%
+}
+%>
+<%
+/////
+// Now put the images for the services in the top stack
+for(let iname in deploy.images) {
+    let image = deploy.images[iname];
+    if(image.stack) {
+    -%>
+        collections "<%= image.name %>" as <%= image.id %>
+    <% } else { %>
+        artifact "<%= image.name %>" as <%= image.id %>
+    <% }
+}
+%>
+}
+<%
+//////
+// Line from External to Frontend
+if(deploy.frontend.id) {
+%>
+external -[#black]- <%- deploy.frontend.id %>
+<%
+}
+//////
+// Routes from maps to services in frontend
+if(deploy.frontend.id) {
+    for(let i in deploy.frontend.maps) {
+        let map = deploy.frontend.maps[i];
+%>
+<%= map.id %> -[<%= map.network.color %>]-> <%= map.service.id %>
+<%  }
+}
+
+//////
+// Attach from service to network
+for(let sname in deploy.services) {
+    let service = deploy.services[sname];
+    for(let nname in service.networks) {
+        let network = service.networks[nname];
+        let arrow = `-[${network.color}]-`;
+        if(network.type !== 'internal') {
+            arrow - `--[${network.color}]--`;
+        }
+%>
+<%= service.id %> <%= arrow %> <%= network.id %>
+<%  }
+}
+
+//////
+// connnect dotted line from service to image
+for(let sname in deploy.services) {
+    let service = deploy.services[sname];
+    let image = deploy.images[service.image];
+-%>
+<%= service.id %> .... <%= image.id %>
+<%
+}
+
+////
+// Connect Frontend to it's image
+if(deploy.frontend.id) {
+    let serviceid = deploy.frontend.id;
+    let image = deploy.images[deploy.frontend.image];
+%>
+<%= serviceid %> .... <%= image.id %>
+<%
+}
+/////
+// Connect Stack to its image.
+for(let sname in deploy.stacks) {
+    let stack = deploy.stacks[sname];
+    let image = deploy.images[stack.image]
+%>
+<%= image.id %> --> <%= stack.id %>
+    <% if(stack.deploy.externalNetwork) { %>
+<%= stack.id %>snet --[<%= stack.deploy.externalNetwork.color %>]-- <%= stack.deploy.externalNetwork.externalName %>
+    <% }
+} %>
+
+@enduml

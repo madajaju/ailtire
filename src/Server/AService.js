@@ -25,7 +25,7 @@ const findService = (services, actions) => {
         let action = actions.shift();
         for (let i in services) {
             let service = services[i];
-            if (i === action) {
+            if (i.toLowerCase() === action.toLowerCase()) {
                 return findService(service, actions);
             }
         }

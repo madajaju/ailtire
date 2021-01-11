@@ -5,11 +5,21 @@ actor "<%= aname %>"
 
 entity EventBus
 
-box <%= package.name %> <%= package.color %>
+box <%= package.name %> #<%= package.color.replace(/\#/g,'') %>
     boundary <%= package.shortname %> #white
-    participant DataModel #white
 end box
 
+<% for (let pname in pkgs) {
+let pkgtop = pkgs[pname];
+console.log("Models:", pkgtop.models);
+let pkg1 = pkgtop.pkg;
+%>
+box <%= pkg1.name %> #<%= pkg1.color.replace(/\#/g,'') %>
+    <% for (let model in pkgtop.models) { -%>
+        participant <%= model %>
+    <% } -%>
+end box
+<% } %>
 <% for(let aname in actors) {
 %>
 "<%= aname %>" -> <%= package.shortname %>: <%= scenario.name %>
@@ -30,23 +40,16 @@ end box
         parameters = items.join(',');
     }
 %>
-<% if(step.act) { %>
-box "<%= step.act.pkg.name %>" #<%= step.act.pkg.color %>
     <%= package.shortname %> -> "<%= object %>": <%= method %> (<%= parameters %>)
-end box
-<% } else { %>
-    <%= package.shortname %> -> "<%= object %>": <%= method %> (<%= parameters %>)
-<% } %>
 
 <% } %>
 <% } %>
-DataModel --/ EventBus : Model.Event
 
 <% for(let i in package.depends) {
     let  dpkg = package.depends[i];
     if(dpkg) {
 -%>
-box "<%= dpkg.name %>" <%= dpkg.color %>
+box "<%= dpkg.name %>" #<%= dpkg.color.replace(/\#/g,'') %>
     boundary <%= dpkg.shortname %> #white
 end box
 EventBus -\ <%= dpkg.shortname %>: method()

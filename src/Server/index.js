@@ -1,18 +1,17 @@
-const express = require('express');
+var server = require('express')();
+var http = require('http').createServer(server);
+var io = require('socket.io')(http);
+const path = require('path');
+
 const sLoader = require('./Loader.js');
 const AEvent = require('./AEvent.js');
-const path = require('path');
 const Action = require('./Action.js');
 const fs = require('fs');
-const redis = require('socket.io-redis');
+// const redis = require('socket.io-redis');
 const bodyParser = require("body-parser");
 const htmlGenerator = require('../Documentation/html');
 const Renderer = require('../Documentation/Renderer');
-const server = express();
-const http = require('http').createServer(server);
-const io = require('socket.io')(http);
 
-// plantuml.useNailgun();
 
 // Here we are configuring express to use body-parser as middle-ware.
 server.use(function(req, res, next) {
@@ -24,10 +23,9 @@ server.use(bodyParser.urlencoded({extended: false}));
 server.use(bodyParser.json());
 
 module.exports = {
-    doc: (config) => {
+    docBuild: (config) => {
         normalizeConfig(config);
         global.ailtire = { config: config };
-        // const plantuml = require('node-plantuml');
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
         sLoader.analyze(topPackage);
@@ -40,19 +38,29 @@ module.exports = {
         htmlGenerator.index(config.prefix, apath + '/docs');
         htmlGenerator.package(global.topPackage, apath + '/docs');
         htmlGenerator.actors(global.actors, apath + '/docs');
+        console.log("Built the Documentation");
+        return;
+    },
+    doc: (config) => {
+        console.log("Serving documenration");
+        normalizeConfig(config);
+        global.ailtire = { config: config };
+        let apath = path.resolve(config.baseDir);
+        let topPackage = sLoader.processPackage(apath);
+        sLoader.analyze(topPackage);
+
+        Action.defaults(server);
+        Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'), config);
         standardFileTypes(config,server);
         server.get(`${config.urlPrefix}/doc/actor/*`, (req, res) => {
-            console.log('ACTOR:', req.url);
-            let actorName = req.url.replace(/\/doc\/actor\//, '');
-            console.log('ACTOR NAME1:', actorName);
+            let actorName = req._parsedUrl.pathname.replace(/\/doc\/actor\//, '');
             actorName = actorName.replace(config.urlPrefix,'');
-            console.log('ACTOR NAME2:', actorName);
             let apath = `${config.urlPrefix}/actors/${actorName}/index.html`;
             res.redirect(apath)
             // res.sendFile('index.html', {root: apath});
         });
         server.get(`${config.urlPrefix}/doc/usecase/*`, (req, res) => {
-            let name = req.url.replace(config.urlPrefix,'').replace(/\/doc\/usecase\//, '');
+            let name = req._parsedUrl.pathname.replace(config.urlPrefix,'').replace(/\/doc\/usecase\//, '');
             // Name is Package.SubPackage.Name
             let names = name.split('/');
             let ucName = names.pop();
@@ -63,7 +71,7 @@ module.exports = {
         });
         server.get(`${config.urlPrefix}/doc/action/*`, (req, res) => {
             console.log("Calling Action:", req.url);
-            let name = req.url.replace(/\/doc\/action\//, '');
+            let name = req._parsedUrl.pathname.replace(/\/doc\/action\//, '');
             name = name.replace(config.urlPrefix,'');
             console.log("Calling Action Name:", name);
             let names = name.split('/');
@@ -75,7 +83,7 @@ module.exports = {
         });
         server.get(`${config.urlPrefix}/doc/model/*`, (req, res) => {
             console.log("Calling Model:", req.url);
-            let name = req.url.replace(/\/doc\/model\//, '');
+            let name = req._parsedUrl.pathname.replace(/\/doc\/model\//, '');
             name = name.replace(config.urlPrefix,'');
             console.log("Calling Model Name:", name);
             let names = name.split('/');
@@ -96,7 +104,7 @@ module.exports = {
             // res.sendFile('index.html', {root: apath});
         });
         server.get(`${config.urlPrefix}/doc/package/*`, (req, res) => {
-            let name = req.url.replace(/\/doc\/package\//, '');
+            let name = req._parsedUrl.pathname.replace(/\/doc\/package\//, '');
             name = name.replace(config.urlPrefix, '');
             let apath = `${config.urlPrefix}/${name}/index.html`;
             res.redirect(apath);
@@ -113,15 +121,16 @@ module.exports = {
         http.listen(config.listenPort);
     },
     listen: (config) => {
+
         normalizeConfig(config);
         global.ailtire = { config: config };
+
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
         /*if (config.hasOwnProperty('redis')) {
             io.adapter(redis({host: config.redis.host, port: config.redis.port}));
         }
-         */
-
+        */
         Action.defaults(server);
         let ailPath = __dirname + "/../../interface";
         Action.load(server, '', path.resolve(ailPath), config); // Load the ailtire defaults from the interface directory.
@@ -145,42 +154,44 @@ module.exports = {
         });
 
         server.get(`${config.urlPrefix}/`, (req, res) => {
-            console.log("Hello World:", req);
             let str = mainPage(config);
             res.end(str);
         });
 
         server.all('*', (req, res) => {
             console.error("Catch All", req.originalUrl);
-            for (let i in global.actions) {
-                console.error("Path: ", i);
-            }
-            res.end(req.originalUrl);
+            // Look in the views directly for items to load.
+            let str = findPage(req.originalUrl, config);
+            res.end(str);
         });
 
         global.io = io;
+
         io.on('connection', function (msocket) {
+            console.log("Connection happen!");
+            io.emit("ConnectedEdge", "Connected Edge made it");
             AEvent.addHandlers(msocket);
         });
 
-        console.log("Listening on Port:", config.listenPort);
-        http.listen(config.listenPort);
+        http.listen(config.listenPort, () => {
+            console.log("Listening on port: " + config.listenPort);
+        });
     },
     micro: (config) => {
         normalizeConfig(config);
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
 
-        if (!config.hasOwnProperty('redis')) {
-            config.redis = {host: 'redis', port: 6379};
+        /* if (config.hasOwnProperty('redis')) {
+            io.adapter(redis({host: config.redis.host, port: config.redis.port}));
         }
-        io.adapter(redis({host: config.redis.host, port: config.redis.port}));
+        */
 
         Action.defaults(server);
         let ailPath = __dirname + "/../../interface";
         // Make sure the prefix from the config is put in here to handle forwarded url.
-        Action.load(server, config.prefix, path.resolve(ailPath)); // Load the ailtire defaults from the interface directory.
-        Action.load(server, config.prefix, path.resolve(config.baseDir + '/interface'));
+        Action.load(server, config.prefix, path.resolve(ailPath),config); // Load the ailtire defaults from the interface directory.
+        Action.load(server, config.prefix, path.resolve(config.baseDir + '/interface'), config);
 
         Action.mapRoutes(server, config.routes);
 
@@ -200,8 +211,22 @@ module.exports = {
         io.on('connection', function (msocket) {
             AEvent.addHandlers(msocket);
         });
-
-        console.log("Listening on Port:", config.listenPort);
+        if(config.servers) {
+            AEvent.addServers(config.servers);
+        }
+        if(config.post) {
+            config.post();
+        }
+        // Emit an event as the service is now available to interact.
+        let serviceData = {
+            name: config.name,
+            externalURL: config.externalURL,
+            adminURL:config.internalURL,
+            instanceName: config.instanceName
+        };
+        AEvent.emit('service.started', serviceData);
+        AEvent.emit(`${config.name}.started`, serviceData);
+        console.log(`${config.name} Listening on ${config.host}:${config.listenPort}`);
         http.listen(config.listenPort);
     },
     start: (config) => {
@@ -235,7 +260,15 @@ module.exports = {
 }
 
 function mainPage(config) {
-    return Renderer.render('default', 'views/index.ejs', {
+    return Renderer.render('', './index', {
+        app: {name: config.name},
+        name: config.name,
+    });
+}
+function findPage(page, config) {
+    let npage = page.replace(config.urlPrefix, '');
+    // Do not add the layout again.
+    return Renderer.renderPage(npage, {
         app: {name: config.name},
         name: config.name,
     });
@@ -245,27 +278,32 @@ function normalizeConfig(config) {
     config.port = config.port || 3000;
     config.host = config.host || 'localhost';
     config.urlPrefix = config.urlPrefix || '/';
+    config.name = config.name || 'service';
+    config.externalURL = config.externalURL || `localhost/${config.urlPrefix}`;
+    config.internalURL = config.internalURL || `${config.host}:${config.port}`;
+    config.instanceName = config.instanceName || process.env.AILTIRE_STACKNAME;
 }
 
 function standardFileTypes(config,server) {
 
     server.get(`${config.urlPrefix}/styles/*`, (req, res) => {
-        let apath = path.resolve('./assets' + req.url.replace(config.urlPrefix,''));
-        let str = fs.readFileSync(apath, 'utf8');
-        res.send(str);
+        let apath = path.resolve('./assets' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
+        // let str = fs.readFileSync(apath, 'utf8');
+        res.sendFile(apath);
     });
     server.get(`${config.urlPrefix}/js/*`, (req, res) => {
-        let apath = path.resolve('./assets' + req.url.replace(config.urlPrefix,''));
-        let str = fs.readFileSync(apath, 'utf8');
-        res.send(str);
+        let apath = path.resolve('./assets' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
+        // let str = fs.readFileSync(apath, 'utf8');
+        res.sendFile(apath);
     });
     server.get('*.html', (req, res) => {
-        let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,'')).toLowerCase();
-        console.log('HTML:', apath);
+        let apath = path.resolve('./docs/' + req._parsedUrl.pathname.replace(config.urlPrefix,'')).toLowerCase();
+        apath = apath.toLowerCase();
         res.sendFile(apath);
     });
     server.get('*.png', (req, res) => {
-        let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,''));
+        let apath = path.resolve('./docs/' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
+        apath = apath.toLowerCase();
         if (fs.existsSync(apath)) {
             res.sendFile(apath);
         }
@@ -274,7 +312,8 @@ function standardFileTypes(config,server) {
         }
     });
     server.get('*.jpg', (req, res) => {
-        let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,''));
+        let apath = path.resolve('./docs/' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
+        apath = apath.toLowerCase();
         if (fs.existsSync(apath)) {
             res.sendFile(apath);
         }
@@ -283,16 +322,16 @@ function standardFileTypes(config,server) {
         }
     });
     server.get('*.puml', (req, res) => {
-        let apath = path.resolve('./docs/' + req.url.replace(config.urlPrefix,''));
-        if (fs.existsSync(apath)) {
+        let apath = path.resolve('./docs/' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
+        apath = apath.toLowerCase();
+        let svgPath = apath.replace(/.puml$/, '.svg');
+        if (fs.existsSync(svgPath)) {
             res.set('Content-Type', 'image/svg+xml');
-            //let gen = plantuml.generate(apath, {format: 'svg'});
-            // gen.out.pipe(res);
-            res.end("");
+            res.sendFile(svgPath);
         } else {
-            console.log(req.url.replace(config.urlPrefix,'') + ' not found!');
+            console.log(req._parsedUrl.pathname.replace(config.urlPrefix,'') + ' not found!');
             console.log(apath + ' file not found!');
-            res.end(req.url.replace(config.urlPrefix,'') + ' not found!');
+            res.end(req._parsedUrl.pathname.replace(config.urlPrefix,'') + ' not found!');
         }
     });
 }

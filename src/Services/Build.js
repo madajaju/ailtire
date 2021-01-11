@@ -63,7 +63,7 @@ function buildPackage(pkg, opts) {
                     env: process.env
                 });
                 if(proc.status != 0) {
-                    console.error("Error Building Service Container", deploy.name);
+                    console.error("Error Building Service Container");
                     console.error(proc.stderr.toString('utf-8'));
                 }
             }

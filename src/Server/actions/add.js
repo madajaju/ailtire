@@ -27,7 +27,7 @@ module.exports = {
 
     fn: function (inputs, env) {
         // inputs contains the obj for the this method.
-        let modelName = env.req.originalUrl.split(/\//)[1];
+        let modelName = env.req.url.split(/\//)[1];
         if (inputs.mode === 'json') {
             // Items
             let name = env.req.body.name; // name of the object to add items.

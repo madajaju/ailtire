@@ -112,7 +112,7 @@
 <h2>Method Details</h2>
     <% for(let mname in model.methods) {
         let method = model.methods[mname];
-        method.name = mname;
+        method.name = model.name.toLowerCase() + '/' + mname;
 %>
 <%- partial("./templates/Action/_index.ejs", {action: method}) %>
 <% } %>

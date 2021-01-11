@@ -14,6 +14,9 @@ module.exports = {
     package: (package, output) => {
         packageGenerator(package, output, '');
     },
+    environment: (environ, output) => {
+        environmentGenerator(environ, output, '');
+    },
     actors: (actors, output) => {
         actorsGenerator(actors, output + '/actors');
         for(let i in actors) {
@@ -58,6 +61,7 @@ const appGenerator = (app, output) => {
             '../assets/styles/graph.less': {copy: '/templates/App/styles/graph.less'},
             '../assets/styles/importer.less': {copy: '/templates/App/styles/importer.less'},
             '../assets/styles/top.less': {copy: '/templates/App/styles/top.less'},
+            'plantuml.jar': {copy: '/templates/App/plantuml.jar'},
             'bin/lib/subcommander.js': {copy: '/templates/App/subcommander.js'},
             'deploy/docker-compose.yml': {template: '/templates/App/deploy/docker-compose.yml'},
             'deploy/build.js': {template: '/templates/App/deploy/build.js'},
@@ -68,8 +72,8 @@ const appGenerator = (app, output) => {
             'docs/plantuml.jar': {copy: '/templates/App/plantuml.jar'}
         }
     };
+    addDocs(app, files, output,"./");
     Generator.process(files, output);
-    addDocs(app, files, output);
 };
 const indexGenerator = (name, output) => {
 
@@ -100,6 +104,7 @@ const indexGenerator = (name, output) => {
             '../assets/styles/importer.less': {copy: '/templates/App/styles/importer.less'},
             '../assets/styles/top.less': {copy: '/templates/App/styles/top.less'},
             './app.html': {template: '/templates/App/app.ejs'},
+            './plantuml.jar': {copy: '/templates/App/plantuml.jar'},
             '../assets/js/less.js': {copy: '/templates/App/js/less.js'},
             '../assets/styles/importer.less': {copy: '/templates/App/styles/docimporter.less'},
             '../assets/styles/doc.less': {copy: '/templates/App/styles/doc.less'},
@@ -122,8 +127,8 @@ const modelGenerator = (model, output, urlPath) => {
             './:modelnamenospace:/StateNet.puml': {template: '/templates/Model/StateNet.puml'},
         }
     };
+    addDocs(model, files, output + urlPath, urlPath);
     Generator.process(files, output + urlPath);
-    addDocs(model, files, output + urlPath);
 };
 const packageGenerator = (package, output, urlPath) => {
     let actors = {};
@@ -138,45 +143,9 @@ const packageGenerator = (package, output, urlPath) => {
             actors[aname].usecases[ucnameNoSpace] = usecase;
         }
     }
-    let deploy = {
-        ports: {},
-        networks: {},
-        services: {},
-        images: {},
-        ingress: {},
-        egress: {}
-    };
-    for(let ename in package.deploy.envs) {
-        let env = package.deploy.envs[ename];
-        deploy.networks = env.definition.networks;
-        deploy.services = env.definition.services;
-        for(let sname in env.definition.services) {
-           let service = env.definition.services[sname];
-           for(let i in service.ports) {
-                let maps = service.ports[i].replace(/"/g,'').split(':');
-                deploy.ports[maps[0]] = {
-                    port: maps[1],
-                    service: sname,
-                }
-           }
-           deploy.images[service.image] = service.image;
-        }
-        for(let nname in deploy.networks) {
-            let network = deploy.networks[nname];
-            if(network.hasOwnProperty("attachable")) {
-                network.name = network.name.replace(/\$\{.*\}/, '');
-                deploy.ingress[network.name] = {name: nname};
-            }
-            if(network.hasOwnProperty("external")) {
-                network.name = network.name.replace(/\$\{.*\}/, '');
-                deploy.egress[network.name] = {name: nname};
-            }
-        }
-    }
     let files = {
         context: {
-            deploy: deploy,
-            basedir: output + '/' + package.shortname,
+            basedir: output + urlPath + '/' + package.shortname,
             package: package,
             actors: actors,
             packageName: package.name,
@@ -191,23 +160,29 @@ const packageGenerator = (package, output, urlPath) => {
             ':shortname:/UserInteraction.puml': {template: '/templates/Package/UserInteraction.puml'},
             ':shortname:/Logical.puml': {template: '/templates/Package/Logical.puml'},
             ':shortname:/SubPackage.puml': {template: '/templates/Package/SubPackage.puml'},
-            ':shortname:/Deployment.puml': {template: '/templates/Package/Deployment.puml'},
-            ':shortname:/Physical.puml': {template: '/templates/Package/Physical.puml'},
             ':shortname:/Process.puml': {template: '/templates/Package/Process.puml'},
             ':shortname:/ScenarioMapping.puml': {template: '/templates/Package/ScenarioMapping.puml'}
         }
     };
     // Get the doc from the package and add them to the targets list
+    addDocs(package, files,output + urlPath, urlPath);
+
+    // Deployment must happen before the package is generated.
+    // The Package has a dependency on the deployments. with the partial call.
+    for(let ename in package.deploy.envs) {
+        package.deploy.envs[ename].name = ename;
+        environGenerator(package, package.deploy.envs[ename], output, urlPath + '/' + files.context.shortname + '/envs');
+    }
     Generator.process(files, output + urlPath);
-    addDocs(package, files,output + urlPath);
     for (let cname in package.classes) {
         modelGenerator(package.classes[cname].definition, output, urlPath + '/' + files.context.shortname + '/models/');
     }
-    for (let spname in package.subpackages) {
-        packageGenerator(package.subpackages[spname], output, urlPath + '/' + files.context.shortname);
-    }
     for (let ucname in package.usecases) {
         useCaseGenerator(package.usecases[ucname], output, urlPath + '/' + files.context.shortname + '/usecases');
+    }
+
+    for (let spname in package.subpackages) {
+        packageGenerator(package.subpackages[spname], output, urlPath + '/' + files.context.shortname);
     }
 };
 const useCaseGenerator = (usecase, output, urlPath) => {
@@ -228,24 +203,38 @@ const useCaseGenerator = (usecase, output, urlPath) => {
         }
     };
     // Get the doc from the package and add them to the targets list
+    addDocs(usecase, files, output + urlPath,urlPath);
     Generator.process(files, output + urlPath);
     for (let i in usecase.scenarios) {
-        scenarioGenerator(usecase, usecase.scenarios[i], output, '/' + usecase.name.replace(/\s/g,''));
+        scenarioGenerator(usecase, usecase.scenarios[i], output + urlPath, '/' + usecase.name.replace(/\s/g,''));
     }
-    addDocs(usecase, files, output + urlPath);
 };
 const scenarioGenerator = (usecase, scenario, output, urlPath) => {
     let pkg = global.packages[usecase.package.replace(/\s/g,'')];
+    let pkgs = {};
     for(let i in scenario.steps) {
         let step = scenario.steps[i];
         let act = Action.find(`/${step.action.toLowerCase()}`);
-        step.act = act;
+        if(act) {
+            step.act = act;
+            if (!pkgs.hasOwnProperty(act.pkg.shortname)) {
+                pkgs[act.pkg.shortname] = {
+                    pkg: act.pkg,
+                    models: {}
+                }
+            }
+            if(act.cls) {
+                let name = act.cls.toLowerCase();
+                pkgs[act.pkg.shortname].models[name] = name;
+            }
+        }
     }
 
     let files = {
         context: {
             usecase: usecase,
             scenario: scenario,
+            pkgs: pkgs,
             package: pkg,
             shortname: scenario.name.replace(/ /g, ''),
             actors: scenario.actors
@@ -255,7 +244,9 @@ const scenarioGenerator = (usecase, scenario, output, urlPath) => {
         }
     };
     // Get the doc from the package and add them to the targets list
-    Generator.process(files, output + urlPath);
+    let outputURL = output + urlPath;
+    outputURL = outputURL.toLowerCase();
+    Generator.process(files, outputURL);
 };
 const actorsGenerator = (actors, output) => {
     let apackages = {};
@@ -288,6 +279,200 @@ const actorsGenerator = (actors, output) => {
         }
     };
     Generator.process(files, output);
+};
+const environGenerator = (pkg, env, output, urlPath) => {
+
+    let deploy = {
+        ports: {},
+        networks: {},
+        services: {},
+        images: {},
+        ingress: {},
+        egress: {},
+        frontend: {},
+        stacks: {}
+    };
+    const colors = [ "#black", "#blue", "#red", "#orange", "#darkgreen", "#darkgray" ];
+    let i = 0;
+    for(let nname in env.definition.networks) {
+        let network = env.definition.networks[nname];
+        network.color = colors[i++];
+        network.type = 'internal';
+        network.id = nname.replace(/\s/g,'') + 'net';
+        deploy.networks[nname] = network;
+        if(network.hasOwnProperty("attachable") && network.attachable) {
+            network.externalName = network.name.replace(/[\$\{\}]/g, '').toLowerCase();
+            network.type = 'egress';
+            deploy.egress[network.name.replace(/[\$\{\}]/g,'').toLowerCase()] = network;
+        }
+        else if(network.hasOwnProperty("external") && network.external) {
+            network.externalName = network.name.replace(/[\$\{\}]/g, '').toLowerCase();
+            network.type = 'ingress';
+            deploy.ingress[network.name.replace(/[\$\{\}]/g,'').toLowerCase()] = network;
+        }
+        // This needs to happen after we have captured the external name.
+        network.name = nname.replace(/[\$\{\}]/g,'').toLowerCase();
+    }
+    deploy.services = env.definition.services;
+    for(let sname in env.definition.services) {
+        let service = env.definition.services[sname];
+        service.name = sname;
+        // Grab any ports that will be external
+        for (let i in service.ports) {
+            let maps = service.ports[i].replace(/"/g, '').split(':');
+            deploy.ports[maps[0]] = {
+                port: maps[1],
+                service: sname,
+            }
+        }
+        deploy.images[service.image] = {
+            name: service.image,
+            id: service.image.replace(/\:/,'') + 'image'
+        }
+        service.id = service.name.replace('/\s/g', '') + 'Service';
+        if(service.image.includes('traefik')) {
+            deploy.frontend.service = service;
+            deploy.frontend.image = service.image;
+            deploy.frontend.id = 'frontendService';
+            deploy.frontend.maps = [];
+        }
+        // Now get the right network from the network list.
+        let networks = {};
+        for(let i in service.networks) {
+            let network = "";
+            let net = service.networks[i];
+            if(typeof net === 'string') {
+                if(deploy.networks.hasOwnProperty(net)) {
+                    network = deploy.networks[net];
+                    networks[net] = network;
+                }
+            }
+            else {
+                if(deploy.networks.hasOwnProperty(i)) {
+                    network = deploy.networks[i];
+                    networks[i] = network;
+                }
+            }
+        }
+        service.networks = networks;
+        let label ="";
+        let network="";
+        let port="";
+        let route = "";
+        if(service.deploy) {
+            for (let j in service.deploy.labels) {
+                label = service.deploy.labels[j];
+                if (label.includes('rule=')) {
+                    route = label.replace(/^.*\(\`/, '').replace(/\`.*$/, '');
+                } else if (label.includes('network=')) {
+                    let networkname = label.replace(/^.*=/, '').replace(/[\$\{\}]/g, '').toLowerCase();
+                    if (deploy.egress.hasOwnProperty(networkname)) {
+                        network = deploy.egress[networkname];
+                    } else if (deploy.ingress.hasOwnProperty(networkname)) {
+                        network = deploy.egress[networkname];
+                    } else if (deploy.networks.hasOwnProperty(networkname)) {
+                        network = deploy.networks[nnetworkname];
+                    }
+                    else {
+                       for(let nname in deploy.egress) {
+                           if(deploy.egress[nname].externalName === networkname) {
+                               network = deploy.egress[nname];
+                           }
+                       }
+                       for(let nname in deploy.ingress) {
+                           if(deploy.ingress[nname].externalName === networkname) {
+                               network = deploy.ingress[nname];
+                           }
+                       }
+                    }
+                } else if (label.includes('port=')) {
+                    port = label.replace(/^.*=/, '');
+                }
+            }
+            if(!network) {
+                network = {
+                    name:'Default',
+                    color:'#blue'
+                }
+            }
+            if(!deploy.frontend.hasOwnProperty('maps')) {
+                deploy.frontend.maps = [];
+            }
+            service.path = route;
+            if(!service.hasOwnProperty('ports')) {
+                service.ports = [];
+            }
+            service.ports.push(port);
+            deploy.frontend.maps.push({
+                service: service,
+                port: port,
+                network: network,
+                path: route,
+                id: route.replace(/\//g, '') + 'map'
+            });
+        }
+    }
+    // Iterate through the images and find out which ones are stacks and which ones are images.
+    for(let iname in deploy.images) {
+        let image = deploy.images[iname];
+        let [name, version] = image.name.split(':');
+        let stack = getStack(name);
+        let newStack = null;
+        if(stack) {
+            let newStack = {
+                deploy: stack.deploy,
+                name: name,
+                networks: {},
+                id: name.replace(/ /g, '') + 'Stack',
+                color: stack.color,
+                image: iname
+            }
+            deploy.stacks[name] = newStack;
+            image.stack = newStack;
+            // Now connect the substack in newstack to the current stack.
+            // Look at the stack.deploy and find the external network that has the same name as one
+            // in the parent stack's external name.
+            // Look in the same environment as the current stack.
+            if(stack.deploy && stack.deploy.envs[env.name]) {
+                let ssdeploy = stack.deploy.envs[env.name].definition;
+                // Iterate over the external networks and find the external Network in the deploy.networks that match
+                for(let ssnname in ssdeploy.networks) {
+                    let ssnet = ssdeploy.networks[ssnname];
+                    if(ssnet.external) {
+                        let ssename = ssnet.name.replace(/[\$\{\}]/g,'').toLowerCase();
+                        for(let nname in deploy.networks) {
+                           let net = deploy.networks[nname];
+                           if(net.externalName === ssename) {
+                               stack.deploy.externalNetwork = net;
+                           }
+                       }
+                    }
+                }
+            }
+        }
+    }
+    // Remove the frontend service from the service list. It preventss it from being used twice
+    if(deploy.frontend.id) {
+        delete deploy.services[deploy.frontend.service.name];
+    }
+
+    let files = {
+        context: {
+            envName: env.name,
+            environ: env,
+            deploy: deploy,
+            pkg: pkg,
+            package: pkg,
+            pageDir: urlPath
+        },
+        targets: {
+            ':envName:/_index.ejs': {template: '/templates/Environment/_index.ejs'},
+            ':envName:/deployment.puml': {template: '/templates/Environment/Deployment.puml'},
+            ':envName:/physical.puml': {template: '/templates/Environment/Physical.puml'},
+        }
+    };
+    // Get the doc from the package and add them to the targets list
+    Generator.process(files, output + urlPath);
 };
 const actorGenerator = (actor, output) => {
     let apackages = {};
@@ -335,20 +520,37 @@ const actorGenerator = (actor, output) => {
     Generator.process(files, output);
 };
 
-const addDocs = (obj, files, output) => {
-    files.targets = {};
+const addDocs = (obj, files, output, urlPath) => {
+    let newFiles = {
+        targets: {},
+        context: {}
+    }
+    for(let name in files.context) {
+        newFiles.context[name] = files.context[name];
+    }
+    newFiles.context.pageDir = '.' + urlPath + '/' + files.context.shortname;
 
-    if(obj.hasOwnProperty('doc')) {
+    if(obj.hasOwnProperty('doc') && obj.doc) {
         for (let i in obj.doc.files) {
             let file = obj.doc.files[i];
             let sourcefile = path.resolve(obj.doc.basedir + file);
             if(file.includes('.ejs')) {
-                files.targets[`:shortname:/${file}`] = {template:`${sourcefile}`};
+                newFiles.targets[`:shortname:/${file}`] = {template:`${sourcefile}`};
             }
             else {
-                files.targets[`:shortname:/${file}`] = {copy:`${sourcefile}`};
+                newFiles.targets[`:shortname:/${file}`] = {copy:`${sourcefile}`};
             }
         }
     }
-   Generator.process(files, output);
+   Generator.process(newFiles, output);
+}
+
+const getStack = (name) => {
+    for(let pname in global.packages)  {
+        let pkg = global.packages[pname];
+        if(pkg.deploy.name === name) {
+            return pkg;
+        }
+    }
+    return null;
 }

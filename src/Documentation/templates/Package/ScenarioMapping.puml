@@ -19,7 +19,7 @@ left to right direction
                 }
             }
             asName += aname;
-            retval += `state \"${aname}\" as ${asName} ${package.color} {\n`;
+            retval += `state \"${aname}\" as ${asName} #${package.color.replace('#','')} {\n`;
         }
     }
     retval += '}\n'.repeat(slen);

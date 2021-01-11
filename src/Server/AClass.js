@@ -9,7 +9,22 @@ module.exports = {
                 }
             }
         }
-        throw new Error("Class Not Found:" + className);
         return 0;
+    },
+    getInstances: (className) => {
+        if(!global._instances) {
+            return [];
+        }
+        cls = this.getClass(className);
+        if (global._instances.hasOwnProperty(className)) {
+            retval = global._instances[className];
+        }
+        for (let i in cls.definition.subClasses) {
+            let instances = getInstances(AClass.getClass(cls.definition.subClasses[i]))
+            for (let j in instances) {
+                retval[instances[j].id] = instances[j];
+            }
+        }
+        return retval;
     }
 }

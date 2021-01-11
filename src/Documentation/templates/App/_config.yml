@@ -1,0 +1,4 @@
+remote_theme: pmarsceill/just-the-docs
+title: <%= topPackage.name %> Architecture
+description: <%= topPackage.description %>
+google_analytics: G-SDCPXLJ9YG

@@ -20,7 +20,7 @@ module.exports = {
 
     fn: function (inputs, env) {
         // inputs contains the obj for the this method.
-        let modelName = env.req.originalUrl.split(/\//)[1];
+        let modelName = env.req.url.split(/\//)[1];
         let apath = path.resolve(__dirname + '/../../views/model/new.ejs');
         let str = fs.readFileSync(apath, 'utf8');
         let sendString = renderer.renderString('default', str, {className: modelName, definition: AClass.getClass(modelName).definition, app: {name:'edgemere'}} );

@@ -1,4 +1,5 @@
 const fs = require('fs');
+const funcHandler = require('../Proxy/MethodProxy');
 const path = require('path');
 const classProxy = require('../Proxy/ClassProxy');
 const packageProxy = require('../Proxy/PackageProxy');
@@ -18,6 +19,7 @@ module.exports = {
         global.classes = {};
         global.packages = {};
         global.topPackage = {};
+        global.usecases = {};
         global.appBaseDir = dir;
         global.topPackage = processDirectory(dir);
         for (let i in global.packages) {
@@ -114,6 +116,9 @@ let reservedDirs = {
     },
     models: (pkg, prefix, dir) => {
         // This stores the pkg classes.
+
+        // Process the Model Include Files
+        processModelIncludefile(prefix, dir);
         pkg.classes = {};
         let models = getDirectories(dir);
         for (let i in models) {
@@ -126,7 +131,7 @@ let reservedDirs = {
             myClass.package = pkg;
             if (global.classes.hasOwnProperty(myClass.definition.name)) {
                 console.error('Class Already defined', myClass.definition.name, "in this model:", modelDir);
-                throw new Error('Class Already defined' + myClass.definition.name + "in this model:" + modelDir);
+                // throw new Error('Class Already defined' + myClass.definition.name + "in this model:" + modelDir);
             } else {
                 let myProxy = new Proxy(myClass, classProxy);
                 pkg.classes[myClass.definition.name] = myProxy;
@@ -148,6 +153,7 @@ let reservedDirs = {
             myUC.prefix = pkg.prefix;
             myUC.dir = ucDir;
             pkg.usecases[myUC.name.replace(/\s/g, '')] = myUC;
+            global.usecases[myUC.name.replace(/\s/g, '')] = myUC;
             loadDocs(myUC, ucDir + '/doc');
             loadUCScenarios(myUC, ucDir);
         }
@@ -186,15 +192,24 @@ const loadDeploy = (pkg, prefix, dir) => {
     apath = path.resolve(dir + '/deploy.js');
     if (isFile(apath)) {
         let deploy = require(dir + '/' + 'deploy.js');
+        if (deploy.hasOwnProperty('name')) {
+            pkg.deploy.name = deploy.name;
+        } else {
+            pkg.deploy.name = pkg.shortname;
+        }
+
         let contexts = deploy;
-        if(deploy.hasOwnProperty('contexts')) { contexts = deploy.contexts; }
+        if (deploy.hasOwnProperty('contexts')) {
+            contexts = deploy.contexts;
+        }
 
         for (let env in contexts) {
             // Now get the file from the deploy and read it in.
             let compose = YAML.load(dir + '/' + contexts[env].file);
             pkg.deploy.envs[env] = {
                 tag: contexts[env].tag,
-                definition: compose
+                definition: compose,
+                file: contexts[env].file
             };
         }
     }
@@ -278,6 +293,10 @@ const loadClassMethods = (mClass, mDir) => {
         let methodname = path.basename(file).replace('.js', '');
         if (methodname !== 'index') {
             mClass.definition.methods[methodname] = require(file);
+            mClass.prototype[methodname] = function(inputs) {
+                let retval =  funcHandler.run(mClass.definition.methods[methodname], this, inputs);
+                return retval;
+            }
         }
     }
 };
@@ -330,6 +349,7 @@ const checkPackage = (pkg) => {
     // Inheritance relationship check.
     for (let i in pkg.classes) {
         let cls = pkg.classes[i];
+        console.log("Class Check:", cls.definition.name)
         if (cls.definition.hasOwnProperty('extends')) {
             if (global.classes.hasOwnProperty(cls.definition.extends)) {
                 let parentCls = AClass.getClass(cls.definition.extends);
@@ -400,7 +420,11 @@ const checkPackage = (pkg) => {
                 cls.definition.messages = {};
             }
             cls.definition.messages[ename] = global.events[ename];
-            if (!cls.definition.package.definition.hasOwnProperty('messages')) {
+            if (!cls.definition.package.definition ) {
+                console.log("Class Definition package problem");
+                console.log(cls.definition.package);
+            }
+            if(!cls.definition.package.definition.hasOwnProperty('messages')) {
                 cls.definition.package.definition.messages = {};
             }
             cls.definition.package.definition.messages[ename] = global.events[ename];
@@ -523,8 +547,100 @@ const loadActors = (dir, prefix) => {
     }
     for (let i in actors) {
         let actorDir = actors[i];
-        let actor = require(actorDir + '/index.js');
-        global.actors[actor.name.replace(/\s/g, '')] = actor;
-        loadDocs(actor, actorDir + '/doc');
+        if(!actorDir.includes('\\doc') && !actorDir.includes('\/doc') ) {
+            let actor = require(actorDir + '/index.js');
+            global.actors[actor.name.replace(/\s/g, '')] = actor;
+            loadDocs(actor, actorDir + '/doc');
+        }
     }
+};
+////////////////////////
+// Include file format
+// module.export = {
+//  models: [
+//      '../../cpl/Agent',
+//      '../../../diml/dm/BluePrint',
+//  ]
+// }
+const processModelIncludefile = (prefix, dir) => {
+    // First check if there is an includes.js file.
+    // If there is then process the includes.js file to import the classes into the global namespace.
+    if (fs.existsSync(dir + '/include.js')) {
+        let include = require(dir + '/include.js');
+
+        for (let i in include.models) {
+            let file = include.models[i];
+
+            let incModelFile = findIncludeFile(dir, file);
+
+            let pkgFile = path.resolve(incModelFile + '../../../../index.js');
+            if (fs.existsSync(incModelFile) && fs.existsSync(pkgFile)) {
+                // Load the package first into the global namespace
+                let pkg = require(pkgFile);
+                let packageNameNoSpace = pkg.name.replace(/\s/g, '');
+                if(!global.packages.hasOwnProperty(packageNameNoSpace)) {
+                    pkg.classes = {};
+                    if(!pkg.prefix) {
+                        if (pkg.shortname) {
+                            prefix = '/' + pkg.shortname;
+                        }
+                        pkg.prefix = prefix.toLowerCase();
+                    }
+                    global.packages[packageNameNoSpace] = new Proxy(pkg, packageProxy);
+                }
+                pkg = global.packages[packageNameNoSpace];
+
+                let myClass = require(incModelFile);
+
+
+                myClass.package = global.packages[packageNameNoSpace];
+                if (global.classes.hasOwnProperty(myClass.definition.name)) {
+                    let myProxy = global.classes[myClass.definition.name];
+                    pkg.classes[myClass.definition.name] = myProxy;
+                    global[myClass.definition.name] = myProxy;
+                    console.error('Class Already defined', myClass.definition.name, "in this model:");
+                } else {
+                    let myProxy = new Proxy(myClass, classProxy);
+                    pkg.classes[myClass.definition.name] = myProxy;
+                    global.classes[myClass.definition.name] = myProxy;
+                    global[myClass.definition.name] = myProxy;
+                }
+                loadDocs(myClass, path.resolve(incModelFile +  '/../doc'));
+                loadClassMethods(myClass, path.resolve(incModelFile + '/..'));
+            }
+            else {
+                let apath = path.resolve(file);
+                console.error("Could not find Model:", file , "in include file for ", dir );
+            }
+        }
+    }
+}
+
+const findIncludeFile = (dir, file) => {
+    // Look in a relative path
+    let filename = path.resolve( dir + file + '/index.js');
+    if(fs.existsSync(filename)) {
+        return filename;
+    }
+    // Look in an absolute path
+    if(fs.existsSync(file + '/index.js')) {
+        return file + '/index.js';
+    }
+    // Look for the top directory up to api directory
+    let dirs = dir.split(/[\/\\]/);
+    while(1) {
+        let topdir = dirs.pop();
+        if(topdir === 'api') {
+           dirs.push('api');
+           let dirname = dirs.join('/');
+           let pNames = file.split(/[\/\\\.]/);
+           let cName = pNames.pop();
+           let filename = path.resolve(dirname + '/' + pNames.join('/') + '/models/' + cName + '/index.js');
+           if(fs.existsSync(filename)) {
+               return filename;
+           }
+           break;
+        }
+    }
+    return null;
 };

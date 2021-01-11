@@ -24,13 +24,11 @@
     </ul>
     <h3>Use Cases</h3>
     <ul class="left-actionbar">
-        <% for(let pname in packages) {
-                for(let uname in packages[pname].usecases) {
-            let usecase = packages[pname].usecases[uname];
+        <% for(let ucname in global.usecases) {
+            let usecase = global.usecases[ucname];
         %>
-        <li><a href='doc/usecase<%= usecase.prefix %>/<%= uname %>' target="mainFrame"><%= usecase.name %></a></li>
-        <% }
-        } %>
+        <li><a href='doc/usecase<%= usecase.prefix %>/<%= ucname %>' target="mainFrame"><%= usecase.name %></a></li>
+        <% } %>
     </ul>
 </div>
 

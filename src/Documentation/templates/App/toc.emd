@@ -1,0 +1,25 @@
+---
+layout: default
+title: TOC
+permalink: toc
+---
+
+### Edgemere Overview
+* [<%= appName %>](./<%= appName %>/index.md)
+
+### Actors
+* [All Actors](actors)
+<% for(let aname in actors) { -%>
+* [<%= aname %>](actor-<%= actors[aname].shortname %>)
+<% } %>
+ 
+### Packages 
+<%- partial("./templates/App/_packageTree.emd", {pkgs: packages, bullet:'*'}) %>
+   
+### Use Cases  
+<% for(let ucname in global.usecases) {
+    let usecase = global.usecases[ucname];
+-%>
+* [<%= usecase.name %>](usecase-<%= ucname %>)
+<% } %>
+
