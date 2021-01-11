@@ -3,7 +3,7 @@
 class "MyModel" as Model {
  string name
 
-
+ 
 }
 
 

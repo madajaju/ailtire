@@ -35,7 +35,7 @@ Description needs to be written
                 <a-sphere id="default3DSelected" position="0 0 0" radius="10" color="#ffff00"></a-sphere>
                 <a-sphere id="default3DTargeted" position="0 0 0" radius="10" color="#ff0000"></a-sphere>
                 <a-sphere id="default3DSourced" position="0 0 0" radius="10" color="#00ff00"></a-sphere>
-
+                
             </a-entity>
         </a-scene>
     </div>
@@ -47,9 +47,11 @@ Description needs to be written
     <script type="module">
         let data = {nodes: {}, links: []};
         data.nodes["exampleUseCase"] = {id:"exampleUseCase", name:"exampleUseCase", group: "package", color: "lightgreen", level:"top", view:'package3D'};
-
+        
             data.nodes["Top Package"] = {id:"Top Package", name:"Top Package", group: "package", color: "lightblue", level:"exampleUseCase", view:'package3D'};
-
+           
+            data.nodes["Top Stuff"] = {id:"Top Stuff", name:"Top Stuff", group: "package", color: "lightblue", level:"exampleUseCase", view:'package3D'};
+           
 
         let graph = new Graph3DLogical("logical3D", data, {background:"#ffffff", width:1000, height:600});
 
@@ -90,7 +92,8 @@ and their structure.
 <h3>Sub Packages</h3>
 <ul>
 <li><a href='./exampleusecase/tp/index.html'>Top Package</a>
-
+    <li><a href='./exampleusecase/ts/index.html'>Top Stuff</a>
+    
 </ul>
 
 <img src='./exampleusecase/Logical.puml'>
@@ -141,41 +144,41 @@ the subsystem's logic.
 
 <h3>dev</h3>
 <ul>
-
+    
         <li>pubsub : redis</li>
-
+    
         <li>frontend : traefik:latest</li>
-
+    
         <li>web : exampleUseCase_web</li>
-
+    
         <li>doc : exampleUseCase_doc</li>
-
+    
 </ul>
 
 <h3>test</h3>
 <ul>
-
+    
         <li>pubsub : redis</li>
-
+    
         <li>frontend : traefik:latest</li>
-
+    
         <li>web : exampleUseCase_web</li>
-
+    
         <li>doc : exampleUseCase_doc</li>
-
+    
 </ul>
 
 <h3>prod</h3>
 <ul>
-
+    
         <li>pubsub : redis</li>
-
+    
         <li>frontend : traefik:latest</li>
-
+    
         <li>web : exampleUseCase_web</li>
-
+    
         <li>doc : exampleUseCase_doc</li>
-
+    
 </ul>
 
 

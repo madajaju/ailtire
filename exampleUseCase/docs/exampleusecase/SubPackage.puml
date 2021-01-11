@@ -5,7 +5,7 @@
 package "exampleUseCase" #lightgreen {
 
     interface "exampleUseCase" as i {
-
+    
     }
 }
 
@@ -17,6 +17,9 @@ package "exampleUseCase" #lightgreen {
 
 
 rectangle "Top Package" #white {
+}
+
+rectangle "Top Stuff" #white {
 }
 
 }

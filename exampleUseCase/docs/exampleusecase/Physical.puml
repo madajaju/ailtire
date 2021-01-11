@@ -11,24 +11,24 @@ package "exampleUseCase" lightgreen {
   binName --> REST
 
   folder deploy #ffffff {
-
+  
     file "web" as web_container
     REST --> web_container
     socket ---> web_container
-
+  
     file "doc" as doc_container
     REST --> doc_container
     socket ---> doc_container
-
+  
   }
   folder images #ffffff {
-
+  
       artifact exampleUseCase_web
       web_container --> exampleUseCase_web
-
+    
       artifact exampleUseCase_doc
       doc_container --> exampleUseCase_doc
-
+    
   }
 }
 CLI -- binName
