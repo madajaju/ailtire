@@ -66,23 +66,27 @@ state <%= pstate.sname %> #<%= pstate.color.replace('#','') %> {
 <% for(let i in package.handlers) {
     let handler = package.handlers[i];
     let snames;
-    let epkg = handler.emitter.definition.package;
-    let ecls = handler.emitter;
-    let message = getStates(epkg.prefix + '/' + ecls.definition.name + '/' + handler.name.split(/\./).pop());
-    %>
-    <%- message.states %>
-    <% for(let k in handler.handlers) {
+    if(handler.emitter) {
+        let epkg = handler.emitter.definition.package;
+        let ecls = handler.emitter;
+        let message = getStates(epkg.prefix + '/' + ecls.definition.name + '/' + handler.name.split(/\./).pop());
+        %>
+        <%- message.states %>
+        <%
+
+      for(let k in handler.handlers) {
         let hdlr = handler.handlers[k];
         let astate = {}
         if(hdlr.action) {
             astate = getStates(global.topPackage.prefix + '/' + hdlr.action);
         } else {
             astate = getStates(package.prefix + '/Function');
-       }
+     }
    %>
     <%- astate.states %>
     <%- getMessage(message.sname, astate.sname) %>
-  <% } %>
+  <%}
+   } %>
 <% } %>
 <% for(let i in package.messages) {
     let message = package.messages[i];

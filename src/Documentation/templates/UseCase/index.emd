@@ -1,0 +1,39 @@
+---
+layout: default
+title: <%= usecase.name %>
+permalink: usecase-<%= usecase.name.replace(/\s/g, '') %>
+parent: usecases
+---
+
+# <%= usecase.name %>
+
+<%= usecase.description %>
+
+![Activities Diagram](./activities.svg)
+
+## Actors
+
+<% for(let aname in usecase.actors) {
+    aname = aname.replace(/\s/g,'');
+    let actor = actors[aname];
+-%>
+* [<%= actor.name %>](actor-<%= actor.shortname %>)
+<% } %>
+
+## Detail Scenarios
+
+<% for(let sname in usecase.scenarios) {
+let nameNoSpaces = sname.replace(/\s/g, '-');
+let ucName = usecase.name.replace(/\s/g,'');
+let prefix = usecase.prefix;
+-%>
+* [<%= usecase.name %>](#scenario-<%- nameNoSpaces %>)
+<% } %>
+  
+<% for(let sname in usecase.scenarios) {
+let nameNoSpaces = sname.replace(/ /g, '');
+let scenario = usecase.scenarios[sname];
+let pkgPath = global.packages[usecase.package.replace(/ /g, '')].prefix;
+-%>
+<%- partial('templates/Scenario/_index.emd', {scenario:scenario, pageDir: pageDir}) %>
+<% } %>

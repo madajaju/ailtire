@@ -1,0 +1,14 @@
+---
+layout: default
+title: classes
+permalink: classes
+has_children: true
+---
+# Classes
+
+<% let cnames = Object.keys(global.classes).sort();
+for(let i in cnames) { 
+    let cname = cnames[i];
+-%>
+* [<%= cname %>](class-<%= cname %>)
+<% } %>

@@ -1,0 +1,18 @@
+---
+layout: default
+title: All Actors
+permalink: all-actors
+has_children: true
+---
+
+<%- partial(basedir + '/doc.emd', {actors:actors}) %>
+
+# Actors
+
+<% for(let i in actors ) {
+    let actor = actors[i];
+-%>
+* [<%= actor.name %>](actor-<%= actor.shortname %>) - <%= actor.description %>
+<% } %>
+
+![All Actors](./actors.svg)

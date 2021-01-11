@@ -86,6 +86,13 @@ const partialProcess = (file, objects) => {
         apath = path.resolve('./views/' + file);
         if(!fs.existsSync(apath)) {
             apath = path.resolve(__dirname + '../../views/' + file);
+            if(!fs.existsSync(apath)) {
+                apath = path.resolve(__dirname + './' + file);
+                if(!fs.existsSync(apath)) {
+                    console.error("Could not find " + file);
+                    return "";
+                }
+            }
         }
     }
 

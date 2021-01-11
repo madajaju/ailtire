@@ -1,0 +1,38 @@
+<%
+let nameNoSpaces = scenario.name.replace(/ /g, '');
+-%>
+### Scenario <%= scenario.name %>
+
+<%= scenario.description %>
+
+![Scenario nameNoSpaces](./<%= scenario.name.replace(/\s/g,'') %>.svg)
+
+#### Steps
+<%
+if(scenario.steps) {
+    for(let si in scenario.steps) {
+        let step = scenario.steps[si];
+        let parameters = "";
+        if(step.parameters) {
+            let items = [];
+            for (let name in step.parameters) {
+                items.push(`--${name} ${step.parameters[name]}`);
+            }
+            parameters = items.join(' ');
+        }
+    %>
+1. [<%= step.action.replace(/\//, ' ')%> <%- parameters %>](#action-<%= step.action.replace(/\//g, '-') %>)
+<% }
+} else {
+%>
+1. To Be Defined
+<% } %>
+
+#### Actors
+
+<% for(let aname in scenario.actors) {
+    aname = aname.replace(/\s/g,'');
+    let actor = global.actors[aname];
+    -%>
+* [<%= actor.name %>](actor-<%= actor.shortname %>)
+<% } %>

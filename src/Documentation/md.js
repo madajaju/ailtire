@@ -1,8 +1,14 @@
-let ejs = require('ejs');
-let path = require('path');
-let Generator = require('./Generator.js');
+const ejs = require('ejs');
+const path = require('path');
+const fs = require('fs');
+const Generator = require('./Generator.js');
 const AClass = require('../Server/AClass');
 const Action = require('../Server/Action');
+
+const isDirectory = source => fs.existsSync(source) && fs.lstatSync(source).isDirectory();
+const isFile = source => fs.existsSync(source) && !fs.lstatSync(source).isDirectory();
+const getDirectories = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
+const getFiles = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isFile);
 
 module.exports = {
     index: (name, output) => {
@@ -15,7 +21,7 @@ module.exports = {
         packageGenerator(package, output, '');
     },
     environment: (environ, output) => {
-        environmentGenerator(environ, output, '');
+        environGenerator(environ, output, '');
     },
     actors: (actors, output) => {
         actorsGenerator(actors, output + '/actors');
@@ -83,33 +89,23 @@ const indexGenerator = (name, output) => {
             packages: global.topPackage.subpackages,
             actors: global.actors,
             appName: name,
+            package: global.topPackage,
+            topPackage: global.topPackage,
+            packageName: global.topPackage.name,
+            shortname: ''
         },
         targets: {
-            './index.html': {template: '/templates/App/index.ejs'},
-            '../assets/js/d3.js': {copy: '/templates/App/js/d3.js'},
-            '../assets/js/three.js': {copy: '/templates/App/js/three.js'},
-            '../assets/js/aframe.js': {copy: '/templates/App/js/aframe.js'},
-            '../assets/js/Graph.js': {copy: '/templates/App/js/Graph.js'},
-            '../assets/js/Graph2D.js': {copy: '/templates/App/js/Graph2D.js'},
-            '../assets/js/Graph3D.js': {copy: '/templates/App/js/Graph3D.js'},
-            '../assets/js/3d-force-graph.js': {copy: '/templates/App/js/3d-force-graph.js'},
-            '../assets/js/d3-force-3d.js': {copy: '/templates/App/js/d3-force-3d.js'},
-            '../assets/js/Graph3DLogical.js': {copy: '/templates/App/js/Graph3DLogical.js'},
-            '../assets/js/d3-octree.js': {copy: '/templates/App/js/d3-octree.js'},
-            '../assets/js/forceInACube.js': {copy: '/templates/App/js/forceInACube.js'},
-            '../assets/js/less.js': {copy: '/templates/App/js/less.js'},
-            '../assets/js/socket.io.js': {copy: '/templates/App/js/socket.io.js'},
-            '../assets/styles/color.less': {copy: '/templates/App/styles/color.less'},
-            '../assets/styles/graph.less': {copy: '/templates/App/styles/graph.less'},
-            '../assets/styles/importer.less': {copy: '/templates/App/styles/importer.less'},
-            '../assets/styles/top.less': {copy: '/templates/App/styles/top.less'},
-            './app.html': {template: '/templates/App/app.ejs'},
+            './index.md': {template: '/templates/App/index.emd'},
+            './toc.md': {template: '/templates/App/toc.emd'},
             './plantuml.jar': {copy: '/templates/App/plantuml.jar'},
-            '../assets/js/less.js': {copy: '/templates/App/js/less.js'},
-            '../assets/styles/importer.less': {copy: '/templates/App/styles/docimporter.less'},
-            '../assets/styles/doc.less': {copy: '/templates/App/styles/doc.less'},
+            './usecases.puml': {template: '/templates/Package/UseCases.puml'},
+            './subpackage.puml': {template: '/templates/Package/SubPackage.puml'},
+            './usecases.md': {template: '/templates/App/UseCases.emd'},
+            './classes.md': {template: '/templates/App/classes.emd'},
+            './_config.yml': {template: '/templates/App/_config.yml'},
         }
     };
+    addDocs(global.topPackage, files,output, '');
     Generator.process(files, output);
 };
 const modelGenerator = (model, output, urlPath) => {
@@ -122,15 +118,15 @@ const modelGenerator = (model, output, urlPath) => {
             pageDir: '.' + urlPath + '/' + model.name.replace(/ /g,'').toLowerCase()
         },
         targets: {
-            './:modelnamenospace:/index.html': {template: '/templates/Model/index.ejs'},
-            './:modelnamenospace:/Logical.puml': {template: '/templates/Model/Logical.puml'},
-            './:modelnamenospace:/StateNet.puml': {template: '/templates/Model/StateNet.puml'},
+            './:modelnamenospace:/index.md': {template: '/templates/Model/index.emd'},
+            './:modelnamenospace:/logical.puml': {template: '/templates/Model/Logical.puml'},
+            './:modelnamenospace:/statenet.puml': {template: '/templates/Model/StateNet.puml'},
         }
     };
     addDocs(model, files, output + urlPath, urlPath);
     Generator.process(files, output + urlPath);
 };
-const packageGenerator = (package, output, urlPath) => {
+const packageGenerator = (package, output, urlPath, parent, grand_parent) => {
     let actors = {};
     for(let ucname in package.usecases) {
         let usecase = package.usecases[ucname];
@@ -145,6 +141,8 @@ const packageGenerator = (package, output, urlPath) => {
     }
     let files = {
         context: {
+            parent: parent,
+            grand_parent: grand_parent,
             basedir: output + urlPath + '/' + package.shortname,
             package: package,
             actors: actors,
@@ -154,14 +152,14 @@ const packageGenerator = (package, output, urlPath) => {
             pageDir: '.' + urlPath + '/' + package.shortname.replace(/ /g, '').toLowerCase()
         },
         targets: {
-            ':shortname:/index.html': {template: '/templates/Package/index.ejs'},
-            ':shortname:/Logical.puml': {template: '/templates/Package/Logical.puml'},
-            ':shortname:/UseCases.puml': {template: '/templates/Package/UseCases.puml'},
-            ':shortname:/UserInteraction.puml': {template: '/templates/Package/UserInteraction.puml'},
-            ':shortname:/Logical.puml': {template: '/templates/Package/Logical.puml'},
-            ':shortname:/SubPackage.puml': {template: '/templates/Package/SubPackage.puml'},
-            ':shortname:/Process.puml': {template: '/templates/Package/Process.puml'},
-            ':shortname:/ScenarioMapping.puml': {template: '/templates/Package/ScenarioMapping.puml'}
+            ':shortname:/index.md': {template: '/templates/Package/index.emd'},
+            ':shortname:/logical.puml': {template: '/templates/Package/Logical.puml'},
+            ':shortname:/usecases.puml': {template: '/templates/Package/UseCases.puml'},
+            ':shortname:/userinteraction.puml': {template: '/templates/Package/UserInteraction.puml'},
+            ':shortname:/logical.puml': {template: '/templates/Package/Logical.puml'},
+            ':shortname:/subpackage.puml': {template: '/templates/Package/SubPackage.puml'},
+            ':shortname:/process.puml': {template: '/templates/Package/Process.puml'},
+            ':shortname:/scenariomapping.puml': {template: '/templates/Package/ScenarioMapping.puml'}
         }
     };
     // Get the doc from the package and add them to the targets list
@@ -182,7 +180,7 @@ const packageGenerator = (package, output, urlPath) => {
     }
 
     for (let spname in package.subpackages) {
-        packageGenerator(package.subpackages[spname], output, urlPath + '/' + files.context.shortname);
+        packageGenerator(package.subpackages[spname], output, urlPath + '/' + files.context.shortname, package, parent);
     }
 };
 const useCaseGenerator = (usecase, output, urlPath) => {
@@ -198,7 +196,7 @@ const useCaseGenerator = (usecase, output, urlPath) => {
             pageDir: '.' + urlPath + '/' + usecase.name.replace(/ /g,'').toLowerCase()
         },
         targets: {
-            ':usecaseNameNoSpace:/index.html': {template: '/templates/UseCase/index.ejs'},
+            ':usecaseNameNoSpace:/index.md': {template: '/templates/UseCase/index.emd'},
             ':usecaseNameNoSpace:/Activities.puml': {template: '/templates/UseCase/Activities.puml'},
         }
     };
@@ -222,7 +220,7 @@ const scenarioGenerator = (usecase, scenario, output, urlPath) => {
                     pkg: act.pkg,
                     models: {}
                 }
-            }h
+            }
             if(act.cls) {
                 let name = act.cls.toLowerCase();
                 pkgs[act.pkg.shortname].models[name] = name;
@@ -271,15 +269,20 @@ const actorsGenerator = (actors, output) => {
         context: {
             actors: actors,
             actorPackages: apackages,
-            pageDir: output
+            pageDir: output,
+            basedir: output, 
+            shortname: ''
         },
         targets: {
-            '/index.html': {template: '/templates/Actor/all.ejs'},
+            '/index.md': {template: '/templates/Actor/all.emd'},
             '/Actors.puml': {template: '/templates/Actor/All.puml'},
         }
     };
+    let inputdir = global.ailtire.config.baseDir + '/actors';
+    addDocsByDir(actors, files,  inputdir, output,"./actors");
     Generator.process(files, output);
 };
+
 const environGenerator = (pkg, env, output, urlPath) => {
 
     let deploy = {
@@ -466,7 +469,7 @@ const environGenerator = (pkg, env, output, urlPath) => {
             pageDir: urlPath
         },
         targets: {
-            ':envName:/_index.ejs': {template: '/templates/Environment/_index.ejs'},
+            ':envName:/index.md': {template: '/templates/Environment/_index.emd'},
             ':envName:/deployment.puml': {template: '/templates/Environment/Deployment.puml'},
             ':envName:/physical.puml': {template: '/templates/Environment/Physical.puml'},
         }
@@ -494,13 +497,13 @@ const actorGenerator = (actor, output) => {
     let files = {
         context: {
             actor: actor,
-            basedir: output,
+            basedir: output + '/' + actor.shortname,
             actorNameNoSpace: actor.shortname,
             actorPackages: apackages,
             pageDir: './actors/' + actor.shortname
         },
         targets: {
-            ':actorNameNoSpace:/index.html': {template: '/templates/Actor/index.ejs'},
+            ':actorNameNoSpace:/index.md': {template: '/templates/Actor/index.emd'},
             ':actorNameNoSpace:/UseCase.puml': {template: '/templates/Actor/UseCase.puml'},
         }
     };
@@ -520,6 +523,33 @@ const actorGenerator = (actor, output) => {
     Generator.process(files, output);
 };
 
+const addDocsByDir = (obj, files, input, output, urlPath) => {
+    let newFiles = {
+        targets: {},
+        context: {}
+    }
+    for(let name in files.context) {
+        newFiles.context[name] = files.context[name];
+    }
+    newFiles.context.pageDir = '.' + urlPath + '/' + files.context.shortname;
+    let ipath = path.resolve(input + '/doc');
+    if(isDirectory(ipath)) {
+        let files = getFiles(ipath);
+        for(let i in files) {
+            let file = files[i];
+            let sourcefile = path.resolve(file);
+            file = path.basename(file);
+            if(file.includes('.emd')) {
+                newFiles.targets[`:shortname:/${file}`] = {template:`${sourcefile}`};
+            }
+            else {
+                newFiles.targets[`:shortname:/${file}`] = {copy:`${sourcefile}`};
+            }
+        }
+    }
+    Generator.process(newFiles, output);
+}
+
 const addDocs = (obj, files, output, urlPath) => {
     let newFiles = {
         targets: {},
@@ -534,7 +564,7 @@ const addDocs = (obj, files, output, urlPath) => {
         for (let i in obj.doc.files) {
             let file = obj.doc.files[i];
             let sourcefile = path.resolve(obj.doc.basedir + file);
-            if(file.includes('.ejs')) {
+            if(file.includes('.emd')) {
                 newFiles.targets[`:shortname:/${file}`] = {template:`${sourcefile}`};
             }
             else {

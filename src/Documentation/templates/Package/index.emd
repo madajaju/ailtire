@@ -1,0 +1,190 @@
+<% let packageNoSpaces = package.name.replace(/ /g, ''); -%>
+---
+layout: default
+title: <%= package.name %>
+permalink: package-<%= package.prefix.replace(/\//g, '-') %>
+<% if(parent) { -%>
+parent: <%= parent.name %>
+<% } -%>
+<% if(grand_parent) { -%>
+grand_parent: <%= grand_parent.name %>
+<% } -%>
+<% if(package.subpackages) { -%>
+has_children: true
+<% } -%>
+---
+# <%= package.name %>
+
+<%= package.description %>
+
+<%- partial(basedir + '/doc.emd', {obj:package}) %>
+
+## Use Cases
+
+The following are the use cases of the <%= package.name %> subsystem. Each use case has primary and secondary scenarios
+that are elaborated in the use case descriptions.
+
+<% for(let uname in package.usecases) {
+let uc = package.usecases[uname];
+let ucName = uc.name;
+let prefix = uc.prefix;
+-%>
+* [<%= ucName %>](usecase-<%= uname %>)
+<% } %>
+
+![UseCase Diagram](./usecases.svg)
+
+## Users
+
+The following are the actors of the <%= package.name %> subsystem. This can include people, other subsystems 
+inside the solution and even external subsystems. 
+
+<% for(let aname in actors) {
+-%>
+* [<%= actors[aname].name %>](actor-<%= actors[aname].shortname %>)
+<% } %>
+
+![User Interaction](./userinteraction.svg)
+
+## Interface
+
+The subsystem has a REST, CLI, WebSocket, and Web interface. Use Cases and Scenarios can use any or all
+of the interfaces to perform the work that needs to be completed. The following  diagram shows how
+users interact with the system.
+
+![Scenario Mappings Diagram](./scenariomapping.svg)
+
+<% for(let mname in package.interface) {
+let method = package.interface[mname]
+let methodname = mname.replace(/\//g, '-');
+-%>
+* [<%= mname.replace(/\//g, ' ') %>](#action-<%= methodname %>)
+<% } %>
+
+## Logical Artifacts
+
+The Data Model for the  <%- package.name %> subsystem shows how the different objects and classes of object interact
+and their structure.
+
+![Sub Package Diagram](./subpackage.svg)
+
+### Sub Packages
+
+The <%= package.name %> subsystem has sub packages as well. These subsystems are logical components to better
+organize the architecture and make it easier to analyze, understand, design, and implement.
+
+<% for(let sname in package.subpackages) {
+    let spkg = package.subpackages[sname];
+    let spkgNoSpace = spkg.name.replace(/ /g, '');
+-%>
+* [<%= spkg.name %>](package-<%= spkg.prefix.replace(/\//g, '-') %>)
+<% } %>
+
+![Logical Diagram](./logical.svg)
+
+### Classes
+
+The following are the classes in the data model of the <%= package.name %> subsystem.
+
+<% for(let cname in package.classes) {
+    let cls = package.classes[cname].definition;
+    let clsNoSpace = package.prefix + '/' + cls.name.replace(/ /g, '');
+-%>
+* [<%= cls.name %>](class-<%= cname %>)
+<% } %>
+
+
+## Deployment Architecture
+
+This subsystem is deployed using micro-services as shown in the diagram below. The 'micro' module is
+used to implement the micro-services in the system. The subsystem also has an CLI, REST and Web Interface
+exposed through a nodejs application. The nodejs application will interface with the micro-services and
+can monitor and drive work-flows through the mesh of micro-services. The deployment of the subsystem is 
+dependent on the environment it is deployed. This subsystem has the following environments:
+<% for(let ename in package.deploy.envs) {
+let env = package.deploy.envs[ename];
+-%>
+* [<%= ename %>](environment-<%= package.prefix.replace(/\//g, '-')%>-<%= ename %>)
+<% } %>
+
+
+## Physical Architecture
+
+The <%= package.name %> subsystem is physically laid out on a hybrid cloud infrastructure. Each microservice belongs
+to a secure micro-segmented network. All of the micro-services communicate to each other and the main app through a
+REST interface. A Command Line Interface (CLI), REST or Web User interface for the app is how other subsystems or actors 
+interact. Requests are forwarded to micro-services through the REST interface of each micro-service. The subsystem has
+the a unique layout based on the environment the physical space. The following are the environments for this
+subsystems.
+<% for(let ename in package.deploy.envs) {
+let env = package.deploy.envs[ename];
+-%>
+* [<%= ename %>](environment-<%= package.prefix.replace(/\//g, '-')%>-<%= ename %>)
+<% } %>
+
+## Micro-Services
+
+These are the micro-services for the subsystem. The combination of the micro-services help implement
+the subsystem's logic.
+<% for(let ename in package.deploy.envs) {
+    let env = package.deploy.envs[ename];
+%>
+
+### <%= ename %>
+
+Detail information for the [<%= ename %> environment](environment-<%= package.prefix.replace(/\//g, '-')%>-<%= ename %>)
+can be found [here](environment-<%= package.prefix.replace(/\//g, '-') %>-<%= ename %>)
+
+Services in the <%= ename %> environment
+
+<% for(let sname in env.definition.services) {
+    let service = env.definition.services[sname];
+-%>
+* <%= sname %> : <%= service.image %>
+<% } 
+} %>
+
+## Activities and Flows
+The <%= package.name %> subsystem provides the following activities and flows that help satisfy the use
+cases and scenarios of the subsystem.
+
+<% if(package.handles && package.handler.size > 0) {
+-%>
+
+### Messages Handled
+
+The <%= package.name %> subsystem is an event driven architecture and handle several events. The following
+events are handled by this subsystem. Please note that this subsystem is not the only subsystem that handles
+these events.
+
+| Message | Action | Description | 
+| --- | --- | --- |
+<% for(let name in package.handlers) {
+let handler = package.handlers[name];
+let message = handler.name;
+for(let i in handler.handlers) {
+let h = handler.handlers[i];
+let action = h.action || "Custom Action" ;
+-%>
+| <%= message %> | <%= action %> | <% h.description %> |
+<%
+}
+}
+} %>
+
+
+### Messages Sent
+
+TBD
+
+## Interface Details
+The <%= package.name %> subsystem has a well defined interface. This interface can be accessed using a
+command line interface (CLI), REST interface, and Web user interface. This interface is how all other
+subsystems and actors can access the system.
+
+<% for(let mname in package.interface) {
+let method = package.interface[mname]
+method.name = mname;
+-%>
+<%- partial("./templates/Action/index.emd", {action: method}) %>
+<% } %>

@@ -1,88 +1,67 @@
-<h3><%= environ.name %></h3>
+---
+layout: default
+title: Environment <%= environ.name %>
+permalink: environment-<%= pkg.prefix.replace(/\//g, '-') %>-<%= environ.name %>
+nav_exclude: true
+---
+
+### <%= environ.name %>
 <%= environ.description %>
 
-<h4>Deployment</h4>
+#### Deployment
 This subsystem is deployed using micro-services as shown in the diagram below.
 The subsystem also has an CLI, REST and Web Interface exposed through frontend service that routes
 all paths to the appropriate microservices.
 
-<img src='<%= pageDir %>/envs/<%= environ.name %>/Deployment.puml'> </img>
+![Deployment Diagram](./deployment.svg)
 
-<h4>Physical Architecture</h4>
+#### Physical Architecture
 The <%= package.name %> subsystem is physically laid out on a hybrid cloud infrastructure.
 Each micro-service communicates with each other through overlay networks as defined in the diagram
 above. Each micro-service has three interfaces exposed Command Line Interface (CLI), Websocket (socket.io),
 and a REST interface. This allows for scripting, event programing and connectivity through a common
 REST interface.
-<img src='<%= pageDir %>/envs/<%= environ.name %>/Physical.puml'> </img>
 
-<h4>Micro-Services</h4>
+![Physical Diagram](./physical.svg)
+
+#### Micro-Services
 These are the micro-services for the deployment of the subsystem. The combination of the micro-services help implement
 the subsystem's logic.
-<table>
-    <thead>
-        <th>Name</th>
-        <th>Image</th>
-        <th>Mapping</th>
-        <th>Ports</th>
-        <th>Network</th>
-    </thead>
-    <tbody>
-    <% for(let sname in deploy.services) {
-        let service = deploy.services[sname];
-    %>
-    <tr>
-        <td><%= sname %></td>
-        <td><%= service.image %></td>
-        <td><%= service.path %></td>
-        <td><%= service.ports %></td>
-        <td><%= Object.keys(service.networks) %></td>
-    </tr>
-    <% } %>
-    </tbody>
-</table>
 
-<h4>Networks</h4>
+| Name | Image | Mapping | Ports | Network |
+| --- | --- | --- | --- | --- |
+<% for(let sname in deploy.services) {
+    let service = deploy.services[sname];
+-%>
+| <%= sname %> | <%= service.image %> | <%= service.path %> | <%= service.ports %> | <%= Object.keys(service.networks) %> |
+<% } %>
+
+#### Networks
+
 The networks connect the microservices of this stack together in a micro-segmented network.
 There are also Ingress and Egress networks for connected to the stack (ingress) and connected from
 the stack (egress). Most of the egress networks are for substacks in the stack itself. This enables
 the creation of aggregation of stacks and substacks and still keep the microsegmentation of each
 stack in a layer of networks.
-<table>
-    <thead>
-        <th>Name</th>
-        <th>Type</th>
-        <th>External Name</th>
-        <th>Ports</th>
-    </thead>
+
+| Name | Type | External Name | Ports |
+| --- | --- | --- | --- |
 <% for(let nname in deploy.networks) {
-    let net = deploy.networks[nname];
-%>
-    <tr>
-        <td><%= net.name %></td>
-        <td><%= net.type %></td>
-        <td><%= net.externalName %></td>
-    </tr>
+let net = deploy.networks[nname];
+-%>
+| <%= net.name %> | <%= net.type %> | <%= net.externalName %> |
 <% }
- %>
-</table>
+%>
 
 The Stack is micro-segmented off and there are a set of ports that are open for the ingress networks. The following
 table shows the ports available and the internal port mappings and services on those ports.
 
-<table>
-    <thead>
-        <th>External Access Port</th>
-        <th>To Port</th>
-        <th>Service</th>
-    </thead>
+| External Access Port | To Port | Service |
+| --- | --- | --- |
 <% for(let aport in deploy.ports) {
     let map = deploy.ports[aport];
-%>
-    <tr>
-        <td><%= aport %></td>
-        <td><%= map.port %></td>
-        <td><%= map.service %></td>
-    </tr>
+-%>
+| <%= aport %> | <%= map.port %> | <%= map.service %> |
 <% } %>
-</table>
+
+

@@ -1,0 +1,16 @@
+### Action <%= action.name.replace(/\//g, ' ') %>
+
+* REST - <%= action.name %>
+* bin - <%= action.name.replace(/\//g, ' '); %>
+* js - <%= action.name.replace(/\//g, '.'); %>
+
+<%= action.description %>
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+<% for(let iname in action.inputs)  {
+    let input = action.inputs[iname];
+-%>
+| <%= iname %> | <%= input.type %> |<%= input.required %> | <%= input.description %> |
+<% } %>
+

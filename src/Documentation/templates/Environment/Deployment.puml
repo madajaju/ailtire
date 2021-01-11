@@ -42,7 +42,7 @@ entity <%= nname %> <%= ncolor %>
 for(let sname in deploy.stacks) {
     let stack = deploy.stacks[sname];
 -%>
-stack "<%= stack.name %>" as <%= stack.id %> #<%= stack.color.replace(/\#/, '')  %> {
+rectangle "<%= stack.name %>" as <%= stack.id %> #<%= stack.color.replace(/\#/, '')  %> {
     queue <%= stack.id %>snet <%= egressColor %> [
         <b><color:white>parent</color></b>
     ]
