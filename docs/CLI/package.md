@@ -1,6 +1,6 @@
 ---
 layout: default
-title: cli-package
+title: ailtire package
 permalink: cli-package
 parent: Command Line Interface
 has_children: true

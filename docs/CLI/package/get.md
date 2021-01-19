@@ -1,8 +1,8 @@
 ---
 layout: default
-title: cli-package-get
+title: ailtire package get
 permalink: cli-package-get
-parent: cli-package
+parent: ailtire package 
 grand_parent: Command Line Interface
 ---
 

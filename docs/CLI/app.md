@@ -1,6 +1,6 @@
 ---
 layout: default 
-title: cli-app
+title: ailtire app
 permalink: cli-app
 parent: Command Line Interface
 has_children: true

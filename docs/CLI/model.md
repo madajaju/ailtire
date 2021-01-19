@@ -1,6 +1,6 @@
 ---
 layout: default 
-title: cli-model
+title: ailtire model
 permalink: cli-model
 parent: Command Line Interface
 has_children: true

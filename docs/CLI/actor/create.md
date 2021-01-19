@@ -1,9 +1,10 @@
 ---
 layout: default
-title: actor create
+title: ailtire actor create
 permalink: cli-actor-create
-parent: cli-actor
+parent: ailtire actor
 grand_parent: Command Line Interface
+has_children: false
 ---
 
 # ailtire actor create

@@ -1,8 +1,7 @@
 ---
 layout: default
-title: actor
+title: Actor
 permalink: actor
-has_children: true
 parent: Architecture
 ---
 

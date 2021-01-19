@@ -1,8 +1,8 @@
 ---
 layout: default 
-title: cli-scenario-create 
+title: ailtire scenario create 
 permalink: cli-scenario-create 
-parent: cli-scenario 
+parent: ailtire scenario 
 grand_parent: Command Line Interface
 ---
 

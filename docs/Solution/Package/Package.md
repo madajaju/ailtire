@@ -1,8 +1,7 @@
 ---
 layout: default
-title: package
+title: Package
 permalink: package
-has_children: true
 parent: Architecture
 ---
 

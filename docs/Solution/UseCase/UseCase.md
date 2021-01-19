@@ -1,8 +1,7 @@
 ---
 layout: default
-title: UseCase
+title: Use Case
 permalink: usecase
-has_children: true
 parent: Architecture
 ---
 # UseCase

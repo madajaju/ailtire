@@ -1,8 +1,8 @@
 ---
 layout: default
-title: cli-package-list
+title: ailtire package list
 permalink: cli-package-list
-parent: cli-package
+parent: ailtire package 
 grand_parent: Command Line Interface
 ---
 

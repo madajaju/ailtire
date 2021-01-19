@@ -1,8 +1,8 @@
 ---
 layout: default 
-title: cli-model-create 
+title: ailtire model create 
 permalink: cli-model-create 
-parent: cli-model 
+parent: ailtire model 
 grand_parent: Command Line Interface
 ---
 

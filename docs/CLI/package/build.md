@@ -1,8 +1,8 @@
 ---
 layout: default 
-title: cli-package-build 
+title: ailtire package build 
 permalink: cli-package-build 
-parent: cli-package 
+parent: ailtire package  
 grand_parent: Command Line Interface
 ---
 

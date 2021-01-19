@@ -1,8 +1,8 @@
 ---
 layout: default 
-title: cli-package-create 
+title: ailtire package create 
 permalink: cli-package-create 
-parent: cli-package 
+parent: ailtire package  
 grand_parent: Command Line Interface
 ---
 

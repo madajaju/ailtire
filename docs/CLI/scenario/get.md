@@ -1,8 +1,8 @@
 ---
 layout: default
-title: cli-scenario-get
+title: ailtire scenario get
 permalink: cli-scenario-get
-parent: cli-scenario
+parent: ailtire scenario
 grand_parent: Command Line Interface
 ---
 
