@@ -1,0 +1,25 @@
+@startuml
+class "Package" as p {
+    shortname: string
+    name: string
+    description: string
+    color: string
+}
+class Model {
+}
+class Handler {
+}
+class Interface {
+}
+class "Use Case" as uc {
+}
+class "Deployment" as d {
+}
+
+p *--> Interface : interfaces
+p "0" *-> "n" p : subpackages
+p *--> Model: models
+p *--> Handler: handlers
+p *--> uc: usecases
+p *--> d : deploy
+@enduml

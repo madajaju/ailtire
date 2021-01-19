@@ -1,0 +1,17 @@
+@startuml
+
+class Scenario {
+    name : string
+    description: string
+    method: string
+}
+class Actor {
+}
+class Step {
+    action: string
+    parameters: Map
+}
+
+Scenario o-> Actor : actors
+Scenario "0" *--> "n" Step : steps
+@enduml

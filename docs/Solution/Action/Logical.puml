@@ -1,0 +1,23 @@
+@startuml
+
+interface CLI
+interface REST
+interface WEBUI
+
+rectangle Action #lightblue {
+    folder "mypackage/interface" as mi  #white {
+        artifact action1.js
+        artifact action2.js
+    }
+    folder "mypackage/models/mymodel" as mmm  #white {
+        artifact actionA.js
+        artifact actionB.js
+    }
+}
+
+CLI -- Action
+REST -- Action
+WEBUI -- Action
+
+
+@enduml
