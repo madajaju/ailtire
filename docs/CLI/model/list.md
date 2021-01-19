@@ -3,7 +3,7 @@ layout: default
 title: cli-model-list
 permalink: cli-model-list
 parent: cli-model
-grand_parent: cli
+grand_parent: Command Line Interface
 ---
 
 # ailtire model list

@@ -3,7 +3,7 @@ layout: default
 title: cli-actor-list
 permalink: cli-actor-list
 parent: cli-actor
-grand_parent: cli
+grand_parent: Command Line Interface
 ---
 
 # ailtire actor list

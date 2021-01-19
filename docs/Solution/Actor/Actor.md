@@ -1,9 +1,9 @@
 ---
 layout: default
-title: action
-permalink: action
+title: actor
+permalink: actor
 has_children: true
-parent: architecture
+parent: Architecture
 ---
 
 # Actor

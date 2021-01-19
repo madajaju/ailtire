@@ -1,5 +1,9 @@
 ---
-layout: default title: cli-actor permalink: cli-actor parent: cli has_children: true
+layout: default
+title: ailtire actor
+permalink: cli-actor
+parent: Command Line Interface
+has_children: true
 ---
 
 # ailtire actor

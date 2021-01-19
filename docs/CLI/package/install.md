@@ -3,7 +3,7 @@ layout: default
 title: cli-package-install 
 permalink: cli-package-install 
 parent: cli-package 
-grand_parent: cli
+grand_parent: Command Line Interface
 ---
 
 # ailtire package install

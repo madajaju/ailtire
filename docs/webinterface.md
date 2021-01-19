@@ -1,6 +1,6 @@
 ---
 layout: default
-title: webinterface
+title: Web Interface
 permalink: webinterface
 has_children: false
 ---

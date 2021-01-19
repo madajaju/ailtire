@@ -2,7 +2,7 @@
 layout: default
 title: cli-scenario
 permalink: cli-scenario
-parent: cli
+parent: Command Line Interface
 has_children: true
 ---
 

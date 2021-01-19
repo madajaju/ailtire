@@ -3,7 +3,7 @@ layout: default
 title: cli-package-build 
 permalink: cli-package-build 
 parent: cli-package 
-grand_parent: cli
+grand_parent: Command Line Interface
 ---
 
 # ailtire package build

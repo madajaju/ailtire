@@ -2,7 +2,7 @@
 layout: default
 title: cli-package
 permalink: cli-package
-parent: cli
+parent: Command Line Interface
 has_children: true
 ---
 

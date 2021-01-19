@@ -1,4 +1,4 @@
-###  [ [__Website__](https://madajaju.github.io/ailtire) ] [ [Get Started](https://madajaju.github.io/ailtire/getstarted) ] [ [Submit an Issue](https://github.com/madajaju/ailtire/issues) ]
+###  [ [__Website__](https://madajaju.github.io/ailtire) ] [ [Get Started](https://madajaju.github.io/ailtire/gettingstarted) ] [ [Submit an Issue](https://github.com/madajaju/ailtire/issues) ]
 
 --- 
 
