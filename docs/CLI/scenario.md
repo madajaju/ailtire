@@ -1,6 +1,6 @@
 ---
 layout: default
-title: cli-scenario
+title: ailtire scenario
 permalink: cli-scenario
 parent: Command Line Interface
 has_children: true

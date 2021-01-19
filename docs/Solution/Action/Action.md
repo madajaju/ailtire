@@ -1,8 +1,7 @@
 ---
 layout: default
-title: action
+title: Action
 permalink: action
-has_children: true
 parent: Architecture
 ---
 

@@ -1,8 +1,8 @@
 ---
 layout: default 
-title: cli-package-uninstall 
+title: ailtire package uninstall 
 permalink: cli-package-uninstall 
-parent: cli-package 
+parent: ailtire package  
 grand_parent: Command Line Interface
 ---
 

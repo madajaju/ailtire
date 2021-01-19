@@ -1,8 +1,7 @@
 ---
 layout: default
-title: scenario
+title: Scenario
 permalink: scenario
-has_children: true
 parent: Architecture
 ---
 

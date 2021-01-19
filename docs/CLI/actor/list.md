@@ -1,9 +1,10 @@
 ---
 layout: default
-title: cli-actor-list
+title: ailtire actor list
 permalink: cli-actor-list
-parent: cli-actor
+parent: ailtire actor
 grand_parent: Command Line Interface
+has_children: false
 ---
 
 # ailtire actor list

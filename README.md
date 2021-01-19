@@ -2,8 +2,9 @@
 
 --- 
 
-# Overview 
 ![Ailtire Logo](./docs/logo.svg)
+# Overview 
+
 
 Ailtire (architect in Scottish Gaelic) is a framework that allows system architects to design systems using UML
 architectural elements as code. The UML elements supported are Actors, UseCases, Scenarios, Classes, and Packages.

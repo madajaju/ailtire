@@ -1,8 +1,8 @@
 ---
 layout: default
-title: cli-model-list
+title: ailtire model list
 permalink: cli-model-list
-parent: cli-model
+parent: ailtire model
 grand_parent: Command Line Interface
 ---
 

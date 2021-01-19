@@ -1,8 +1,8 @@
 ---
 layout: default 
-title: cli-scenario-launch 
+title: ailtire scenario launch 
 permalink: cli-scenario-launch 
-parent: cli-scenario 
+parent: ailtire scenario 
 grand_parent: Command Line Interface
 ---
 

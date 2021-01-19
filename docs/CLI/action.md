@@ -1,6 +1,6 @@
 ---
 layout: default 
-title: cli-action
+title: ailtire action
 permalink: cli-action
 parent: Command Line Interface
 has_children: true

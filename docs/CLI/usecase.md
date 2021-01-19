@@ -1,6 +1,6 @@
 ---
 layout: default 
-title: cli-usecase
+title: ailtire usecase
 permalink: cli-usecase
 parent: Command Line Interface
 has_children: true

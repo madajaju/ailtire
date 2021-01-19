@@ -1,8 +1,7 @@
 ---
 layout: default
-title: model
+title: Model
 permalink: model
-has_children: true
 parent: Architecture
 ---
 

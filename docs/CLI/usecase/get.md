@@ -1,8 +1,8 @@
 ---
 layout: default
-title: cli-usecase-get
+title: ailtire usecase get
 permalink: cli-usecase-get
-parent: cli-usecase
+parent: ailtire usecase
 grand_parent: Command Line Interface
 ---
 

@@ -1,9 +1,10 @@
 ---
 layout: default
-title: cli-actor-get
+title: ailtire actor get
 permalink: cli-actor-get
-parent: cli-actor
+parent: ailtire actor
 grand_parent: Command Line Interface
+has_children: false
 ---
 
 # ailtire actor get
