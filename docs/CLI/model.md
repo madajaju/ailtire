@@ -2,7 +2,7 @@
 layout: default 
 title: cli-model
 permalink: cli-model
-parent: cli
+parent: Command Line Interface
 has_children: true
 ---
 

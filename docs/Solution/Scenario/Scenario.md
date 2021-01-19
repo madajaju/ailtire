@@ -3,7 +3,7 @@ layout: default
 title: scenario
 permalink: scenario
 has_children: true
-parent: architecture
+parent: Architecture
 ---
 
 # Scenario

@@ -3,7 +3,7 @@ layout: default
 title: cli-usecase-get
 permalink: cli-usecase-get
 parent: cli-usecase
-grand_parent: cli
+grand_parent: Command Line Interface
 ---
 
 # ailtire usecase get

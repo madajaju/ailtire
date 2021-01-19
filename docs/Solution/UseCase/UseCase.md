@@ -1,3 +1,10 @@
+---
+layout: default
+title: UseCase
+permalink: usecase
+has_children: true
+parent: Architecture
+---
 # UseCase
 
 The Use Case is how an [Actor](actor) interacts with the system architected.

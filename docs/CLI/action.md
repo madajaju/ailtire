@@ -2,7 +2,7 @@
 layout: default 
 title: cli-action
 permalink: cli-action
-parent: cli
+parent: Command Line Interface
 has_children: true
 ---
 

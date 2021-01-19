@@ -1,6 +1,6 @@
 ---
 layout: default
-title: deployment
+title: Deployment
 permalink: deployment
 has_children: false
 ---

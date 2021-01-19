@@ -2,7 +2,7 @@
 layout: default 
 title: cli-usecase
 permalink: cli-usecase
-parent: cli
+parent: Command Line Interface
 has_children: true
 ---
 

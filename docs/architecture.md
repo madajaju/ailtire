@@ -1,6 +1,6 @@
 ---
 layout: default
-title: architecture
+title: Architecture
 permalink: architecture
 has_children: true
 ---

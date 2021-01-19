@@ -3,7 +3,7 @@ layout: default
 title: package
 permalink: package
 has_children: true
-parent: architecture
+parent: Architecture
 ---
 
 # Package

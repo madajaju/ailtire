@@ -1,6 +1,6 @@
 ---
 layout: default
-title: gettingstarted
+title: Getting Started
 permalink: gettingstarted
 has_children: false
 ---

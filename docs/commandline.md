@@ -1,6 +1,6 @@
 ---
 layout: default
-title: cli
+title: Command Line Interface
 permalink: cli
 has_children: true
 ---

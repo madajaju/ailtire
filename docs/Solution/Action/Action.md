@@ -3,7 +3,7 @@ layout: default
 title: action
 permalink: action
 has_children: true
-parent: architecture
+parent: Architecture
 ---
 
 # Action

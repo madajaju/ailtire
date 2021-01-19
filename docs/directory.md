@@ -1,6 +1,6 @@
 ---
 layout: default
-title: directory
+title: Directory
 permalink: directory
 has_children: false
 ---

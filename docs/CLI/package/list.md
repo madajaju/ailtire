@@ -3,7 +3,7 @@ layout: default
 title: cli-package-list
 permalink: cli-package-list
 parent: cli-package
-grand_parent: cli
+grand_parent: Command Line Interface
 ---
 
 # ailtire package list

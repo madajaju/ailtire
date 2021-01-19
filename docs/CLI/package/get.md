@@ -3,7 +3,7 @@ layout: default
 title: cli-package-get
 permalink: cli-package-get
 parent: cli-package
-grand_parent: cli
+grand_parent: Command Line Interface
 ---
 
 # ailtire package get

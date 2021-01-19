@@ -3,7 +3,7 @@ layout: default
 title: model
 permalink: model
 has_children: true
-parent: architecture
+parent: Architecture
 ---
 
 # Model

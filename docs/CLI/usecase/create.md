@@ -3,7 +3,7 @@ layout: default
 title: cli-usecase-create 
 permalink: cli-usecase-create 
 parent: cli-usecase 
-grand_parent: cli
+grand_parent: Command Line Interface
 ---
 
 # ailtire usecase create
