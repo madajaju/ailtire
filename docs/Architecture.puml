@@ -1,0 +1,76 @@
+@startuml
+
+skinparam packageStyle rect
+
+package ailtire #lightgray {
+    package "Use Case Model" #white {
+        package "UseCase" #lightblue {
+        }
+        package "Scenario" #lightblue {
+        }
+        package "Step" #lightblue {
+        }
+        package "Actor" #lightblue {
+        }
+    }
+    package "Deployment" #white {
+        package "Test" #pink {
+        }
+        package "Environment" #pink {
+        }
+        package "Container" #pink {
+        }
+        package "Interface" #pink {
+        }
+    }
+    package "Process" #white {
+        package "Micro-Service" as ms #ffccaa {
+        }
+        package "Micro-Segmented\nNetwork" as msn #ffccaa {
+        }
+        package "Service Stack" as ss #ffccaa {
+        }
+        ss "n" *--> "1" ms
+        ss "n" *--> "1" msn
+    }
+    package Logical #white {
+        package "Package" as pkg #lightgreen {
+        }
+        package "Action" #lightgreen {
+        }
+        package "Model" as Model #lightgreen {
+        }
+    }
+    Scenario -> Step
+    Environment --> Container
+    Step --> Action
+    Action --> Interface
+    Container -> Interface
+    UseCase "1" *--> "n" Scenario
+    UseCase "1" <- "n" Actor
+    pkg "1" .> "n" ms
+    pkg "1" .> "n" ss
+    Scenario .> Action
+    pkg -> UseCase
+    pkg --> Model
+
+    Actor ..> Test
+    UseCase ..> Test
+    Scenario ..> Test
+    Test ..> Action
+
+    Model -> Action
+    pkg -> Action
+
+    package "Implementation" #white {
+      package actors #lightyellow { }
+      package api #lightyellow { }
+      package views #lightyellow { }
+      package bin #lightyellow { }
+      package test #lightyellow { }
+      package docs #lightyellow { }
+    }
+}
+
+@enduml
+

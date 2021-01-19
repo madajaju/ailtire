@@ -1,0 +1,40 @@
+@startuml
+
+class Model {
+    name : string
+    description: string
+}
+class Attribute {
+    name: string
+    type: string
+    description: string
+}
+class Association {
+    type: string
+    cardinality : string
+    composition : boolean
+    owner: boolean
+    via: string
+}
+class Action {
+    name: string
+    inputs: Map
+    fn: function
+}
+class StateNet {
+    states: State
+    transitions: Transition
+    events: Event
+}
+class View {
+    object2D : function
+    object3D : function
+}
+
+Model "0" *->  "n" Association
+Model "0" *-->  "n" Attribute
+Action "n" <-* "0" Model
+StateNet <--* Model
+Model *---> View
+
+@enduml

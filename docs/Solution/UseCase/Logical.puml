@@ -1,0 +1,16 @@
+@startuml
+
+class "Use Case" as uc {
+    name: string
+    description: string
+    method: string
+}
+class Actor {
+}
+class Scenario {
+}
+uc "1" o-> "n" Actor
+uc "1" *--> "n" Scenario
+
+@enduml
+

@@ -5,7 +5,7 @@ let nameNoSpaces = scenario.name.replace(/ /g, '');
 
 <%= scenario.description %>
 
-![Scenario nameNoSpaces](./<%= scenario.name.replace(/\s/g,'') %>.svg)
+![Scenario <%=nameNoSpaces%>](./<%= scenario.name.replace(/\s/g,'').toLowerCase() %>.svg)
 
 #### Steps
 <%

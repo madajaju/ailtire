@@ -45,7 +45,7 @@ const appGenerator = (app, output) => {
             path: output
         },
         targets: {
-            'index.js': {template: '/templates/App/index.js'},
+            'index.js': {template: '/templates/App/index.ejs'},
             'package.json': {template: '/templates/App/package.json'},
             'api/index.js': {template: '/templates/App/apiIndex.js'},
             'api/interface': {folder: true},

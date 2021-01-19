@@ -24,7 +24,8 @@ module.exports = {
         }
         for (let file in targets) {
             let bfile = baseDir + '/' + file;
-            bfile = bfile.toLowerCase();
+            // Cannot make everything lowercase it does not look good.
+            // bfile = bfile.toLowerCase();
             processItem(targets[file], bfile, files.context);
         }
     }

@@ -278,6 +278,7 @@ const execute = (action, inputs, env) => {
                 if (typeof inputs[i] === input.type) {
                     finputs[i] = inputs[i];
                 } else {
+                    console.error("Error with action:", action.friendlyName, action.description);
                     console.error("Type Mismatch for: ", i, "expecting", input.type, "got", typeof inputs[i]);
                 }
             } else {
@@ -290,7 +291,8 @@ const execute = (action, inputs, env) => {
             if (typeof inputs[i] === action.inputs[i].type) {
                 finputs[i] = inputs[i];
             } else {
-                console.error("Type Mismatch for: ", i, "expecting", inputs.type, "got", typeof inputs[i]);
+                console.error("Error with action:", action.friendlyName, action.description);
+                console.error("Type Mismatch for: ", i, "expecting", action.inputs[i].type, "got", typeof inputs[i]);
             }
         } else {
             finputs[i] = inputs[i];
