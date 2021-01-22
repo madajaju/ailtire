@@ -12,7 +12,6 @@ with a CLI, REST or Web Interface.
 
 ## Command Line Interface
 
-
 ```shell
 # Create a interface action for MyPackage
 ailtire action create --name "actionname" --package "MyPackage"
@@ -22,6 +21,8 @@ ailtire action create --name "actionname" --package "MyPackage"
 ailtire action create --name "actionname" --model "MyClass"
 # Generates api/MyPackage/models/MyClass/actioname.js
 ```
+
+See [ailtire action create](cli-action) for more information.
 
 ## Generated Artifacts
 

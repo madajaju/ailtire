@@ -1,0 +1,23 @@
+@startuml
+
+class action {
+    name : string
+    obj1: object
+    flag: boolean
+    definition: json
+    num: number
+}
+
+interface websocket {
+    actionname
+    data: parameters, object
+}
+
+interface REST {
+    actionname
+    parameters
+}
+interface CLI {
+    actionname
+}
+@enduml

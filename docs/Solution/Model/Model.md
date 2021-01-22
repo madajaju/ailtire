@@ -159,21 +159,18 @@ the model index.js file. The following is a simple example of a StateNet for a m
 statenet: {
     Init: {
         description: "This is the default initial state of an instances of the model",
-            events
-    :
-        {
+            events:
+            {
             create: {
                 Enabled: {
                 }
-            }
-        ,
+            },
             reserve: {
                 Enabled: {
                 }
             }
         }
-    }
-,
+    },
     Enabled: {
         description: "This state says that the model instance is enabled and can be used."
         events: {
@@ -182,8 +179,7 @@ statenet: {
                 }
             }
         }
-    }
-,
+    },
     Disabled: {
         description: "This state says the model instance cannot be used."
         events: {
@@ -193,7 +189,6 @@ statenet: {
             }
         }
     }
-,
 ```
 
 In this example there are three states in the statenet:
