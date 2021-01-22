@@ -3,7 +3,6 @@ layout: default
 title: ailtire action
 permalink: cli-action
 parent: Command Line Interface
-has_children: true
 ---
 
 # ailtire action
@@ -14,44 +13,40 @@ Manage ailtire actions. This includes the creation of an actions.
 
 ```shell
 ailtire action <command> [args]
-
-ailtire app build --env <environment name> --name <name of the build>
-ailtire app create --name <app name> --path <file path>
-ailtire app docs
-ailtire app install --env <environment name> --name <name of the installation>
-ailtire app status --env <environment name> --name <name of the installation>
-ailtire app uninstall --env <environment name> --name <name of the installation>
+ailtire action create --name "myaction" --package "myPackage"
+ailtire action create --name "myaction" --package "myPackage" --model "mymodel"
 ```
 
 ## Description
 
-Used to manage the application using the ailtire framework. Once an application is created it can be built using the
-[ailtire app build](cli-app-build) command. This command will create containers that can e used to deploy the
-application using the
-[ailtire-app-install](cli-app-install) command.
+This command creates an action for the package, placed in the interface directory.
+Or in the model directory if the model parameter is given as well.
 
-* [ailtire app build](cli-app-build) - Build the container images for the application based on the deployment
-  architecture in the [directory structure](directory).
-* [ailtire app create](cli-app-create) - Create an application in the ailtire framework. Create
-  the [directory structure](directory) for the application.
-* [ailtire app docs](cli-app-docs) - Create the documentation for the application to make them github pages ready for
-  publishing.
-* [ailtire app install](cli-app-docs) - install the application using the container ecosystem. This will deploy all
-  containers, networks, and storage based on the deployment architecture.
-* [ailtire app status](cli-app-status) - check the status of a installed application.
-* [ailtire app uninstall](cli-app-uninstall) - uninstall the application using the container ecosystem. This will kill
-  any running containers.
+## Generated Assets
 
-## Directories
+This command will generate an action *.js file based on the name of the action.
+The following is an example of the action file for myaction.js
+```javascript
+module.exports = {
+    friendlyname: 'myaction',
+    description: 'Description of the action',
+    static: false, // true is for class methods. false is for object based.
+    inputs: {
+        param1: {
+            description: 'description of the parameter',
+            type: 'object', // string|boolean|number|json|object
+            required: true // true or false for required parameter.
+        },
+    },
 
-The creation of the application directory structure is one of the most important aspects of the framework. For
-information on the directory structure see [directory structure](directory) for more information.
+    exits: { // This is a place holder for future expansion.
+    },
 
-## See Also
+    // This is the function that is run when the action is called.
+    fn: function (obj, inputs, env) {
+        return obj;
+    }
+};
+```
 
-* [ailtire app build](cli-app-build)
-* [ailtire app create](cli-app-create)
-* [ailtire app docs](cli-app-docs)
-* [ailtire app install](cli-app-docs)
-* [ailtire app status](cli-app-status)
-* [ailtire app uninstall](cli-app-uninstall)
+See [Action Page](action) for more information about action definitions and calling them.

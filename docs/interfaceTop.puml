@@ -1,0 +1,18 @@
+@startuml
+
+
+rectangle "Application" as app {
+}
+interface CLI
+interface REST
+interface websocket
+interface WebUI
+
+CLI - app
+REST -- app
+websocket -- app
+WebUI --> REST
+WebUI --> websocket
+
+@enduml
+
