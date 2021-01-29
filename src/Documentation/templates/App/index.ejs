@@ -1,16 +1,38 @@
-const fs = require('fs');
-// Check for node_modules directory. If it exists then continue. If not ask to run npm install.
-if(!fs.existsSync('./node_modules')) {
-   console.error('Error: you must run "npm install" first');
-   return;
-}
-const server = require('ailtire');
+<html style="overflow:hidden;">
 
-server.listen( {
-    baseDir: '.',
-    prefix: '<%= name %>',
-    routes: {
-        "/document": "/model/document"
-    },
-    listenPort: 8080
-});
+<head>
+    <base href="http://<%= global.ailtire.config.host %><%= global.ailtire.config.urlPrefix %>/" >
+
+    <link rel="stylesheet/less" type="text/css" href="styles/importer.less"/>
+    <script src="js/less.js" type="text/javascript"></script>
+</head>
+<div class="leftContent">
+    <h3>Top</h3>
+    <ul class="left-actionbar">
+        <li><a href='<%= appName %>/index.html' target="mainFrame"><%= appName %></a></li>
+    </ul>
+    <h3>Actors</h3>
+    <ul class="left-actionbar">
+        <li><a href='actors/index.html' target="mainFrame">All Actors</a></li>
+        <% for(let aname in actors) { %>
+            <li><a href='doc/actor/<%= actors[aname].shortname %>' target="mainFrame"><%= aname %></a></li>
+        <% } %>
+    </ul>
+    <h3>Packages</h3>
+    <ul class="left-actionbar treeview">
+        <%- partial("./templates/App/_packageTree.ejs", {pkgs: packages}) %>
+    </ul>
+    <h3>Use Cases</h3>
+    <ul class="left-actionbar">
+        <% for(let ucname in global.usecases) {
+            let usecase = global.usecases[ucname];
+        %>
+        <li><a href='doc/usecase<%= usecase.prefix %>/<%= ucname %>' target="mainFrame"><%= usecase.name %></a></li>
+        <% } %>
+    </ul>
+</div>
+
+<div class="rightContent">
+    <iframe name="mainFrame" style="border:none;" src="./<%= appName %>/index.html" width="100%" height="100%"></iframe>
+</div>
+</html>

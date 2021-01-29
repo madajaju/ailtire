@@ -28,6 +28,7 @@ module.exports = {
     // To the next state with a call to this method.
     processEvent: (proxy, obj, event, args) => {
         // Check that the parameters are valid.
+        console.log("Process Event: ", event, "on", proxy.id, "[", proxy.state, "]");
         let currentState = proxy.state;
         let statenet = getStateNet(proxy.definition);
         if (!statenet[currentState].hasOwnProperty('events')) {

@@ -8,7 +8,7 @@
     "test": "npm run lint && npm run custom-tests && echo 'Done.'",
     "lint": "eslint . --max-warnings=0 --report-unused-disable-directives && echo '✔  Your .js files look good.'",
     "custom-tests": "mocha ./test/**/*.test.js",
-    "design": "java -jar docs/plantuml.jar -tsvg -nbthread auto -checkmetadata -duration docs/*.puml docs/**/*.puml",
+    "design": "java -jar docs/plantuml.jar -tpng -nbthread auto -checkmetadata -duration docs/*.puml docs/**/*.puml",
     "build-doc": "npm run design && node ./deploy/build-doc --keep"
   },
   "keywords": [],
