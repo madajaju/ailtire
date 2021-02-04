@@ -205,16 +205,60 @@ const loadDeploy = (pkg, prefix, dir) => {
 
         for (let env in contexts) {
             // Now get the file from the deploy and read it in.
-            let compose = YAML.load(dir + '/' + contexts[env].file);
+            let compose = {};
+            if(!isFile(dir + '/' + contexts[env].file)) {
+                console.error("Could notfind ", dir + '/' + contexts[env].file);
+            }
+            else {
+                compose = YAML.load(dir + '/' + contexts[env].file);
+            }
+            let design = {};
+            if(isFile(dir + '/' + contexts[env].design)) {
+                design = require(dir + '/' + contexts[env].design);
+                normalizeStack(design);
+            }
             pkg.deploy.envs[env] = {
                 tag: contexts[env].tag,
                 definition: compose,
-                file: contexts[env].file
+                file: contexts[env].file,
+                design: design
             };
         }
     }
     return pkg;
 };
+const normalizeStack = (stack) => {
+    // Add the default networks if needed
+    if(!stack.networks.hasOwnProperty('parent')) {
+       stack.networks.parent = { external: true, name: "Parent"};
+    }
+    if(!stack.networks.hasOwnProperty('children')) {
+        stack.networks.children = {driver: "overlay", attachable: true, name: "Children"};
+    }
+    if(!stack.networks.hasOwnProperty('siblings')) {
+        stack.networks.siblings = {driver: "overlay", name: "Siblings"};
+    }
+    // Go through the services and make sure networks are set coorectly.
+    for(let sname in stack.services) {
+        let service = stack.services[sname];
+        if(service.type === 'stack') {
+            if(service.networks) {
+                if (service.networks.hasOwnProperty('children')) {
+                    service.networks.children = {};
+                }
+            } else {
+                service.networks = { children: {}};
+            }
+        }
+        if(service.networks) {
+            if (service.networks.hasOwnProperty('siblings')) {
+                service.networks.siblings = {};
+            }
+        } else {
+            service.networks = { siblings: {}};
+        }
+    }
+}
 
 const loadHandlers = (pkg, prefix, mDir) => {
     let handlers = {};

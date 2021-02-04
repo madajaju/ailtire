@@ -17,14 +17,40 @@ module.exports = {
             return;
         }
         let definition = pkg.deploy.envs[ename].definition;
-        let retval = normalize(inputs.id, pkg.deploy.name, definition);
+        let retval = normalize_old(inputs.id, pkg.deploy.name, definition);
+        if(pkg.deploy.envs[ename].design) {
+            retval = normalize(inputs.id, pkg.deploy.name, pkg.deploy.envs[ename].design);
+        }
 
         env.res.json(retval);
         return retval;
     }
 };
 
-function normalize(id, name, definition) {
+function normalize(id, name, design) {
+
+    let retval = {
+        id: id, 
+        name: name,
+        interface: {},
+        volumes: {},
+        networks: {}
+    };
+
+    for(let i in design.services) {
+        let service = design.services[i];
+        for(let sname in service.interface) {
+            let inter = service.interface[sname];
+            retval.interface[sname] = {path: inter.path, service:service, port: inter.port};
+        }
+    }
+    retval.services = design.services;
+    retval.networks = design.networks;
+    retval.volumes = design.volumes;
+    return retval;
+};
+
+function normalize_old(id, name, definition) {
     let retval = {id: id, name: name};
 
     let services = {};
@@ -53,7 +79,7 @@ function normalize(id, name, definition) {
         let interface = {};
         if(service.deploy) {
             for (let i in service.deploy.labels) {
-                 
+
             }
         }
         services[sname] = {
@@ -61,7 +87,7 @@ function normalize(id, name, definition) {
             id: id + sname,
             networks: networks,
             volumes: volumes,
-            interface: interface;
+            interface: interface,
             environments: definition.services[sname].environment,
             ports: definition.services[sname].ports,
             image: definition.services[sname].image,

@@ -1,4 +1,5 @@
 const path = require('path');
+const Action = require('../../src/Server/Action');
 module.exports = {
     friendlyName: 'get',
     description: 'Get a Scenario in a UseCase',
@@ -21,22 +22,44 @@ module.exports = {
 
     fn: function (inputs, env) {
         // Find the scenario from the usecase.
+        let retscenario;
         let [ucname, sname] = inputs.id.split(/\./);
-        if(global.usecases.hasOwnProperty(ucname)) {
+        if (global.usecases.hasOwnProperty(ucname)) {
             let usecase = global.usecases[ucname];
-            if(usecase.scenarios.hasOwnProperty(sname)) {
+            if (usecase.scenarios.hasOwnProperty(sname)) {
                 let scenario = usecase.scenarios[sname];
-                scenario.id = inputs.id;
-                if(env.req) {
-                    env.res.json(scenario)
-                    return scenario;
+                retscenario = {name: scenario.name, description: scenario.description, actors: scenario.actors};
+
+                retscenario.id = inputs.id;
+                let steps = [];
+                for (let i in scenario.steps) {
+                    let step = scenario.steps[i];
+                    let rstep = {parameters: step.parameters};
+                    if (step.action) {
+                        let retaction = {name: step.action};
+                        let action = Action.find(step.action);
+                        if (action) {
+                            retaction = {
+                                name: step.action,
+                                cls: action.cls,
+                                pkg: {shortname: action.pkg.shortname, name: action.pkg.name, color: action.pkg.color},
+                                obj: {obj: action.pkg.obj}
+                            };
+                        }
+                        rstep.action = retaction;
+                    }
+                    steps.push(rstep);
                 }
-                else {
-                    return scenario;
-                }
+                retscenario.steps = steps;
             }
         }
-       // api.scenario(inputs.package, inputs.usecase, inputs.name, '.');
+        if (env.req) {
+            env.res.json(retscenario)
+            return retscenario;
+        } else {
+            return retscenario;
+        }
+        // api.scenario(inputs.package, inputs.usecase, inputs.name, '.');
         return null;
     }
 };
