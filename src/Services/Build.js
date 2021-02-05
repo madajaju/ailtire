@@ -11,11 +11,41 @@ module.exports = {
     },
     services: (pkg) => {
         buildBaseImages(pkg);
+    },
+    deployServices: (repository) => {
+        deployBaseImages(repository);
     }
 }
 
-function buildBaseImages(pkg) {
+const isDirectory = source => fs.lstatSync(source).isDirectory();
+const isFile = source => !fs.lstatSync(source).isDirectory();
+const getDirectories = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
+const getFiles = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isFile);
 
+function buildBaseImages() {
+    let apath = path.resolve(__dirname );
+    let dirs = getDirectories(apath);
+    for(let i in dirs) {
+        let mydir = dirs[i];
+        let buildfile = `${mydir}/build.js`;
+        if(isFile(buildfile)) {
+            let build = require(buildfile);
+            console.error("Building Service Container:", build.name);
+            let proc = spawn('docker', ['build', '-t', build.tag, '-f', build.dockerfile, '.'], {
+                cwd: mydir,
+                stdio: 'pipe',
+                env: process.env
+            });
+            console.error("Completed building Service Container:", build.name);
+            if(proc.status != 0) {
+                console.error("Error Building Service Container", deploy.name);
+                console.error(proc.stderr.toString('utf-8'));
+            }
+            else {
+                console.log(proc.stdout.toString('utf-8'));
+            }
+        }
+    }
 }
 function buildService(pkg, opts) {
     // Build process will build an docker image that will start the stack if there is one.
@@ -63,7 +93,7 @@ function buildPackage(pkg, opts) {
                     env: process.env
                 });
                 if(proc.status != 0) {
-                    console.error("Error Building Service Container");
+                    console.error("Error Building Service Container", deploy.name);
                     console.error(proc.stderr.toString('utf-8'));
                 }
             }
