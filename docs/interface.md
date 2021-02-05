@@ -1,6 +1,6 @@
 ---
 layout: default
-title: interface
+title: Interface
 permalink: interface
 parent: Architecture
 ---
@@ -10,7 +10,7 @@ These interface can be accedessed programatically, with REST, websocket, and com
 through a web interface. Interfaces are automatically accessible based on the architectural elements in the 
 application.
 
-![Interface Top](interfaceTop.png)
+![Interface Top](./interfaceTop.png)
 
 ## Mapping Interfaces
 For every interface there is an action that performs work in the architecture. An action can be accessed through

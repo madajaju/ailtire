@@ -203,22 +203,77 @@ The steps have state and color represent the states. The states are shown in the
 
 TBD
 
-### Container Image View
+## Deployment Model
 
-TBD
+The application and all of its subsystems, and packages have a deployment strategy. The deployment plan
+can be viewed by selecting an environment under the deployment section in the left hand panel.
 
-### Micro-segmented Network View
+![Deployment Overview](./WebInterface/EnvironmentOverview.png)
 
-TBD
+The key elements in and environment for deployment is the stacks and services deployed in the environment.
+A Service is represented as a truncated cone as shown in the diagram above. (Purple). A stack is made of
+a collection of services and is represented by a stack of truncated cones. Selecting the environment name will show all of the stacks and services that can be deployed in that enviornment.
 
-### Micro-service View
+### Stack Definition
 
-TBD
+Stacks are made up of services, data, interfaces, images, and networks. To view a stack definition you can
+select the stack name in the left panel. The graphical viewer will show a 3D representation of the stack.
+The stack is represented as a cube with each side presenting a different aspect of the stack.
 
-### Service Stack
+![Stack Overview](./WebInterface/StackDetail.png)
+* Right - service and sub-stacks.
+* Left - Networks
+* Top - Interface
+* Back - Container images used
+* Bottom - Data and Volumes used
 
-TBD
+#### Interfaces
+The interface to the stack contains information on how to access the stack through a common URL.
+Each service in the stack is mapped to a URL path. The base URL of the stack is determined at run
+time and can be determined by the controlling application or stack. This allows for lacing of services
+that can easily be accessed across multiple layers of complex systems. 
 
-### Service
+![Interface Overview](./WebInterface/InterfaceDetails.png)
 
-TBD
+In this example, the base url is http://localhost:3000.
+The following URL paths would be valid.
+* http://localhost:3000/admin
+* http://localhost:3000/aml
+* http://localhost:3000/cpl
+* http://localhost:3000/diml
+* http://localhost:3000/ia
+...
+  
+#### Stacks and Services
+
+Every stack is made up of a set of sub-stacks and/or services. These services are the work horse of the 
+stack, and are implemented using containers and micro-services. These services are mapped to at least
+one network and can have data volumes and interfaces mapped to them as well. Each service has a 
+corresponding image that defines what is run in the service.
+
+![Stack Service Overview](./WebInterface/StackServiceDetail.png)
+
+Clicking on the service will highlight the other items it is linked to in the stack definition.
+
+#### Image
+An image defines what is run in a service when it is executed. These are implemented with standard 
+container images. They are shown on the back of the stack definition cube.
+
+![Image Detail](./WebInterface/ImageDetail.png)
+
+#### Network
+Every Stack has at least one network. Most have by default two networks Parent and Siblings. 
+Ailtire is very opinionated on the network and micro-segmentation based on each stack. If 
+a stack contains sub-stacks it will also create a children network and connect all sub-stacks onto
+ the children network. This gives separation between the different service layers in the architurce.
+The networks are on the left side of the stack definition cube.
+
+![Network Detail](./WebInterface/NetworkDetail.png)
+
+#### Data Volume
+Stacks not only contain services and networks, they also contain data volumes. This gives the 
+ability to connect data sources to the running stacks. Data volumes are shown on tbe bottom of
+the stack definition cube.
+
+![volume detail](./WebInterface/VolumeDetail.png)
+

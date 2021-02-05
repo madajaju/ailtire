@@ -499,8 +499,9 @@ function shallowJSON(obj) {
                 shortname: obj.definition.package.shortname,
                 name: obj.definition.package.name,
                 color: obj.definition.package.color
-            }
+            },
         },
+        statenet: obj.statenet,
         _attributes: obj._attributes
         // Shallow does not return the associations.
     };

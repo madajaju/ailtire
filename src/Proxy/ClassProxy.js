@@ -33,9 +33,26 @@ module.exports = {
         }
         if (prop === 'toJSON') {
             return function (...args) {
+                let methods = {};
+                let pkgname = obj.definition.package.shortname;
+                methods['create'] = { name: 'create', description: 'default create method'};
+                methods['destroy'] = { name: 'destroy', description: 'default destroy method'};
+                methods['update'] = { name: 'update', description: 'default update method'};
+                methods['addTo'] = { name: 'addTo', description: 'default addTo method'};
+                methods['removeFrom'] = { name: 'removeFrom', description: 'default removeFrom method'};
+                for(let mname in obj.definition.methods) {
+                    let method = obj.definition.methods[mname];
+                    methods[mname] = { name: mname, description: method.description, inputs: method.inputs};
+                }
                 return {
+                    name: obj.name,
+                    id: obj.id,
+                    methods: methods,
+                    package: pkgname,
+                    description: obj.definition.description,
                     _attributes: obj.definition.attributes,
                     _associations: obj.definition.associations,
+                    statenet: obj.definition.statenet,
                 }
             }
         }
