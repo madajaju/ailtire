@@ -26,6 +26,6 @@ jobs:
         push: true
         context: ./src/Services/swarm
         file: ./src/Services/swarm/deploy/Dockerfile
-        tags: madadaju/ailtire_service:swarm
+        tags: madajaju/ailtire_service:swarm
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
