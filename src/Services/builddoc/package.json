@@ -1,0 +1,16 @@
+{
+  "name": "edgemere",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node doc.js",
+    "buildAll": "node docbuild.js && cd docs && java -jar plantuml.jar -tsvg \"**/*.puml\"; exit 0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ailtire": "latest"
+  }
+}
