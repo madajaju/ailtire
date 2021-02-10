@@ -27,14 +27,6 @@ jobs:
         context: ./src/Services/swarm
         file: ./src/Services/swarm/deploy/Dockerfile
         tags: madajaju/ailtire_service:swarm
-    - name: Push to GitHub Packages
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-        registry: docker.pkg.github.com
-        repository: madajaju/ailtire/ailtire_service:swarm
-        tag_with_ref: true
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
   build_doc:
@@ -59,13 +51,5 @@ jobs:
           context: ./src/Services/builddoc
           file: ./src/Services/builddoc/Dockerfile
           tags: madajaju/ailtire_builddoc
-      - name: Push to GitHub Packages
-        uses: docker/build-push-action@v1
-        with:
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: docker.pkg.github.com
-          repository: madajaju/ailtire/ailtire_builddoc
-          tag_with_ref: true
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

@@ -36,8 +36,8 @@ module.exports = {
         let name = inputs.name;
         let apath = path.resolve('.');
         let topPackage = sLoader.processPackage(apath);
-        Build.services(topPackage);
-        Build.pkg(topPackage, {name: name,recursive:true});
+        Build.services(topPackage, {name: name, environ: inputs.env});
+        Build.pkg(topPackage, {name: name,recursive:true, environ: inputs.env});
         return `Building Application`;
     }
 };

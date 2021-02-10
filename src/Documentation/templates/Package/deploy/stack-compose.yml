@@ -1,0 +1,124 @@
+version: "3.7"
+services:
+<% for(let sname in stack.services) {
+let service = stack.services[sname];
+if(service.type === 'stack') {
+-%>
+  <%= sname %>:
+    image: <%= service.image %>
+    stop_grace_period: 1m
+    stop_signal: SIGINT
+<% if(service.volumes && service.volumes.size > 0) { -%>
+    volumes:
+<%
+  for(let vname in service.volumes) {
+  let volume = service.volumes[vname];
+-%>
+      - <%= volume.source %>:<%= volume.target %>
+<%
+  }
+}
+-%>
+    deploy:
+      replicas: 1
+      labels:
+        - traefik.tags=<%= stack.name %>
+        - traefik.enable=true
+        - traefik.docker.network=${AILTIRE_APPNAME}_family
+<%
+  for(let iname in service.interface) {
+  let interface = service.interface[iname];
+-%>
+        - traefik.http.services.<%= sname %>.loadbalancer.server.port=<%= interface.port %>
+        - traefik.http.routers.<%= sname %>_http.rule=PathPrefix(`<%= interface.path %>`)
+        - traefik.http.routers.<%= sname %>_http.service=<%= sname %>
+        - traefik.http.routers.<%= sname %>_http.entrypoints=<%= interface.protocol %>
+<%
+}
+-%>
+    environment:
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT=${AILTIRE_APPNAME}
+      - AILTIRE_PARENTHOST=admin
+      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
+    networks:
+      - children
+      - sibling
+<%
+} else {
+-%>
+  <%= sname %>:
+    image: <%= service.image %>
+    stop_grace_period: 1m
+    stop_signal: SIGINT
+<% if(service.volumes && service.volumes.size > 0) { -%>
+    volumes:
+<%
+      for(let vname in service.volumes) {
+      let volume = service.volumes[vname];
+-%>
+    - <%= volume.source %>:<%= volume.target %>
+<%
+    }
+}
+-%>
+    deploy:
+      replicas: 1
+      labels:
+        - traefik.tags=<%= stack.name %>
+        - traefik.enable=true
+        - traefik.docker.network=${AILTIRE_APPNAME}_family
+<%
+      for(let iname in service.interface) {
+        let interface = service.interface[iname];
+-%>
+        - traefik.http.services.<%= sname %>.loadbalancer.server.port=<%= interface.port %>
+        - traefik.http.routers.<%= sname %>_http.rule=PathPrefix(`<%= interface.path %>`)
+        - traefik.http.routers.<%= sname %>_http.service=<%= sname %>
+        - traefik.http.routers.<%= sname %>_http.entrypoints=<%= interface.protocol %>
+<%
+      }
+-%>
+    environment:
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT=${AILTIRE_APPNAME}
+      - AILTIRE_PARENTHOST=admin
+      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
+    networks:
+      - sibling
+<% }
+} -%>
+  frontend:
+    image: traefik:latest
+    command:
+      - --api=true
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --api.debug=true
+      - --log.level=DEBUG
+      - --providers.docker=true
+      - --providers.docker.swarmMode=true
+      - --providers.docker.network=children
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.http.address=:80
+      - --entrypoints.https.address=:443
+      - --providers.docker.constraints=Label(`traefik.tags`,`<%= stack.name %>`)
+    ports:
+      - '80:80'
+      - '8080:8080'
+      - '443:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - children
+networks:
+  children:
+    driver: overlay
+    attachable: true
+    name: ${APPNAME}_<%= stack.name %>_family
+  sibling:
+    driver: overlay
+  parent:
+    external: true
+    name: ${APPNAME}_<%= stack.prefix %>_family
+
