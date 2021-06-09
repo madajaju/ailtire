@@ -1,0 +1,37 @@
+@startuml
+
+actor "Actor" as actor
+
+
+
+
+actor -> "Top Stuff": More Stuff
+"Top Stuff" -> bin: data/govern
+bin -> REST: data/govern
+
+actor -> "Top Stuff": More Stuff2
+"Top Stuff" -> bin: data/govern
+bin -> REST: data/govern
+
+actor -> "Top Stuff": More Stuff3
+"Top Stuff" -> bin: data/govern
+bin -> REST: data/govern
+
+actor -> "Top Stuff": More Stuff4
+"Top Stuff" -> bin: data/govern
+bin -> REST: data/govern
+
+actor -> "Top Stuff": More Stuff6
+"Top Stuff" -> bin: data/govern
+bin -> REST: data/govern
+
+actor -> "Top Stuff": More Stuff7
+"Top Stuff" -> bin: data/govern
+bin -> REST: data/govern
+
+actor -> "Top Stuff": More Stuff8
+"Top Stuff" -> bin: data/govern
+bin -> REST: data/govern
+
+
+@enduml

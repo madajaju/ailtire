@@ -1,0 +1,23 @@
+@startuml
+
+
+
+package "Stack3" #lightblue {
+
+    interface "Stack3" as i {
+    
+    }
+}
+
+CLI ()-- i
+REST ()-- i
+Web ()-- i
+
+package "Stack3" #lightblue {
+
+
+}
+
+
+
+@enduml

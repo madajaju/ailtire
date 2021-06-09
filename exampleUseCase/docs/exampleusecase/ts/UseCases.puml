@@ -1,0 +1,31 @@
+@startuml
+
+left to right direction
+Actor "Actor" as Actor
+Actor "Actor" as Actor
+Actor "Actor" as Actor
+Actor "Actor" as Actor
+Actor "Actor" as Actor
+Actor "Actor" as Actor
+Actor "Actor" as Actor
+
+
+rectangle "Top Stuff" lightblue {
+usecase "MoreStuff" as MoreStuff
+    Actor --> MoreStuff
+    usecase "MoreStuff2" as MoreStuff2
+    Actor --> MoreStuff2
+    usecase "MoreStuff3" as MoreStuff3
+    Actor --> MoreStuff3
+    usecase "MoreStuff4" as MoreStuff4
+    Actor --> MoreStuff4
+    usecase "MoreStuff6" as MoreStuff6
+    Actor --> MoreStuff6
+    usecase "MoreStuff7" as MoreStuff7
+    Actor --> MoreStuff7
+    usecase "MoreStuff8" as MoreStuff8
+    Actor --> MoreStuff8
+    }
+
+
+@enduml

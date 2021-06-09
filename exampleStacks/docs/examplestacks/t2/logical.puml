@@ -1,0 +1,22 @@
+@startuml
+
+
+
+package "Top2" #lightblue {
+
+    interface "Top2" as i {
+    
+    }
+}
+
+CLI ()-- i
+REST ()-- i
+Web ()-- i
+
+package "Top2" #lightblue {
+    
+}
+
+
+
+@enduml

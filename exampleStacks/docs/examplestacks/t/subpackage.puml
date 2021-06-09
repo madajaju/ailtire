@@ -1,0 +1,32 @@
+@startuml
+
+
+
+package "Top" #lightblue {
+
+    interface "Top" as i {
+    
+    }
+}
+
+CLI ()-- i
+REST ()-- i
+Web ()-- i
+
+package "Top" #lightblue {
+
+
+rectangle "Stack1" #white {
+}
+
+rectangle "Stack2" #white {
+}
+
+rectangle "Stack3" #white {
+}
+
+}
+
+
+
+@enduml

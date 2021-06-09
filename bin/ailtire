@@ -4,7 +4,7 @@ const program = require('commander');
 require('./lib/subcommander');
 
 program
-    .version('0.2.13')
+    .version('0.2.14')
     .command('create --name <string> --short <string>', 'Create a ailtire project')
     .command('actor create --name <name> --short <string>', 'Create actor with name')
     .command('app create --name <name> --short <string>', 'Create app with name')

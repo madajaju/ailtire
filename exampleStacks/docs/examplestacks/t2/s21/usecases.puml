@@ -1,0 +1,10 @@
+@startuml
+
+left to right direction
+
+
+rectangle "Stack21" #lightblue {
+}
+
+
+@enduml

@@ -1,0 +1,22 @@
+@startuml
+
+
+
+package "Stack2" #lightblue {
+
+    interface "Stack2" as i {
+    
+    }
+}
+
+CLI ()-- i
+REST ()-- i
+Web ()-- i
+
+package "Stack2" #lightblue {
+    
+}
+
+
+
+@enduml

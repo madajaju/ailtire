@@ -1,0 +1,38 @@
+@startuml
+  interface CLI
+  interface Web
+  interface WebSocket
+package "Top2" #lightblue {
+  component express as REST
+  component socket.io as socket
+  folder bin #ffffff {
+    component "examplestacks/t2" as binName
+  }
+  binName --> REST
+
+  folder deploy #ffffff {
+  
+    file "node web/server.js" as web_container
+    REST --> web_container
+    socket ---> web_container
+  
+    file "node gateway/server.js" as gateway_container
+    REST --> gateway_container
+    socket ---> gateway_container
+  
+  }
+  folder images #ffffff {
+  
+      artifact examplestacks_t2_web
+      web_container --> examplestacks_t2_web
+    
+      artifact examplestacks_t2_gw
+      gateway_container --> examplestacks_t2_gw
+    
+  }
+}
+CLI -- binName
+Web - REST
+WebSocket -- socket
+
+@enduml

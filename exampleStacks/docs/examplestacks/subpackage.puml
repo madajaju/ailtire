@@ -1,0 +1,29 @@
+@startuml
+
+
+
+package "exampleStacks" #lightgreen {
+
+    interface "exampleStacks" as i {
+    
+    }
+}
+
+CLI ()-- i
+REST ()-- i
+Web ()-- i
+
+package "exampleStacks" #lightgreen {
+
+
+rectangle "Top" #white {
+}
+
+rectangle "Top2" #white {
+}
+
+}
+
+
+
+@enduml

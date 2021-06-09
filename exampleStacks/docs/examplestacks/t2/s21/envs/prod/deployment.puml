@@ -1,0 +1,47 @@
+@startuml
+
+left to right direction
+
+
+boundary children #black
+
+
+entity parent #red
+
+
+
+
+stack  "t_s21" #lightblue {
+    queue childrennet #black [
+            <b><color:white>children</color></b>
+    ]
+    childrennet -[#black]- children
+    queue siblingnet #blue [
+            <b><color:white>sibling</color></b>
+    ]
+    siblingnet -[#blue]- sibling
+    queue parentnet #red [
+            <b><color:white>parent</color></b>
+    ]
+    parentnet -[#red]- parent
+
+node "frontend" as frontendService
+node "gw" as gwService
+
+
+        artifact "t_s21_web" as t_s21_webimage
+    
+        artifact "t_s21_gw" as t_s21_gwimage
+    
+}
+
+frontendService -[#blue]- siblingnet
+
+gwService -[#black]- childrennet
+
+gwService -[#blue]- siblingnet
+frontendService .... t_s21_webimage
+gwService .... t_s21_gwimage
+
+
+@enduml
