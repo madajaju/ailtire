@@ -291,8 +291,9 @@ const execute = (action, inputs, env) => {
             if (typeof inputs[i] === action.inputs[i].type) {
                 finputs[i] = inputs[i];
             } else {
-                console.error("Error with action:", action.friendlyName, action.description);
+                console.warn("Warning with action:", action.friendlyName, action.description);
                 console.error("Type Mismatch for: ", i, "expecting", action.inputs[i].type, "got", typeof inputs[i]);
+                finputs[i] = inputs[i];
             }
         } else {
             finputs[i] = inputs[i];

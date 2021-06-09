@@ -91,19 +91,29 @@ module.exports = {
         let oid = target._gid;
         let retval = Reflect.construct(target, args);
         retval.definition = retval.__proto__.constructor.definition;
-        retval._attributes = {id: retval.definition.name + oid};
+        let uid = retval.definition.name + oid;
+        if(retval.definition.hasOwnProperty('unique')) {
+            uid = retval.definition.unique(args[0]);
+        }
+        retval._attributes = {id: uid};
         retval._state = 'Init';
         retval._associations = {};
-        let obj = new Proxy(retval, objHandler);
-        target._gid++;
-        obj.create(args[0]);
         if (!global.hasOwnProperty('_instances')) {
             global._instances = {};
         }
         if (!global._instances.hasOwnProperty(target.name)) {
             global._instances[target.name] = {};
         }
-        global._instances[target.name][retval._attributes.id] = obj;
+        let obj;
+        if(!global._instances[target.name].hasOwnProperty(retval._attributes.id)) {
+            obj = new Proxy(retval, objHandler);
+            target._gid++;
+            global._instances[target.name][retval._attributes.id] = obj;
+        }
+        else {
+            obj = global._instances[target.name][retval._attributes.id];
+        }
+        obj.create(args[0]);
 
         return obj;
     },

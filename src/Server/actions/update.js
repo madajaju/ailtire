@@ -18,17 +18,16 @@ module.exports = {
         }
         // Remove the cls  from the inputs so they are not passed down to the constructor
         let obj = null;
+        let cls = AClass.getClass(modelName);
         if(inputs.hasOwnProperty('id')) {
-            let cls = AClass.getClass(modelName);
             obj = cls.find(inputs.id);
         }
         else if(inputs.hasOwnProperty('name')) {
-            let cls = AClass.getClass(modelName);
             obj = cls.find(inputs.name);
         }
-        else {
-            env.res.json({error:"Could not find the item"});
-            return;
+        // Create a new object if it cannot be found
+        if(!obj) {
+            obj = new cls(env.req.body);
         }
         for(let i in inputs) {
             if(i !== 'mode') {
@@ -37,9 +36,11 @@ module.exports = {
         }
         AEvent.emit(modelName + '.updated', {obj: obj.toJSON});
         if(inputs.mode === 'json') {
-            env.res.json({obj:obj});
-            return;
+            env.res.json({results: "Updated Object"});
+            return obj;
         }
-        env.res.redirect(`/${modelName}?id=${obj.id}`)
+        if(env.res) {
+            env.res.redirect(`/${modelName}?id=${obj.id}`)
+        }
     }
 };

@@ -21,7 +21,7 @@ module.exports = {
         let objs = [];
         let cls = AClass.getClass(modelName);
         if (global._instances) {
-            objs = getInstances(AClass.getClass(modelName));
+            objs = AClass.getInstances(modelName);
         }
         let hostURL = global.ailtire.config.host;
         if(global.ailtire.config.listenPort) {
@@ -31,12 +31,12 @@ module.exports = {
         let cols = {};
         for(let aname in cls.definition.attributes) {
             let attr = cls.definition.attributes[aname];
-            cols[aname] = { name: aname, description: attr.description, type:attr.type };
+            cols[aname] = { name: aname.charAt(0).toUpperCase() + aname.slice(1), description: attr.description, type:attr.type, multiline: attr.multiline };
         }
         for(let aname in cls.definition.associations) {
             let assoc = cls.definition.associations[aname];
             let acls = AClass.getClass(assoc.type);
-            cols[aname] = {name: aname, description: assoc.description, type:assoc.type, cardinality:assoc.cardinality, package: acls.definition.package.shortname, owner: assoc.owner, composition: assoc.composition };
+            cols[aname] = {name:aname.charAt(0).toUpperCase() + aname.slice(1), description: assoc.description, type:assoc.type, cardinality:assoc.cardinality, package: acls.definition.package.shortname, owner: assoc.owner, composition: assoc.composition };
         }
         let items = {};
         for(let id in objs) {
@@ -72,20 +72,11 @@ module.exports = {
             }
             items[obj.id] = item;
         }
-        env.res.json({status:'success', total:objs.length, records:items, columns:cols});
+        let ritems = [];
+        for(let i in items) {
+            ritems.push(items[i]);
+        }
+        env.res.json({status:'success', name: cls.definition.name ,total:objs.length, records:ritems, columns:cols});
     }
 };
 
-function getInstances(cls) {
-    let retval = [];
-    if (global._instances.hasOwnProperty(cls.definition.name)) {
-        retval = global._instances[cls.definition.name];
-    }
-    for (let i in cls.definition.subClasses) {
-        let instances = getInstances(AClass.getClass(cls.definition.subClasses[i]))
-        for (let j in instances) {
-            retval[instances[j].id] = instances[j];
-        }
-    }
-    return retval;
-}

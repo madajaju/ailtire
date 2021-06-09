@@ -70,7 +70,11 @@ module.exports = {
                 } else {
 
                     if (typeof value === 'object' && !Array.isArray(value)) {
-                        if (value.definition.name === getAssociation(obj.definition, prop).type) {
+                        if (value.definition.name.toLowerCase() === getAssociation(obj.definition, prop).type.toLowerCase()) {
+                            obj._associations[prop] = value;
+                            return true;
+                            // Check if the value type matches prop type.
+                        } else if (isTypeOf(value, getAssociation(obj.definition, prop).type.toLowerCase())) {
                             obj._associations[prop] = value;
                             return true;
                         } else {
@@ -412,7 +416,7 @@ function addToAssoc(simpleProp, obj, proxy, item) {
             if (isTypeOf(item, getAssociation(obj.definition, simpleProp).type)) {
                 child = item;
             } else {
-                console.error(prop, "wrong type of object! Recieved:", item.definition.name, 'expecting', getAssociation(obj.definition, simpleProp).type);
+                console.error(simpleProp, "wrong type of object! Recieved:", item.definition.name, 'expecting', getAssociation(obj.definition, simpleProp).type);
                 return;
             }
         } else {
@@ -443,7 +447,7 @@ function isTypeOf(item, type) {
     if (item.definition.name === type) {
         return true;
     } else {
-        if (item.definition.extends === type) {
+        if (item.definition.extends.toLowerCase() === type.toLowerCase()) {
             return true;
         } else {
             return false;
@@ -486,14 +490,24 @@ function getAssociation(definition, aname) {
 }
 
 function shallowJSON(obj) {
+    let object2d = null;
+    let object3d = null;
+    if(obj.definition.view) {
+        if(obj.definition.view.object2d) {
+            object2d = obj.definition.view.object2d();
+        }
+        if(obj.definition.view.object3d) {
+            object3d = obj.definition.view.object3d();
+        }
+    }
     return {
         definition: {
             name: obj.definition.name,
             attributes: obj.definition.attributes,
             associations: obj.definition.associations,
             view: {
-                object2d: obj.definition.view.object2d(),
-                object3d: obj.definition.view.object3d()
+                object2d: object2d,
+                object3d: object3d
             },
             package: {
                 shortname: obj.definition.package.shortname,
