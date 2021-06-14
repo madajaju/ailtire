@@ -4,7 +4,7 @@ if(!fs.existsSync('./node_modules')) {
    console.error('Error: you must run "npm install" first');
    return;
 }
-const server = require('ailtire');
+const server = require('ailtire/src/Server/doc-md');
 
 let host = process.env.AITIRE_HOST || 'localhost'
 let port = process.env.AITIRE_PORT || 8088

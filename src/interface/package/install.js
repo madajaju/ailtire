@@ -5,7 +5,7 @@ const APackage = require('../../Server/APackage');
 
 module.exports = {
     friendlyName: 'install',
-    description: 'Install an app',
+    description: 'Install an package',
     static: true,
     inputs: {
         env: {

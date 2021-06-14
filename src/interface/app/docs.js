@@ -1,6 +1,7 @@
 const path = require('path');
 const htmlGenerator = require('../../Documentation/html');
 const sLoader = require('../../Server/Loader.js');
+const server = require('ailtire/src/Server/doc-md');
 
 module.exports = {
     friendlyName: 'docs',
@@ -18,10 +19,23 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
-        let apath = path.resolve('.');
-        let topPackage = sLoader.processPackage(apath);
-        htmlGenerator.package(global.topPackage, apath + '/docs');
-        htmlGenerator.actors(global.actors, apath + '/docs');
+
+        let host = process.env.AITIRE_HOST || 'localhost'
+        let port = process.env.AITIRE_PORT || 80
+        let urlPrefix = process.env.AITIRE_BASEURL || '/docs'
+
+        let project = require(process.cwd() + '/package.json');
+        
+        server.docBuild( {
+            version: project.version,
+            baseDir: '.',
+            prefix: project.name,
+            routes: {
+            },
+            host: host,
+            urlPrefix: urlPrefix,
+            listenPort: port
+        });
     }
 };
 

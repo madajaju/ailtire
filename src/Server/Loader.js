@@ -130,7 +130,7 @@ let reservedDirs = {
 
             myClass.package = pkg;
             if (global.classes.hasOwnProperty(myClass.definition.name)) {
-                console.error('Class Already defined', myClass.definition.name, "in this model:", modelDir);
+                // console.error('Class Already defined', myClass.definition.name, "in this model:", modelDir);
                 // throw new Error('Class Already defined' + myClass.definition.name + "in this model:" + modelDir);
             } else {
                 let myProxy = new Proxy(myClass, classProxy);
@@ -184,8 +184,24 @@ const loadDeploy = (pkg, prefix, dir) => {
     // Get the build file
     let apath = path.resolve(dir + '/build.js');
     if (isFile(apath)) {
+        let normalizedBuild = {};
         let build = require(dir + '/' + 'build.js');
-        pkg.deploy.build = build;
+        // Check for contexts. If not there then create the default
+        for(let iname in build) {
+            let image = build[iname];
+            if(!image.hasOwnProperty('contexts')) {
+                let newimage = {
+                    contexts: {
+                        default: image
+                    }
+                };
+               normalizedBuild[iname] = newimage;
+            }
+            else {
+                normalizedBuild[iname] = image;
+            }
+        }
+        pkg.deploy.build = normalizedBuild;
     }
 
     // Now get the docker-compose file
@@ -214,7 +230,18 @@ const loadDeploy = (pkg, prefix, dir) => {
             }
             let design = {};
             if(isFile(dir + '/' + contexts[env].design)) {
-                design = require(dir + '/' + contexts[env].design);
+                let fext = contexts[env].design.split('.').pop();
+                switch(fext) {
+                    case 'yaml':
+                        design = YAML.load(dir + '/' + contexts[env].design);
+                        break;
+                    case 'js':
+                        design = require(dir + '/' + contexts[env].design);
+                        break;
+                    default:
+                        console.error("Could not read the design of the service:", apath);
+                        break;
+                }
                 normalizeStack(design);
             }
             pkg.deploy.envs[env] = {
@@ -393,7 +420,6 @@ const checkPackage = (pkg) => {
     // Inheritance relationship check.
     for (let i in pkg.classes) {
         let cls = pkg.classes[i];
-        console.log("Class Check:", cls.definition.name)
         if (cls.definition.hasOwnProperty('extends')) {
             if (global.classes.hasOwnProperty(cls.definition.extends)) {
                 let parentCls = AClass.getClass(cls.definition.extends);

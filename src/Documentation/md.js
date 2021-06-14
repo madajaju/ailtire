@@ -92,7 +92,8 @@ const indexGenerator = (name, output) => {
             package: global.topPackage,
             topPackage: global.topPackage,
             packageName: global.topPackage.name,
-            shortname: ''
+            shortname: '',
+            version: global.ailtire.config.version
         },
         targets: {
             './index.md': {template: '/templates/App/index.emd'},

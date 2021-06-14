@@ -17,6 +17,16 @@ module.exports = {
             type: 'string',
             required: false
         },
+        repo: {
+            descritpion: 'Repository location',
+            type: 'string',
+            required: false,
+        },
+        recursive: {
+            descritpion: 'Recurse all of the subpackages',
+            type: 'boolean',
+            required: false,
+        }
     },
 
     exits: {
@@ -35,9 +45,11 @@ module.exports = {
         // Make sure to call docker stack deploy first then go down.
         let name = inputs.name;
         let apath = path.resolve('.');
+        console.log("Analyzing the Project");
         let topPackage = sLoader.processPackage(apath);
-        Build.services(topPackage, {name: name, environ: inputs.env});
-        Build.pkg(topPackage, {name: name,recursive:true, environ: inputs.env});
+        console.log("Starting the build");
+        Build.services(topPackage, {name: name, env: inputs.env, repo: inputs.repo });
+        Build.pkg(topPackage, {name: name,recursive:inputs.recursive, env: inputs.env, repo: inputs.repo});
         return `Building Application`;
     }
 };

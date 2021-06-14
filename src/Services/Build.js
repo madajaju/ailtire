@@ -7,14 +7,15 @@ const fs = require('fs');
 
 module.exports = {
     pkg: (pkg, opts) => {
-        buildPackage(pkg,opts);
+        console.log("Build pkg:", opts);
+        buildPackage(pkg, opts);
     },
-    services: (pkg) => {
-        buildBaseImages(pkg);
+    services: (pkg, opts) => {
+        buildBaseImages(pkg, opts);
     }
 }
 
-function buildBaseImages(pkg) {
+function buildBaseImages(pkg, opts) {
 
 }
 function buildService(pkg, opts) {
@@ -23,11 +24,12 @@ function buildService(pkg, opts) {
     if(fs.existsSync(apath)) {
         let deploy = require(apath);
         // Create the Dockerfile from the template with contexts set from the deploy
-        if(!pkg.deploy.envs.hasOwnProperty(opts.environ)) {
-            console.error("Could not find the environment:", opts.environ);
+        if(!pkg.deploy.envs.hasOwnProperty(opts.env)) {
+            // console.error("Could not find the environment:", opts.env);
+            // console.error("Environments:", pkg.deploy.envs);
             return;
         }
-        let stack = pkg.deploy.envs[opts.environ].design;
+        let stack = pkg.deploy.envs[opts.env].design;
         stack.name = pkg.deploy.name;
         let files = {
             context: {
@@ -51,35 +53,44 @@ function buildService(pkg, opts) {
             console.error(proc.stderr.toString('utf-8'));
         }
     }
+    else {
+        console.log("BuildService not found!:", apath);
+    }
 }
 
 function buildPackage(pkg, opts) {
     if(pkg.deploy) {
-        let apath = path.resolve(pkg.deploy.dir + '/build.js');
-        if(fs.existsSync(apath)) {
-            let buildconfig = require(apath);
-            for(let name in buildconfig) {
-                let bc = buildconfig[name];
-                for(ename in bc.env) {
-                    process.env[ename] = bc.env[ename];
-                }
-                console.error("Working Directory:", pkg.deploy.dir);
-                console.error("==== ContainerName ====", bc.tag);
-                let proc = spawn('docker', ['build', '-t', bc.tag, '-f', bc.file, bc.dir], {
-                    cwd: pkg.deploy.dir,
-                    stdio: 'pipe',
-                    env: process.env
-                });
-                if(proc.status != 0) {
-                    console.error("Error Building Service Container");
-                    console.error(proc.stderr.toString('utf-8'));
-                }
+        for(let name in pkg.deploy.build) {
+            let bc = pkg.deploy.build[name];
+            let build = {};
+            if(!bc.contexts.hasOwnProperty(opts.env)) {
+                console.log(`${opts.env} environment not found! Using default`);
+                build = bc.contexts.default; 
+            } else {
+                build = bc.contexts[opts.env];
             }
-            buildService(pkg, opts);
+            for(ename in build.env) {
+                process.env[ename] = build.env[ename];
+            }
+            console.error("Working Directory:", pkg.deploy.dir);
+            let buildTag = build.tag;
+            if(opts.repo) {
+                buildTag = opts.repo + '/' + build.tag;
+            }
+            console.error("==== ContainerName ====", buildTag);
+
+            let proc = spawn('docker', ['build', '-t', buildTag, '-f', build.file, build.dir], {
+                cwd: pkg.deploy.dir,
+                stdio: 'pipe',
+                env: process.env
+            });
+            if(proc.status != 0) {
+                console.error("Error Building Service Container");
+                console.error(proc.stderr.toString('utf-8'));
+            }
+
         }
-        else {
-            console.error("Could not find build.js for", pkg.name);
-        }
+        buildService(pkg, opts);
     }
 
     // Iterate over the subsystems and build the docker images

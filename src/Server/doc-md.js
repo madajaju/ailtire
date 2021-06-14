@@ -26,6 +26,7 @@ module.exports = {
     docBuild: (config) => {
         normalizeConfig(config);
         global.ailtire = { config: config };
+        console.log("Config:", global.ailtire.config);
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
         sLoader.analyze(topPackage);

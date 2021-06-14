@@ -222,7 +222,7 @@ const scenarioGenerator = (usecase, scenario, output, urlPath) => {
                     pkg: act.pkg,
                     models: {}
                 }
-            }h
+            }
             if(act.cls) {
                 let name = act.cls.toLowerCase();
                 pkgs[act.pkg.shortname].models[name] = name;

@@ -199,20 +199,9 @@ const _findCommand = (args, localBin) => {
 const runCommand = (found, args) => {
     if (found.bin) {
         let proc;
-        if (process.platform !== 'win32') {
-            if (isExplicitJS) {
-                args.unshift(found.bin);
-                // add executable arguments to spawn
-                args = (process.execArgv || []).concat(args);
-
-                proc = spawn(process.argv[0], args, {stdio: 'inherit', customFds: [0, 1, 2]});
-            } else {
-                proc = spawn(bin, args, {stdio: 'inherit', customFds: [0, 1, 2]});
-            }
-        } else {
-            args.unshift(found.bin);
-            proc = spawn(process.execPath, args, {stdio: 'inherit'});
-        }
+        args.unshift(found.bin);
+        args.unshift(found.bin);
+        proc = spawn(process.execPath, args, {stdio: 'inherit'});
 
         let signals = ['SIGUSR1', 'SIGUSR2', 'SIGTERM', 'SIGINT', 'SIGHUP'];
         signals.forEach((signal) => {

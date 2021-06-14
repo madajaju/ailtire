@@ -5,8 +5,8 @@ const sLoader = require('../../Server/Loader');
 const fs = require('fs');
 
 module.exports = {
-    friendlyName: 'create',
-    description: 'Create an app',
+    friendlyName: 'install',
+    description: 'Install an app',
     static: true,
     inputs: {
         env: {
@@ -15,7 +15,7 @@ module.exports = {
             required: true
         },
         name: {
-            description: 'Name of the Build',
+            description: 'Name of the Installation',
             type: 'string',
             required: false
         },

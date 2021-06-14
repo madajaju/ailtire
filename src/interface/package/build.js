@@ -49,7 +49,7 @@ module.exports = {
         if(!inputs.recursive) {
             inputs.recursive = true
         }
-        Build.pkg(pkg, {name: name,recursive:inputs.recursive});
+        Build.pkg(pkg, {name: name,recursive:inputs.recursive, env: inputs.env});
         return `Building Application`;
     }
 };
