@@ -1,9 +1,10 @@
-const express = require('express');
+express = require('express');
 const exec = require('child_process').spawnSync;
 const server = express();
 const bent = require('bent');
 const bodyParser = require("body-parser");
 const http = require('http').createServer(server);
+const { Server } = require("socket.io");
 const path = require('path');
 const fs = require('fs');
 const ejs = require('ejs');
@@ -14,19 +15,23 @@ let children = {};
 // name of the stack to run AILTIRE_PARENT_AILTIRE_STACKNAME-AILTIRE_TASK
 // name of the parent to connect to. Host and port AILTIRE_PARENTHOST:AILTIRE_PARENTPORT
 // Host of the server.js process and port HOSTNAME: AILTIRE_STACKPORT
-console.log(process.env);
 let hostname = process.env.HOSTNAME;
 let stackName = process.env.AILTIRE_STACKNAME || process.env.HOSTNAME;
 let parent = process.env.AILTIRE_PARENTHOST || '';
 let parentport = process.env.AILTIRE_PARENTPORT || '3000';
 let port = process.env.AILTIRE_STACKADMINPORT || '3000';
+let prefix = process.env.AILTIRE_PREFIX || '/admin';
+
+const io = new Server(http, {path: prefix + '/socket.io/'});
+
+let currentStatus = {};
 
 process.env.AILTIRE_PARENTHOST = process.env.HOSTNAME;
 
 (async () => {
     try {
         await register();
-        deploy();
+        await deploy();
         setupExpress();
     } catch (e) {
         // Deal with the fact the chain failed
@@ -63,7 +68,7 @@ function setupExpress() {
         process.exit();
     });
     server.get('*/status', async (req, res) => {
-        let status = await getStats();
+        let status = getStats();
         res.json(status);
         res.end();
     });
@@ -74,30 +79,39 @@ function setupExpress() {
         res.json({status: 'ok'});
         res.end()
     });
-    server.get('*/children', (req, res) => {
-        console.log("Children");
-        console.log(children);
-        res.json(children);
-        res.end();
-    });
     server.get('*/view', async (req, res) => {
         let apath = path.resolve('./views/main.ejs');
-        let status = await getStats();
-        let retval = renderPage('./views/main.ejs', {stats:status});
+        let status = getStats();
+        let retval = renderPage('./views/main.ejs', {prefix: prefix, stats: status});
         res.end(retval);
     });
     server.get('*/log', async (req, res) => {
         let sname = req.query.name;
-        console.log(`SERVICENAME:${sname}:`);
+        console.log(`LOGS SERVICENAME:${sname}:`);
         let retval = getLogs(sname);
-        res.end(retval);
+        res.json(retval);
+        res.end();
     });
-    server.get('*', async (req, res) => {
+    server.get('*/js/*', async (req, res) => {
+        let apath = path.resolve('./assets/js/' + req._parsedUrl.pathname.replace(/.*js\//, ''));
+        res.sendFile(apath);
+    });
+    server.get('*/styles/*', async (req, res) => {
+        let apath = path.resolve('./assets/styles/' + req._parsedUrl.pathname.replace(/.*styles\//, ''));
+        res.sendFile(apath);
+    });
+    server.get('/', async (req, res) => {
+        console.log("Catch All:", req.url);
         let apath = path.resolve('./views/main.ejs');
-        let status = await getStats();
-        let retval = renderPage('./views/main.ejs', {stats:status});
+        let status = getStats();
+        let retval = renderPage('./views/main.ejs', {prefix: prefix, stats: status});
         res.end(retval);
     });
+    io.on('connection', (socket) => {
+        console.log('a client connected');
+        console.log('Socket:', socket);
+        io.emit('status', currentStatus);
+    })
     app = http.listen(port);
 
     process.once('SIGINT', (code) => {
@@ -106,11 +120,11 @@ function setupExpress() {
         console.log("proc:", proc.stdout.toString('utf8'));
         process.exit();
     });
-
+    return;
 }
 
 
-function checkStatus() {
+async function checkStatus() {
     console.log("Checking ", stackName);
     let proc = exec('docker', ['stack', 'ps', stackName], {cwd: '.', stdio: 'pipe', env: process.env});
     if (proc.status !== 0) {
@@ -121,8 +135,9 @@ function checkStatus() {
             env: process.env
         });
     } else {
-        console.log(stackName, "Running");
-        console.log(proc.stdout.toString('utf8'));
+        let status = parseStatus(proc.stdout.toString('utf8'));
+        currentStatus = await getStatus(children, status);
+        io.emit('status', currentStatus);
     }
 }
 
@@ -141,43 +156,47 @@ async function register() {
             console.error("Could not connect to Parent:", response);
             console.error("Could not connect to Parent:", e);
             setTimeout(register, 30000);
-        };
+        }
+        ;
     }
 }
 
-function deploy() {
-    checkStatus();
-   //  setInterval(checkStatus, 10000);
+async function deploy() {
+    await checkStatus();
+    setInterval(checkStatus, 60000);
 }
 
 async function getStatus(children, status) {
     let retval = status;
     const get = bent('GET', 'json');
-    for(let name in children) {
-        console.log("Calling children for ", name);
+    for (let name in children) {
         let response;
         try {
             let urlreq = `http://${children[name]}/status`;
-            if(!retval.hasOwnProperty(name)) {
-                retval[name] = { type: 'stack' };
+            if (!retval.hasOwnProperty(name)) {
+                retval[name] = {type: 'stack'};
             }
+            retval[name].name = name;
             response = await get(urlreq, '');
             retval[name].type = 'stack';
             retval[name].services = response;
-        } catch (e) {
-            retval[name].status ="Network Error";
-            retval[name].line = e;
-            console.log("Could not connect to Service:", e);
+        } catch (err) {
+            retval[name].status = "Network Error";
+            retval[name].name = name;
+            retval[name].line = err;
+            console.log("Could not connect to Service:", err);
         }
     }
     return retval;
+    return currentStatus;
 }
+
 function parseStatus(input) {
     let retval = {};
     const lines = input.split('\n');
-    for(let line in lines) {
+    for (let line in lines) {
         let items = lines[line].split(/\s+/);
-        if(items[1] && items[1] !== 'NAME' && items[1] !== "\\_") {
+        if (items[1] && items[1] !== 'NAME' && items[1] !== "\\_") {
             let serviceName = items[1].replace(/\./g, '-');
             retval[serviceName] = {
                 name: items[1],
@@ -191,27 +210,23 @@ function parseStatus(input) {
     }
     return retval;
 }
+
 function getLogs(name) {
-    let sname = name.replace(/-[0-9]+$/,'');
+    let sname = name.replace(/-[0-9]+$/, '');
     let proc = exec('docker', ['service', 'logs', sname], {cwd: '.', stdio: 'pipe', env: process.env});
-    let status = parseStatus(proc.stdout.toString('utf8'));
-    if(status != 0) {
-        console.log("Error:", proc.stderr.toString('utf8'));
+    if (proc.status != 0) {
         return proc.stderr.toString('utf8');
     }
-    let logs = status.stdout.toString('utf-8').split(/\n/);
-    let retval = "";
-    for(let i in logs) {
-        retval += log[i].replace(/.+\|/, '');
+    let logs = proc.stdout.toString('utf-8').split(/\n/);
+    let retval = [];
+    for (let i in logs) {
+        retval.push(logs[i].replace(/.+\|/, ''));
     }
     return retval;
 }
 
-async function getStats() {
-    let proc = exec('docker', ['stack', 'ps', stackName], {cwd: '.', stdio: 'pipe', env: process.env});
-    let status = parseStatus(proc.stdout.toString('utf8'));
-    let cstatus = await getStatus(children, status);
-    return cstatus;
+function getStats() {
+    return currentStatus;
 }
 
 const renderPage = (page, objects) => {
@@ -219,7 +234,6 @@ const renderPage = (page, objects) => {
     try {
         let str = fs.readFileSync(apath, 'utf8');
         let retval = ejs.render(str, objects);
-        console.log("Return:", retval)
         return retval;
     } catch (e) {
         console.error("Renderering Error:", e);

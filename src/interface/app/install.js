@@ -1,8 +1,9 @@
 const path = require('path');
-const exec = require('child_process').spawnSync;
+const spawn = require('child_process').spawnSync;
 const api = require('../../Documentation/api');
 const sLoader = require('../../Server/Loader');
 const fs = require('fs');
+const Build = require('../../Services/Build');
 
 module.exports = {
     friendlyName: 'install',
@@ -19,6 +20,11 @@ module.exports = {
             type: 'string',
             required: false
         },
+        repo: {
+            description: "Name of the Repository for the docker images",
+            type: 'string',
+            required: false,
+        }
     },
 
     exits: {
@@ -37,9 +43,10 @@ module.exports = {
         // Make sure to call docker stack deploy first then go down.
         let name = inputs.name || "default";
         let environ = inputs.env || 'local';
+        let repo = inputs.repo || '';
         let apath = path.resolve('.');
         let topPackage = sLoader.processPackage(apath);
-        installPackage(topPackage, {name: name, env: environ});
+        installPackage(topPackage, {name: name, env: environ, repo: repo});
         return `Building Application`;
     }
 };
@@ -52,15 +59,31 @@ function installPackage(package, opts) {
             return "";
         }
         let stackName = opts.name + '_' + package.deploy.envs[opts.env].tag;
+        stackName = stackName.replace(/:/g, '-');
         stackName = stackName.toLowerCase().replace(/\//,'').replace(/\//g, '_');
         let dockerfile = package.deploy.envs[opts.env].file;
+        let files = Build.serviceFiles(package, opts);
         console.log("Stack Name:", stackName);
         console.log("Environment:", opts.env)
         process.env.AILTIRE_STACKNAME = stackName;
         process.env.AILTIRE_ENV = opts.env;
         process.env.AILTIRE_APPNAME = opts.name;
-        // let proc = exec('pwd', [], {cwd: package.deploy.dir, stdio: 'inherit'});
-        let proc = exec('docker', ['stack', 'deploy', '-c', dockerfile, stackName], {cwd: package.deploy.dir, stdio: 'inherit', env:process.env});
+        process.env.APPNAME = opts.name;
+        console.log("Running command!");
+        //let proc = spawn('pwd', [], {
+        let proc = spawn('docker', ['stack', 'deploy', '-c', files.composeFile, stackName], {
+            cwd: package.deploy.dir,
+            stdio: 'pipe',
+            env: process.env
+        });
+        console.error(proc.stdout.toString('utf-8'));
+        if(proc.status != 0) {
+            console.error("Error Building Service Container", package.deploy.name);
+            console.error(proc.stderr.toString('utf-8'));
+        }
+        console.log("Done running command!");
+        // let proc = exec('docker', ['stack', 'deploy', '-c', '/c/Users/dwpulsip/work/edgemere/deploy/' + files.composeFile, stackName], {cwd: package.deploy.dir, stdio: 'inherit', env:process.env});
+        // let proc = exec('dir', {cwd: package.deploy.dir, stdio: 'inherit', env:process.env});
     }
     // Iterate over the subsystems and build the docker images
     /*

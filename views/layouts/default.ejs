@@ -1,18 +1,11 @@
 <!DOCTYPE html>
 <html>
 
-<%
-let hostURL = global.ailtire.config.host;
-if(global.ailtire.config.listenPort) {
-hostURL += ':' + global.ailtire.config.listenPort;
-}
-%>
 <head>
-    <title><%= app.name %></title>
+    <title>Edgemere</title>
     <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/2.5.1/less.min.js"></script>
     <link rel="stylesheet/less" type="text/css" href="styles/importer.less"/>
 
-    <base href="http://<%= hostURL %><%= global.ailtire.config.urlPrefix %>/">
     <script src="js/jquery.js"></script>
     <script src="js/w2ui.js"></script>
     <link rel="stylesheet" href="styles/w2ui.css"/>
@@ -22,10 +15,13 @@ hostURL += ':' + global.ailtire.config.listenPort;
     <script src="js/d3-octree.js"></script>
     <script src="js/d3-force-3d.js"></script>
     <script src="js/Graph3D.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/socket.io.js"></script>
     <script src="//unpkg.com/three-spritetext"></script>
 
 </head>
+<script type="text/javascript">
+    document.write("<base href='" + window.location + "' />");
+</script>
 <body style="overflow: hidden;">
 
 <!--This is a garden of 3DObjects for the graphing-->
@@ -60,7 +56,7 @@ hostURL += ':' + global.ailtire.config.listenPort;
     let stackview = new AStack({});
     let envview = new AEnvironment({});
 
-    // common colors to use based on status
+// common colors to use based on status
     const scolor = {
         started: "#aaffff",
         create: "#aaffff",
@@ -961,8 +957,11 @@ hostURL += ':' + global.ailtire.config.listenPort;
                 expandObjectOnGraph(link);
             }
         });
+        window.graph = graph;
 
-        let socket = io("http://<%= hostURL %>");
+        let socket = io(window.location.origin,
+            { path: window.location.pathname + 'socket.io' }
+        );
         socket.onAny((event, msg) => {
             showEvent(event);
             if (event.includes('.create')) {

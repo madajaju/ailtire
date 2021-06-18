@@ -12,50 +12,66 @@ module.exports = {
     },
     services: (pkg, opts) => {
         buildBaseImages(pkg, opts);
+    },
+    serviceFiles:(pkg, opts) => {
+        return buildServiceFiles(pkg,opts);
     }
 }
 
 function buildBaseImages(pkg, opts) {
 
 }
+
+function buildServiceFiles(pkg,opts) {
+
+    let stack = pkg.deploy.envs[opts.env].design;
+    stack.name = pkg.deploy.name;
+    let repo ='';
+    if(opts.repo) {
+       repo = opts.repo + '/';
+    }
+    let files = {
+        context: {
+            contexts: pkg.deploy.contexts,
+            stack: stack,
+            repo: repo
+        },
+        targets: {
+            '.tmp-dockerfile': {template: '/templates/Package/deploy/Dockerfile-Service'},
+            '.tmp-stack-compose.yml': {template: '/templates/Package/deploy/stack-compose.yml'},
+        }
+    };
+    Generator.process(files, pkg.deploy.dir);
+    
+    console.error("Building Service Container:", pkg.deploy.name);
+    return {dockerFile: '.tmp-dockerfile', composeFile: '.tmp-stack-compose.yml' };
+}
 function buildService(pkg, opts) {
     // Build process will build an docker image that will start the stack if there is one.
-    let apath = path.resolve(pkg.deploy.dir + '/deploy.js');
-    if(fs.existsSync(apath)) {
-        let deploy = require(apath);
+   // let apath = path.resolve(pkg.deploy.dir + '/deploy.js');
+   // if(fs.existsSync(apath)) {
+        // let deploy = require(apath);
+        let files = buildServiceFiles(pkg,opts);
         // Create the Dockerfile from the template with contexts set from the deploy
         if(!pkg.deploy.envs.hasOwnProperty(opts.env)) {
             // console.error("Could not find the environment:", opts.env);
             // console.error("Environments:", pkg.deploy.envs);
             return;
         }
-        let stack = pkg.deploy.envs[opts.env].design;
-        stack.name = pkg.deploy.name;
-        let files = {
-            context: {
-                contexts: deploy.contexts,
-                stack: stack,
-            },
-            targets: {
-                '.tmp-Dockerfile': {template: '/templates/Package/deploy/Dockerfile-Service'},
-                '.tmp-stack-compose.yml': {template: '/templates/Package/deploy/stack-compose.yml'},
-            }
-        };
-        Generator.process(files, pkg.deploy.dir);
-        console.error("Building Service Container:", deploy.name);
-        let proc = spawn('docker', ['build', '-t', deploy.name, '-f', '.tmp-Dockerfile', '.'], {
+        let proc = spawn('docker', ['build', '-t', pkg.deploy.name, '-f', files.dockerFile, '.'], {
             cwd: pkg.deploy.dir,
             stdio: 'pipe',
             env: process.env
         });
         if(proc.status != 0) {
-            console.error("Error Building Service Container", deploy.name);
+            console.error("Error Building Service Container", pkg.deploy.name);
+            console.error(proc.stdout.toString('utf-8'));
             console.error(proc.stderr.toString('utf-8'));
         }
-    }
-    else {
-        console.log("BuildService not found!:", apath);
-    }
+    // }
+    // else {
+    //     console.log("BuildService not found!:", apath);
+    // }
 }
 
 function buildPackage(pkg, opts) {
@@ -65,7 +81,7 @@ function buildPackage(pkg, opts) {
             let build = {};
             if(!bc.contexts.hasOwnProperty(opts.env)) {
                 console.log(`${opts.env} environment not found! Using default`);
-                build = bc.contexts.default; 
+                build = bc.contexts.default;
             } else {
                 build = bc.contexts[opts.env];
             }
@@ -78,7 +94,6 @@ function buildPackage(pkg, opts) {
                 buildTag = opts.repo + '/' + build.tag;
             }
             console.error("==== ContainerName ====", buildTag);
-
             let proc = spawn('docker', ['build', '-t', buildTag, '-f', build.file, build.dir], {
                 cwd: pkg.deploy.dir,
                 stdio: 'pipe',
@@ -88,7 +103,6 @@ function buildPackage(pkg, opts) {
                 console.error("Error Building Service Container");
                 console.error(proc.stderr.toString('utf-8'));
             }
-
         }
         buildService(pkg, opts);
     }

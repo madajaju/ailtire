@@ -5,7 +5,7 @@ let service = stack.services[sname];
 if(service.type === 'stack') {
 -%>
   <%= sname %>:
-    image: <%= service.image %>
+    image: <%= repo %><%= service.image %>
     stop_grace_period: 1m
     stop_signal: SIGINT
 <% if(service.volumes && service.volumes.size > 0) { -%>
@@ -48,7 +48,7 @@ if(service.type === 'stack') {
 } else {
 -%>
   <%= sname %>:
-    image: <%= service.image %>
+    image: <%= repo %><%= service.image %>
     stop_grace_period: 1m
     stop_signal: SIGINT
 <% if(service.volumes && service.volumes.size > 0) { -%>

@@ -3,14 +3,16 @@
 <head>
     <title>ailtire</title>
     <!-- Viewport mobile tag for sensible mobile support -->
-    <link rel="stylesheet/less" type="text/css" href="styles/importer.less"/>
+    <link rel="stylesheet" type="text/css" href="<%= prefix %>/styles/w2ui.css"/>
     <!--STYLES END-->
-    <script src="js/less.js" type="text/javascript"></script>
-    <script src="js/socket.io.js"></script>
+    <script src="<%= prefix %>/js/less.js" type="text/javascript"></script>
+    <script src="<%= prefix %>/js/socket.io.js"></script>
+    <script src="<%= prefix %>/js/jquery.js"></script>
+    <script src="<%= prefix %>/js/w2ui.js"></script>
     <style>
         .Running {
             color: white;
-            background: green;
+            background: lightgreen;
         }
 
         .Ready {
@@ -20,12 +22,12 @@
 
         .Shutdown {
             color: black;
-            background: yellow;
+            background: palegoldenrod;
         }
 
         .Rejected {
             color: black;
-            background: red;
+            background: pink;
         }
 
         .Failed {
@@ -35,7 +37,7 @@
 
         .Starting {
             color: white;
-            background: blue;
+            background: lightblue;
         }
 
         .Preparing {
@@ -56,72 +58,166 @@
 </head>
 
 <body>
-<header>ailtire</header>
-<script>
-    function toggle(id) {
-        let stackdiv = document.getElementById(id);
-        if (stackdiv.style.display === "none") {
-            stackdiv.style.display = "block";
-        } else {
-            stackdiv.style.display = "none";
-        }
-    }
+<header>Ailtire Stack Admin Console</header>
 
-    const socket = io('http://localhost/admin', {transport: ['websocket']});
-    socket.on('status', (res) => {
-    });
+<div id="main" style="width: 100%; height: 1000px;"></div>
+
+<script type="text/javascript">
+    const status = {
+        Running: {
+            color: 'black',
+            background: 'lightgreen',
+        },
+        Ready: {
+            color: 'black',
+            background: 'lightgreen',
+        },
+        Shutdown: {
+            color: 'black',
+            background: 'palegoldenrod',
+        },
+        Rejected: {
+            color: 'black',
+            background: 'pink',
+        },
+        Failed: {
+            color: 'black',
+            background: 'pink',
+        },
+        Starting: {
+            color: 'black',
+            background: 'lightblue',
+        },
+        Preparing: {
+            color: 'black',
+            background: 'lightblue',
+        },
+        Error: {
+            color: 'white',
+            background: 'red',
+        },
+        Warning: {
+            color: 'black',
+            background: 'lightyellow',
+        }
+    };
+    // widget configuration
+    const config = {
+        layout: {
+            name: 'layout',
+            padding: 0,
+            panels: [
+                {type: 'left', size: 300, resizable: true, minSize: 120},
+                {
+                    type: 'top',
+                    size: 30,
+                    resizable: false,
+                    overflow: 'hidden',
+                    style: 'border: 1px solid #0088ff; background-color:#ccccff; color:black;',
+                    items: [
+                        {type: 'html', html: '<h3 style="color:white;">Ailtire</h3>'},
+                    ],
+                },
+                {type: 'main', size: 200, overflow: 'hidden', content: 'Details', resizable: true },
+                {type: 'preview', size: "80%", overflow: 'hidden', content: 'Logs'}
+            ]
+        },
+        sidebar: {
+            name: 'sidebar',
+            nodes: [
+                {id: 'services', text: 'Services'},
+                {id: 'nodes', text: 'Nodes'},
+            ],
+            onClick: function (event) {
+                w2ui['detailGrid'].clear();
+                let detailItems = [];
+                for (let i in event.node.data) {
+                    detailItems.push({recid: i, name: i, value: event.node.data[i]});
+                }
+                w2ui['detailGrid'].add(detailItems);
+                w2ui['logGrid'].clear();
+                w2ui['logGrid'].add({recid: 0, text: `Snatching the Log for ${event.target} ...`});
+                $.ajax({
+                    url: `<%= prefix %>/log?name=${event.target}`,
+                    success: function (results) {
+                        w2ui['logGrid'].clear();
+                        let logItems = [];
+                        for (let i in results) {
+                            logItems.push({recid: i, text: results[i]});
+                        }
+                        w2ui['logGrid'].add(logItems);
+                    }
+                });
+            },
+        },
+        logGrid: {
+            name: 'logGrid',
+            columns: [
+                {field: 'text', caption: 'Logs', size: '100%'},
+            ],
+            records: []
+        },
+        detailGrid: {
+            name: 'detailGrid',
+            columns: [
+                {field: 'name', caption: '', size: '30%'},
+                {field: 'value', caption: '', size: '70%'},
+            ],
+            records: []
+        },
+    };
+
+    $(function () {
+            // initialization
+            console.log("Init Stuff");
+            $('#main').w2layout(config.layout);
+            w2ui.layout.html('left', $().w2sidebar(config.sidebar));
+            w2ui.layout.html('main', $().w2grid(config.detailGrid));
+            w2ui.layout.html('preview', $().w2grid(config.logGrid));
+            $.ajax({
+                url: '<%= prefix %>/status',
+                success: function (results) {
+                    let nodes = [];
+                    loadServices('services', results);
+                    w2ui['sidebar'].add('nodes', nodes);
+                    w2ui['sidebar'].refresh();
+                },
+                failed: function (err) {
+                    console.log("Error on Init Load:", err);
+                }
+            });
+            let socket = io(window.location.origin,
+                { path: window.location.pathname + 'socket.io' }
+            );
+            socket.on('status', (results) => {
+                loadServices('services',results);
+                w2ui['sidebar'].refresh();
+            });
+        }
+    );
+    function loadServices(parent, results) {
+        for (let i in results) {
+            let result = results[i];
+            let statum = { background: 'white', color: 'black'};
+            if(status.hasOwnProperty(result.status)) {
+                statum = status[result.status];
+            }
+            let sitem = {
+                id: i,
+                text: result.name,
+                status: result.status,
+                data: result,
+                class: result.status,
+                style: `background-color:${statum.background}; color=${statum.color}`,
+                nodes: []
+            };
+            if(!w2ui['sidebar'].set(parent, i, sitem)) {
+                w2ui['sidebar'].add(parent, [sitem]);
+            }
+            loadServices(i, result.services);
+        }
+    }
 </script>
-<%
-function serviceStatus(services, name, offset = 0) {
-    let retval = '';
-    let status = "Ready";
-    for (let sname in services) {
-        let sstatus = services[sname].status;
-        if (sstatus === 'Starting' || sstatus === 'Preparing') {
-            status = 'Starting';
-        } else if (sstatus === 'Failed') {
-            status = 'Failed';
-        } else if (sstatus !== 'Ready' || sstatus !== 'Running') {
-            status = 'Warning';
-        }
-    }
-    retval += `<div id="${name}Drop" class="${status}">`;
-    retval += `<table>`;
-    for (let sname in services) {
-        let service = services[sname];
-        retval += `<tr class="${service.status}" id="${sname}">`;
-        if (service.type === 'stack') {
-            retval += `<td><a onclick=toggle('${sname}Drop');>${service.type}</td>`;
-        } else {
-            retval += '<td></td>';
-        }
-        retval += `<td>${sname}</td>`;
-        retval += `<td>${service.image}</td>`;
-        retval += `<td>${service.status}</td>`;
-        retval += `<td><a href="http://localhost/admin/log?name=${sname}" target="logs">Logs</a>`;
-//        retval += `<td>${service.line}</td>`;
-        if (service.type === 'stack' && service.hasOwnProperty('services')) {
-            retval += `</tr><tr><td colspan=5>`;
-            retval += serviceStatus(service.services, sname, offset + 1);
-            retval += `</td>`;
-        }
-        retval += `</tr>`
-    }
-    retval += `</table>`;
-    retval += `</div>`;
-    return retval;
-}
-%>
-<table>
-    <tr>
-        <td width="50%">
-            <%- serviceStatus(stats, "Base", 0); %>
-        </td>
-        <td width="50%">
-            <iframe name="logs" height="100%" width="100%" title="Service Logs"></iframe>
-        </td>
-    </tr>
-</table>
 </body>
 <footer>Darren Pulsipher</footer>
 </html>

@@ -1,8 +1,7 @@
 var server = require('express')();
 var http = require('http').createServer(server);
-var io = require('socket.io')(http);
 const path = require('path');
-
+const { Server } = require("socket.io");
 const sLoader = require('./Loader.js');
 const AEvent = require('./AEvent.js');
 const Action = require('./Action.js');
@@ -157,15 +156,19 @@ module.exports = {
             let str = mainPage(config);
             res.end(str);
         });
-
+        server.get(`${config.urlPrefix}`, (req, res) => {
+            let str = mainPage(config);
+            res.end(str);
+        });
         server.all('*', (req, res) => {
+            console.error(`Config: ${config.urlPrefix}`)
             console.error("Catch All", req.originalUrl);
             // Look in the views directly for items to load.
             let str = findPage(req.originalUrl, config);
             res.end(str);
         });
 
-        global.io = io;
+        global.io = io = new Server(http, {path: config.urlPrefix + '/socket.io/'});
 
         io.on('connection', function (msocket) {
             console.log("Connection happen!");
@@ -206,7 +209,7 @@ module.exports = {
             }
             res.end(req.originalUrl);
         });
-        global.io = io;
+        global.io = io = new Server(http, {path: config.urlPrefix + '/socket.io/'});
 
         io.on('connection', function (msocket) {
             AEvent.addHandlers(msocket);
