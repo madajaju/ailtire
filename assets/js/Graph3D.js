@@ -55,7 +55,7 @@ class Graph3D {
         }
         this.data = data;
         this.normalizeData();
-        this.graph = ForceGraph3D({controlType: 'orbit'})
+        this.graph = ForceGraph3D({controlType:'orbit'})
         (document.getElementById(this.gdiv))
             .width(this.options.width)
             .height(this.options.height)
@@ -82,12 +82,12 @@ class Graph3D {
                     let defaultID = "#default3D" + type;
                     let material = null;
 
-                    retval = document.querySelector(objID);
-                    if (!retval) {
-                        retval = document.querySelector(defaultID);
-                    }
-                    let obj3D = retval.object3D.clone();
-                    return obj3D;
+                retval = document.querySelector(objID);
+                if (!retval) {
+                    retval = document.querySelector(defaultID);
+                }
+                let obj3D = retval.object3D.clone();
+                return obj3D;
                 }
             })
             .linkCurvature(link => {
@@ -147,7 +147,7 @@ class Graph3D {
 
                         // Position sprite
                         Object.assign(sprite.position, middlePos);
-                    }
+                }
                 }
             })
             .linkDirectionalParticles(link => {
@@ -286,7 +286,7 @@ class Graph3D {
             this.data.nodes[i].size = 30;
             this.ndata.nodes.push(this.data.nodes[i]);
         }
-        let multiplier = Math.floor(totalItems / 30) + 1;
+        let multiplier = Math.floor(totalItems/30) + 1;
         let j = 0;
         for (let i in this.levels) {
             let level = this.levels[i];
@@ -333,7 +333,7 @@ class Graph3D {
                     this.ndata.links[lid].curve = curve;
                     curve += 0.2;
                 }
-            }
+    }
         }
     };
 
@@ -447,9 +447,9 @@ class Graph3D {
                     this.selectRelNodes(nnode, direction);
                     this.selected.nodes[bdir][nnode.id] = nnode;
                 }
+                }
             }
         }
-    }
 
     setNode(nodeid, opts) {
         let node = this.data.nodes[nodeid];
@@ -465,11 +465,11 @@ class Graph3D {
 function forceOnPlane() {
     function constant(_) {
         return () => _;
-    }
+                    }
 
     function index(d) {
         return d.index;
-    }
+                    }
 
     var id = index,
         nodes = [],
@@ -512,7 +512,7 @@ function forceOnPlane() {
                             let newy = parent.y + node.rbox.y.min;
                             node.vy = (node.y - newy) / 2;
                             node.y = newy;
-                        } else {
+                    } else {
                             if (Math.abs(node.vy) > Math.abs(max - min)) {
                                 v = (max - min) / 4;
                             }
@@ -581,13 +581,13 @@ function forceOnPlane() {
                         node.vz = -node.vz * k;
                     }
                 }
-            }
-        }
-    }
+                        }
+                    }
+                }
 
     function initialize() {
         if (!nodes) return;
-    }
+            }
 
     force.initialize = function (_) {
         nodes = _;

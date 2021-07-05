@@ -42,9 +42,14 @@ function buildServiceFiles(pkg,opts) {
         }
     };
     Generator.process(files, pkg.deploy.dir);
+    let composeFile = '.tmp-stack-compose.yml';
+    if(pkg.deploy.envs[opts.env].file) {
+        composeFile = pkg.deploy.envs[opts.env].file;
+        
+    }
     
     console.error("Building Service Container:", pkg.deploy.name);
-    return {dockerFile: '.tmp-dockerfile', composeFile: '.tmp-stack-compose.yml' };
+    return {dockerFile: '.tmp-dockerfile', composeFile: composeFile };
 }
 function buildService(pkg, opts) {
     // Build process will build an docker image that will start the stack if there is one.

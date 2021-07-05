@@ -245,7 +245,7 @@ const loadDeploy = (pkg, prefix, dir) => {
                 normalizeStack(design);
             }
             pkg.deploy.envs[env] = {
-                tag: contexts[env].tag,
+                tag: `${pkg.deploy.name}:${env}`,
                 definition: compose,
                 file: contexts[env].file,
                 design: design

@@ -218,9 +218,13 @@ function getLogs(name) {
         return proc.stderr.toString('utf8');
     }
     let logs = proc.stdout.toString('utf-8').split(/\n/);
-    let retval = [];
+    let retval = {stdout:[], stderr:[]};
     for (let i in logs) {
-        retval.push(logs[i].replace(/.+\|/, ''));
+        retval.stdout.push(logs[i].replace(/.+\|/, ''));
+    }
+    let errlogs = proc.stderr.toString('utf-8').split(/\n/);
+    for (let i in errlogs) {
+        retval.stderr.push(errlogs[i].replace(/.+\|/, ''));
     }
     return retval;
 }

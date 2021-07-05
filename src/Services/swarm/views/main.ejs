@@ -3,7 +3,8 @@
 <head>
     <title>ailtire</title>
     <!-- Viewport mobile tag for sensible mobile support -->
-    <link rel="stylesheet" type="text/css" href="<%= prefix %>/styles/w2ui.css"/>
+    <link rel="stylesheet" type="text/css"
+          href="<%= prefix %>/styles/w2ui.css"/>
     <!--STYLES END-->
     <script src="<%= prefix %>/js/less.js" type="text/javascript"></script>
     <script src="<%= prefix %>/js/socket.io.js"></script>
@@ -56,7 +57,6 @@
         }
     </style>
 </head>
-
 <body>
 <header>Ailtire Stack Admin Console</header>
 
@@ -115,11 +115,40 @@
                     overflow: 'hidden',
                     style: 'border: 1px solid #0088ff; background-color:#ccccff; color:black;',
                     items: [
-                        {type: 'html', html: '<h3 style="color:white;">Ailtire</h3>'},
+                        {
+                            type: 'html',
+                            html: '<h3 style="color:white;">Ailtire</h3>'
+                        },
                     ],
                 },
-                {type: 'main', size: 200, overflow: 'hidden', content: 'Details', resizable: true },
-                {type: 'preview', size: "80%", overflow: 'hidden', content: 'Logs'}
+                {
+                    type: 'main',
+                    size: 200,
+                    overflow: 'hidden',
+                    content: 'Details',
+                    resizable: true
+                },
+                {
+                    type: 'preview',
+                    size: "80%",
+                    overflow: 'hidden',
+                    content: 'Logs',
+                    tabs: {
+                        active: 'stdout',
+                        tabs: [
+                            {id: 'stdout', caption: 'stdout'},
+                            {id: 'stderr', caption: 'stderr'},
+                        ],
+                        onClick: function (event) {
+                            if (event.target === 'stdout') {
+                                w2ui['layout'].html('preview', w2ui.logGrid);
+                            } else if (event.target === 'stderr') {
+                                // this.owner.html('preview', w2ui.logGridError);
+                                w2ui['layout'].html('preview', w2ui.logGridError);
+                            }
+                        }
+                    }
+                }
             ]
         },
         sidebar: {
@@ -132,20 +161,33 @@
                 w2ui['detailGrid'].clear();
                 let detailItems = [];
                 for (let i in event.node.data) {
-                    detailItems.push({recid: i, name: i, value: event.node.data[i]});
+                    detailItems.push({
+                        recid: i,
+                        name: i,
+                        value: event.node.data[i]
+                    });
                 }
                 w2ui['detailGrid'].add(detailItems);
                 w2ui['logGrid'].clear();
-                w2ui['logGrid'].add({recid: 0, text: `Snatching the Log for ${event.target} ...`});
+                w2ui['logGrid'].add({
+                    recid: 0,
+                    text: `Snatching the Log for ${event.target} ...`
+                });
                 $.ajax({
                     url: `<%= prefix %>/log?name=${event.target}`,
                     success: function (results) {
                         w2ui['logGrid'].clear();
                         let logItems = [];
-                        for (let i in results) {
-                            logItems.push({recid: i, text: results[i]});
+                        for (let i in results.stdout) {
+                            logItems.push({recid: i, text: results.stdout[i]});
                         }
                         w2ui['logGrid'].add(logItems);
+                        w2ui['logGridError'].clear();
+                        logItems = [];
+                        for (let i in results.stderr) {
+                            logItems.push({recid: i, text: results.stderr[i]});
+                        }
+                        w2ui['logGridError'].add(logItems);
                     }
                 });
             },
@@ -153,7 +195,14 @@
         logGrid: {
             name: 'logGrid',
             columns: [
-                {field: 'text', caption: 'Logs', size: '100%'},
+                {field: 'text', caption: 'stdout', size: '100%'},
+            ],
+            records: []
+        },
+        logGridError: {
+            name: 'logGridError',
+            columns: [
+                {field: 'text', caption: 'stderr', size: '100%'},
             ],
             records: []
         },
@@ -173,7 +222,8 @@
             $('#main').w2layout(config.layout);
             w2ui.layout.html('left', $().w2sidebar(config.sidebar));
             w2ui.layout.html('main', $().w2grid(config.detailGrid));
-            w2ui.layout.html('preview', $().w2grid(config.logGrid));
+            $().w2grid(config.logGrid);
+            $().w2grid(config.logGridError);
             $.ajax({
                 url: '<%= prefix %>/status',
                 success: function (results) {
@@ -187,19 +237,20 @@
                 }
             });
             let socket = io(window.location.origin,
-                { path: window.location.pathname + 'socket.io' }
+                {path:  '<%= prefix %>/socket.io'}
             );
             socket.on('status', (results) => {
-                loadServices('services',results);
+                loadServices('services', results);
                 w2ui['sidebar'].refresh();
             });
         }
     );
+
     function loadServices(parent, results) {
         for (let i in results) {
             let result = results[i];
-            let statum = { background: 'white', color: 'black'};
-            if(status.hasOwnProperty(result.status)) {
+            let statum = {background: 'white', color: 'black'};
+            if (status.hasOwnProperty(result.status)) {
                 statum = status[result.status];
             }
             let sitem = {
@@ -211,7 +262,7 @@
                 style: `background-color:${statum.background}; color=${statum.color}`,
                 nodes: []
             };
-            if(!w2ui['sidebar'].set(parent, i, sitem)) {
+            if (!w2ui['sidebar'].set(parent, i, sitem)) {
                 w2ui['sidebar'].add(parent, [sitem]);
             }
             loadServices(i, result.services);
