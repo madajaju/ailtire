@@ -24,6 +24,7 @@ module.exports = {
         global.topPackage = processDirectory(dir);
         for (let i in global.packages) {
             checkPackage(global.packages[i]);
+            analyzeClasses(global.classes);
         }
         return global.topPackage;
     }
@@ -58,8 +59,12 @@ const analyzeClasses = classes => {
                 let d = {model: cls.definition, assoc:assoc}
                 d.assoc.name = j;
                 gcls.definition.dependant.push(d);
+                // Push the association owner into the definition for the persistent layer.
+                if(assoc.owner || assoc.composite) {
+                    gcls.definition.owners.push(d);
+                }
             } else {
-                console.error("Type does not map to a class:", aType);
+                console.error("Association type does not map to a model:", aType, " for Class: ", cls.definition.name);
             }
         }
     }
@@ -134,6 +139,8 @@ let reservedDirs = {
                 // throw new Error('Class Already defined' + myClass.definition.name + "in this model:" + modelDir);
             } else {
                 let myProxy = new Proxy(myClass, classProxy);
+                // set the owners array for persistence.
+                myClass.definition.owners = new Array();
                 pkg.classes[myClass.definition.name] = myProxy;
                 global.classes[myClass.definition.name] = myProxy;
                 global[myClass.definition.name] = myProxy;

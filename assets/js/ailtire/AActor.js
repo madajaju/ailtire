@@ -83,13 +83,13 @@ export default class AActor {
                 columns: [
                     {
                         field: 'name',
-                        caption: 'Name',
+                        label: 'Name',
                         size: '100px',
                         style: 'background-color: #efefef; border-bottom: 1px solid white; padding-right: 5px;',
                         attr: "align=right"
                     },
                     {
-                        field: 'value', caption: 'Value', size: '100%', render: function (record) {
+                        field: 'value', label: 'Value', size: '100%', render: function (record) {
                             return '<div>' + record.value + '</div>';
                         }
                     }
@@ -97,8 +97,8 @@ export default class AActor {
             });
         }
         let cols = [
-            {field: 'name', size: "20%", resizeable: true, caption: "Name", sortable: true},
-            {field: 'value', size: "80%", resizeable: true, caption: "Value", sortable: true},
+            {field: 'name', size: "20%", resizeable: true, label: "Name", sortable: true},
+            {field: 'value', size: "80%", resizeable: true, label: "Value", sortable: true},
         ];
         w2ui['objlist'].columns = cols;
         let i = 0;

@@ -201,8 +201,8 @@ export default class APackage {
 
         let records = [];
         let cols = [
-            {field: 'name', size: "20%", resizeable: true, caption: "Name", sortable: true},
-            {field: 'value', size: "80%", resizeable: true, caption: "Value", sortable: true},
+            {field: 'name', size: "20%", resizeable: true, label: "Name", sortable: true},
+            {field: 'value', size: "80%", resizeable: true, label: "Value", sortable: true},
         ];
         w2ui['objlist'].columns = cols;
         let i = 0;

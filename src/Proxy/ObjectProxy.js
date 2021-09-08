@@ -57,11 +57,27 @@ module.exports = {
             if (hasAssociation(obj.definition, prop)) {
                 // Check for associations
                 // Make the assignment if it is an object.
-                if (getAssociation(obj.definition, prop).cardinality === 'n') {
+                let myAssoc = getAssociation(obj.definition, prop);
+                if (myAssoc.cardinality === 'n') {
 
                     // Store things as an array or a map.
                     if (Array.isArray(value)) {
-                        obj._associations[prop] = value;
+                        let newArray = new Array();
+                        // Iterate through each one. If an element is a string them try and load the Object.
+                        for(let i in value) {
+                            let aval = value[i];
+                            if(typeof aval !== 'object') {
+                                let myClass = AClass.getClass(myAssoc.type);
+                                let myObj = myClass.find(aval);
+                                if(!myObj) {
+                                    myObj = new myClass({id:aval});
+                                }
+                                newArray.push(myObj);
+                            } else {
+                                newArray.push(aval);
+                            }
+                        }
+                        obj._associations[prop] = newArray;
                         return true;
                     } else {
                         console.error("Expecting an array, recieved a ", typeof value);

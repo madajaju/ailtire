@@ -156,21 +156,21 @@ export default class AScenario {
                 columns: [
                     {
                         field: 'recid',
-                        caption: 'ID',
+                        label: 'ID',
                         size: '10%',
                         attr: "align=right",
                         sortable: true
                     },
                     {
                         field: 'action',
-                        caption: 'Action',
+                        label: 'Action',
                         size: '30%',
                         attr: "align=right",
                         sortable: true
                     },
                     {
                         field: 'parameters',
-                        caption: 'Parameters',
+                        label: 'Parameters',
                         size: '60%',
                         attr: "align=right",
                         sortable: true
@@ -178,7 +178,7 @@ export default class AScenario {
                 ],
                 toolbar: {
                     items: [
-                        {id: 'launch', type: 'button', caption: 'Launch Scenario', icon: 'w2ui-icon-plus'},
+                        {id: 'launch', type: 'button', text: 'Launch Scenario', icon: 'w2ui-icon-plus'},
                         {type: 'break'},
                         {
                             id: 'scenarioname',

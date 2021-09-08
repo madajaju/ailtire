@@ -8,6 +8,8 @@ const Action = require('./Action.js');
 const fs = require('fs');
 // const redis = require('socket.io-redis');
 const bodyParser = require("body-parser");
+
+
 const htmlGenerator = require('../Documentation/html');
 const Renderer = require('../Documentation/Renderer');
 
@@ -18,8 +20,9 @@ server.use(function(req, res, next) {
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });
-server.use(bodyParser.urlencoded({extended: false}));
+server.use(bodyParser.urlencoded({extended: true}));
 server.use(bodyParser.json());
+server.use(bodyParser.raw());
 
 module.exports = {
     docBuild: (config) => {
@@ -135,6 +138,11 @@ module.exports = {
         Action.load(server, '', path.resolve(ailPath), config); // Load the ailtire defaults from the interface directory.
         Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'), config);
         Action.mapRoutes(server, config.routes);
+
+        if(config.persist) {
+            let pAdaptor = config.persist.adaptor;
+            pAdaptor.load();
+        }
 
         standardFileTypes(config,server);
 
@@ -259,6 +267,11 @@ module.exports = {
             let str = fs.readFileSync(apath, 'utf8');
             res.end(str);
         });
+        server.get('/views/*', (req, res) => {
+            let apath = path.resolve( req.url);
+            let str = fs.readFileSync(apath, 'utf8');
+            res.end(str);
+        });
     }
 }
 
@@ -297,6 +310,10 @@ function standardFileTypes(config,server) {
     server.get(`${config.urlPrefix}/js/*`, (req, res) => {
         let apath = path.resolve('./assets' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
         // let str = fs.readFileSync(apath, 'utf8');
+        res.sendFile(apath);
+    });
+    server.get(`${config.urlPrefix}/views/*`, (req, res) => {
+        let apath = path.resolve('./' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
         res.sendFile(apath);
     });
     server.get('*.html', (req, res) => {

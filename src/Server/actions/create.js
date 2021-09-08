@@ -30,11 +30,12 @@ module.exports = {
             let newObj = new cls(env.req.body);
             let jobj = newObj.toJSON;
             AEvent.emit(modelName + '.create', { obj: jobj });
-            env.res.json({results: "Created Object"});
+            env.res.json({results: jobj._attributes});
         }
         else {
             // Remove the cls  from the inputs so they are not passed down to the constructor
-            let newObj = new AClass.getClass(modelName)(inputs);
+            let myClass = AClass.getClass(modelName);
+            let newObj = new myClass(inputs);
             AEvent.emit(modelName + '.create', { obj: newObj.toJSON });
             env.res.redirect(`/${modelName}?id=${newObj.id}`)
         }

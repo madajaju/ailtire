@@ -92,10 +92,10 @@ export default class AEnvironment {
         AEnvironment.viewDeep3D(result, 'new');
        let records = [];
         let cols = [
-            {field: 'name', size: "20%", resizeable: true, caption: "Name", sortable: true},
-            {field: 'services', size: "20%", resizeable: true, caption: "Services", sortable: true},
-            {field: 'networks', size: "20%", resizeable: true, caption: "Networks", sortable: true},
-            {field: 'data', size: "20%", resizeable: true, caption: "Data", sortable: true},
+            {field: 'name', size: "20%", resizeable: true, label: "Name", sortable: true},
+            {field: 'services', size: "20%", resizeable: true, label: "Services", sortable: true},
+            {field: 'networks', size: "20%", resizeable: true, label: "Networks", sortable: true},
+            {field: 'data', size: "20%", resizeable: true, label: "Data", sortable: true},
             {field: 'interface', size: "20%", resizeable: true, caption: "Interface", sortable: true}
         ];
         w2ui['objlist'].columns = cols;

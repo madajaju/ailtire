@@ -39,7 +39,7 @@ module.exports = {
         }
         let obj = cls.find(env.req.query.id);
         if (obj) {
-            let item = { id: obj.id, package: cls.definition.package.shortname, className: cls.definition.name};
+            let item = { id: obj.id, package: cls.definition.package.shortname, type: cls.definition.name};
             for(let aname in cls.definition.attributes) {
                 item[aname] = {name: obj[aname]};
             }
@@ -54,16 +54,32 @@ module.exports = {
                             type: obj[aname].definition.name,
                             link: `${assoc.type}?id=${obj[aname].id}`
                         };
+                        for(let aaname in obj[aname].definition.attributes) {
+                            item[aname][aaname] = obj[aname][aaname];
+                        }
                     }
                 }
                 else {
                     let aitems = [];
                     for(let i in obj[aname]) {
-                        aitems.push({
+                        let mitem = {
                             id: obj[aname][i].id,
                             name: obj[aname][i].name,
                             type: obj[aname][i].definition.name,
-                            link: `${assoc.type}?id=${obj[aname][i].id}`});
+                            link: `${assoc.type}?id=${obj[aname][i].id}`
+                        };
+                        for (let aaname in obj[aname][i].definition.attributes) {
+                            mitem[aaname] = obj[aname][i][aaname];
+                        }
+                        for (let aaname in obj[aname][i].definition.associations) {
+                            let aassoc = obj[aname][i].definition.associations[aaname];
+                            if(aassoc.cardinality === 1) {
+                                if(obj[aname][i][aaname]) {
+                                    mitem[aaname] = obj[aname][i][aaname].name;
+                                }
+                            }
+                        }
+                        aitems.push(mitem);
                     }
                     item[aname] = {count: aitems.length, values: aitems};
                 }

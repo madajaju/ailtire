@@ -402,7 +402,7 @@
         let cols = [{field: 'state', size: size, resizeable: true, caption: 'State', sortable: true}];
         for (let i in result.columns) {
             cols.push({
-                field: result.columns[i].name,
+                field: result.columns[i].name.toLowerCase(),
                 size: size,
                 resizeable: true,
                 caption: result.columns[i].name,

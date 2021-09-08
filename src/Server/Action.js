@@ -220,11 +220,21 @@ const mapToServer = (server, config) => {
             i = '/' + i;
         }
         let normalizedName = i.replace('/' + global.topPackage.shortname,'' );
+
+        server.post('*' + normalizedName, (req, res) => {
+            req.url = req.url.replace(config.urlPrefix, '');
+            execute(gaction, req.query, {req: req, res: res});
+        });
         server.all('*' + normalizedName, (req, res) => {
             req.url = req.url.replace(config.urlPrefix, '');
             execute(gaction, req.query, {req: req, res: res});
         });
+
         normalizedName = config.urlPrefix + normalizedName;
+        server.post('*' + normalizedName, (req, res) => {
+            req.url = req.url.replace(config.urlPrefix, '');
+            execute(gaction, req.query, {req: req, res: res});
+        });
         server.all('*' + normalizedName, (req, res) => {
             req.url = req.url.replace(config.urlPrefix, '');
             execute(gaction, req.query, {req: req, res: res});

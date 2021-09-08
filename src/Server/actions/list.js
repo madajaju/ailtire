@@ -41,7 +41,7 @@ module.exports = {
         let items = {};
         for(let id in objs) {
             let obj = objs[id];
-            let item = { id: obj.id, package: cls.definition.package.shortname, className: cls.definition.name, state: obj._state};
+            let item = { id: obj.id, package: cls.definition.package.shortname, type: cls.definition.name, state: obj._state};
             for(let aname in cls.definition.attributes) {
                 item[aname] = {name: obj[aname]};
             }
@@ -56,6 +56,9 @@ module.exports = {
                             type: obj[aname].definition.name,
                             link: `${assoc.type}?id=${obj[aname].id}`
                         };
+                        for(let aaname in obj[aname].definition.attributes) {
+                            item[aname][aaname] = obj[aname][aaname];
+                        }
                     }
                 }
                 else {
@@ -72,11 +75,26 @@ module.exports = {
             }
             items[obj.id] = item;
         }
+        let methods = {};
+        let appName = global.ailtire.config.prefix;
+
+        let allMethods = global.services[appName][cls.definition.name.toLowerCase()];
+        // for(let fname in cls.definition.methods) {
+        for(let fname in allMethods) {
+            let linkName =`/${appName}/${cls.definition.name.toLowerCase()}/${fname}`;
+            method = global.actions[linkName];
+            methods[fname] = {
+                name: method.friendlyName,
+                description: method.description,
+                link: linkName,
+                inputs: method.inputs,
+            }
+        }
         let ritems = [];
         for(let i in items) {
             ritems.push(items[i]);
         }
-        env.res.json({status:'success', name: cls.definition.name ,total:objs.length, records:ritems, columns:cols});
+        env.res.json({status:'success', name: cls.definition.name ,total:objs.length, records:ritems, columns:cols, methods:methods});
     }
 };
 
