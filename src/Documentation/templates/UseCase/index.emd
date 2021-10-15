@@ -20,6 +20,46 @@ parent: usecases
 * [<%= actor.name %>](actor-<%= actor.shortname %>)
 <% } %>
 
+<% if(usecase.extended) { 
+%>
+## Extended Use Cases
+
+<% for(let ucname in usecases.extended) { 
+%>
+* [<%= ucname %>](usecase-<%= ucname %>)
+<% } 
+} %>
+
+## Extends Use Cases
+
+<% for(let ucname in usecases.extends) {
+%>
+* [<%= ucname %>](usecase-<%= ucname %>)
+<% }
+} %>
+
+
+<% if(usecase.included) { 
+%>
+## Included Use Cases
+
+<% for(let ucname in usecases.included) {
+%>
+* [<%= ucname %>](usecase-<%= ucname %>)
+<% }
+} %>
+
+<% if(usecase.includes) {
+%>
+## Includes Use Cases
+
+<% for(let ucname in usecases.includes) {
+%>
+* [<%= ucname %>](usecase-<%= ucname %>)
+  <% }
+  } %>
+
+
 ## Detail Scenarios
 
 <% for(let sname in usecase.scenarios) {

@@ -565,6 +565,41 @@ const checkUseCase = (pkg, usecase) => {
         let scenario = usecase.scenarios[i];
         checkScenario(pkg, scenario);
     }
+    // Extends is used primarily for aggregation. Sub use cases of a super use case.
+    let newExtends = {};
+    for(let i in usecase.extends) {
+        let pusecaseName = usecase.extends[i].replace(/\s/g,'');
+        if(global.usecases.hasOwnProperty(pusecaseName)) {
+            let pusecase = global.usecases[pusecaseName];
+            newExtends[pusecaseName] = pusecase;
+            if(!pusecase.hasOwnProperty('extended')) {
+                pusecase.extended = {};
+            }
+            pusecase.extended[usecase.name.replace(/\s/g,'')] = usecase;
+        } else {
+            console.error("Could not find extend UseCase:", usecase.extends[i], " for ", usecase.name);
+        }
+    }
+    // This is causing a circular dependency in the memory tree.
+    // usecase.extends = newExtends;
+
+    // Includes is used primarily for dependency between use cases.
+    let newIncludes = {};
+    for(let i in usecase.includes) {
+        let puscaseName = usecase.includes[i].replace(/\s/g,'');
+        if(global.usecases.hasOwnProperty(pusecaseName)) {
+            let pusecase = global.usecases[myUC.name.replace(/\s/g, '')];
+            newIncludes[pusecaseName] = pusecase;
+            if(!pusecase.hasOwnProperty('included')) {
+                pusecase.included = {};
+            }
+            pusecase.included[usecase.name.replace(/\s/g,'')] = usecase;
+        } else {
+            console.error("Could not find included UseCase:", usecase.extends[i], " for ", usecase.name);
+        }
+    }
+    // This is causing a circular dependency in the memory tree.
+    // usecase.includes = newIncludes;
 };
 const checkScenario = (pkg, scenario) => {
     // Make sure that there is an actor for the actors in a use case.

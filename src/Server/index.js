@@ -177,7 +177,16 @@ module.exports = {
         });
 
         global.io = io = new Server(http, {path: config.urlPrefix + '/socket.io/'});
+        global.io2 = io2 = new Server(http, {path: '/socket.io/'});
 
+        io2.on('connection', (msocket) => {
+            console.log("Connection 2 happen!");
+            io2.emit("ConnectedEdge", "Connected Edge made it");
+            AEvent.addHandlers(msocket);
+        });
+        io2.on('ailtire.server.started', (msocket) => {
+            console.log("Peer Server Started", msocket);
+        })
         io.on('connection', function (msocket) {
             console.log("Connection happen!");
             io.emit("ConnectedEdge", "Connected Edge made it");
@@ -186,6 +195,11 @@ module.exports = {
 
         http.listen(config.listenPort, () => {
             console.log("Listening on port: " + config.listenPort);
+            // call the post configuration script.
+            if(config.hasOwnProperty('post')) {
+                config.post(config);
+                console.log("Done!");
+            }
         });
     },
     micro: (config) => {
@@ -309,7 +323,6 @@ function standardFileTypes(config,server) {
     });
     server.get(`${config.urlPrefix}/js/*`, (req, res) => {
         let apath = path.resolve('./assets' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
-        // let str = fs.readFileSync(apath, 'utf8');
         res.sendFile(apath);
     });
     server.get(`${config.urlPrefix}/views/*`, (req, res) => {

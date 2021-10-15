@@ -33,7 +33,8 @@ class Graph3D {
             width: 1000,
             height: 1000,
             background: "#555500",
-            linkColor: "#000000"
+            linkColor: "#000000",
+            linkSize: 0.4
         }
         for (let i in options) {
             this.options[i] = options[i];
@@ -100,7 +101,7 @@ class Graph3D {
                 return 0;
             })
             .linkWidth(link => {
-                let width = link.width || 2;
+                let width = link.width || this.options.linkSize;
                 if (this.selected.links.target.has(link)) {
                     return width * 2;
                 } else if (this.selected.links.source.has(link)) {
@@ -151,12 +152,13 @@ class Graph3D {
                 }
             })
             .linkDirectionalParticles(link => {
+                // Number of particles on the link;
                 if (this.selected.links.target.has(link)) {
-                    return 5;
+                    return 6;
                 } else if (this.selected.links.source.has(link)) {
-                    return 5;
+                    return 6;
                 }
-                return 2;
+                return 3;
             })
             .linkDirectionalParticleColor(link => {
                 if (this.selected.links.target.has(link)) {
@@ -170,13 +172,13 @@ class Graph3D {
                 return this.options.linkColor;
             })
             .linkDirectionalParticleWidth(link => {
-                let width = link.width || 2;
+                let width = link.width || this.options.linkSize;
                 if (this.selected.links.target.has(link)) {
-                    return width * 4;
+                    return width * 3;
                 } else if (this.selected.links.source.has(link)) {
-                    return width * 4;
+                    return width * 3;
                 }
-                return width * 2;
+                return width * 1.5;
             })
             .linkColor(link => {
                 if (link.color) {
@@ -203,7 +205,7 @@ class Graph3D {
             .dagLevelDistance(300);
         this.linkForce = this.graph
             .d3Force('link')
-            .distance(link => link.value * 10);
+            .distance(link => link.value * 30);
         this.graph
             .d3Force('collide', d3.forceCollide().radius((d) => {
                 return d.box || 20;
@@ -478,6 +480,7 @@ function forceOnPlane() {
     function force(alpha) {
         for (let i = 0, n = nodes.length, node, k = alpha * 0.1; i < n; ++i) {
             node = nodes[i];
+            // Relative box to the parent node.
             if (node.rbox) {
                 let parent = nodes[nmap[node.rbox.parent]];
                 if(parent) { // the Parent is found then go forward. If not then don't.
@@ -550,6 +553,7 @@ function forceOnPlane() {
                 }
             }
 
+            // Bounding box in the global space
             if (node.bbox) {
                 if (node.bbox.x) {
                     let newx = node.x + node.vx;
@@ -581,9 +585,9 @@ function forceOnPlane() {
                         node.vz = -node.vz * k;
                     }
                 }
-                        }
-                    }
-                }
+            }
+        }
+    }
 
     function initialize() {
         if (!nodes) return;
