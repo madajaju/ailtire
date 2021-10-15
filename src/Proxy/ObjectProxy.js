@@ -284,6 +284,7 @@ function getHandler(obj, definition, prop) {
     } else if (prop === 'create') {
         return function (...args) {
             // Call the method if it exists
+
             if (!definition.methods) {
                 definition.methods = {};
             }
@@ -291,7 +292,7 @@ function getHandler(obj, definition, prop) {
                 if (hasStateNet(definition)) {
                     return stateNetHandler.processEvent(this, obj, prop, args);
                 } else {
-                    return funcHandler.run(definition.methods[prop], this, args[0]);
+                    return funcHandler.run(definition.methods.create, this, args[0]);
                 }
             } else {
                 let myDef = obj.definition;
@@ -302,7 +303,11 @@ function getHandler(obj, definition, prop) {
                         let newObj = AClass.getClass(parent);
                         myDef = newObj.definition;
                         if (myDef.methods.hasOwnProperty('create')) {
-                            return funcHandler.run(myDef.methods.create, this, args[0]);
+                            if (hasStateNet(myDef)) {
+                                return stateNetHandler.processEvent(this, obj, prop, args);
+                            } else {
+                                return funcHandler.run(myDef.methods.create, this, args[0]);
+                            }
                         }
                     } else {
                         myDef = null;
@@ -313,7 +318,11 @@ function getHandler(obj, definition, prop) {
                     this[name] = args[0][name];
                 }
                 // Return the proxy.
-                return this;
+                if (hasStateNet(definition)) {
+                    return stateNetHandler.processEvent(this, obj, prop, args);
+                } else {
+                    return this;
+                }
             }
         }
 
@@ -396,8 +405,8 @@ function getHandler(obj, definition, prop) {
             }
         }
     } else {
-        console.log(`Error cloudnot find ${prop} on`,  obj);
-        throw new Error(`Could not find ${prop}! on ${obj.name}`);
+        console.error(`Error cloudnot find ${prop} on ${obj}`);
+        throw new Error(`Could not find ${prop}! on ${obj}`);
         return undefined;
     }
 }
@@ -454,7 +463,11 @@ function addToAssoc(simpleProp, obj, proxy, item) {
     // Add the back link with via
     if (getAssociation(obj.definition, simpleProp).hasOwnProperty('via')) {
         let via = getAssociation(obj.definition, simpleProp).via;
-        child[via] = proxy;
+        if(child) {
+            child[via] = proxy;
+        } else {
+            console.warn(`Setting via relationship ${via} on null child of ${obj.name} class!`);
+        }
     }
     return child;
 }
@@ -463,7 +476,7 @@ function isTypeOf(item, type) {
     if (item.definition.name === type) {
         return true;
     } else {
-        if (item.definition.extends.toLowerCase() === type.toLowerCase()) {
+        if (item.definition.extends && item.definition.extends.toLowerCase() === type.toLowerCase()) {
             return true;
         } else {
             return false;
@@ -516,6 +529,14 @@ function shallowJSON(obj) {
             object3d = obj.definition.view.object3d();
         }
     }
+    let newAttributes = { id: obj._attributes.id, state: obj._state };
+    for(let aname in obj._attributes) {
+        if(obj.definition.attributes.hasOwnProperty(aname)) {
+            if(obj.definition.attributes[aname].type !== 'ref') {
+                newAttributes[aname]  = obj._attributes[aname];
+            }
+        }
+    }
     return {
         definition: {
             name: obj.definition.name,
@@ -532,7 +553,7 @@ function shallowJSON(obj) {
             },
         },
         statenet: obj.statenet,
-        _attributes: obj._attributes
+        _attributes: newAttributes
         // Shallow does not return the associations.
     };
 }

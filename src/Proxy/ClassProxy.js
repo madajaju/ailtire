@@ -92,6 +92,8 @@ module.exports = {
         let retval = Reflect.construct(target, args);
         retval.definition = retval.__proto__.constructor.definition;
         let uid = retval.definition.name + oid;
+
+        // Check if the class instances are unique and the funtion they are unique by.
         if(retval.definition.hasOwnProperty('unique')) {
             uid = retval.definition.unique(args[0]);
         }
@@ -101,10 +103,12 @@ module.exports = {
         if (!global.hasOwnProperty('_instances')) {
             global._instances = {};
         }
+        // Make sure the instances already exist for the class
         if (!global._instances.hasOwnProperty(target.name)) {
             global._instances[target.name] = {};
         }
         let obj;
+        // Now make sure the uniqueness is gaurenteed
         if(!global._instances[target.name].hasOwnProperty(retval._attributes.id)) {
             obj = new Proxy(retval, objHandler);
             target._gid++;

@@ -11,5 +11,9 @@ module.exports = {
     actors: {
         'Actor': 'uses'
     },
+    // Shows dependency
+    // includes: ["UseCase Name"],
+    // Show Aggreation from a super use case
+    // extends: ["UseCase Name"],
 };
 
