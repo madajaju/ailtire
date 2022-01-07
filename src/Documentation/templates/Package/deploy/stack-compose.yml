@@ -25,13 +25,13 @@ if(service.type === 'stack') {
         - traefik.tags=<%= stack.name %>
         - traefik.enable=true
         - traefik.docker.network=${AILTIRE_APPNAME}_family
+        - traefik.http.routers.<%= sname %>_http.service=<%= sname %>
 <%
   for(let iname in service.interface) {
   let interface = service.interface[iname];
 -%>
         - traefik.http.services.<%= sname %>.loadbalancer.server.port=<%= interface.port %>
         - traefik.http.routers.<%= sname %>_http.rule=PathPrefix(`<%= interface.path %>`)
-        - traefik.http.routers.<%= sname %>_http.service=<%= sname %>
         - traefik.http.routers.<%= sname %>_http.entrypoints=<%= interface.protocol %>
 <%
 }

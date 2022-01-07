@@ -1,6 +1,7 @@
 <%
 let nameNoSpaces = scenario.name.replace(/ /g, '');
 -%>
+
 ### Scenario <%= scenario.name %>
 
 <%= scenario.description %>

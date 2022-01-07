@@ -5,6 +5,8 @@ permalink: actor-<%= actor.shortname %>
 parent: All Actors
 ---
 
+{#actor-<%= actor.shortname.toLowerCase %>}
+
 # <%= actor.name %>
 
 <%= actor.description %>

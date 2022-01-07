@@ -359,6 +359,7 @@ const loadUCScenarios = (mUC, mDir) => {
         let scenarioName = path.basename(file).replace('.js', '');
         if (scenarioName !== 'index') {
             mUC.scenarios[scenarioName] = require(file);
+            mUC.scenarios[scenarioName].uid = mUC.name.replace(/\s/g,'') + '.' + mUC.scenarios[scenarioName].name.replace(/\s/g,'');
         }
     }
 };

@@ -1,12 +1,16 @@
 @startuml
 
-<% const getStates = (name) => {
+<%
+const getStates = (name) => {
     let names = name.split(/\//);
     let asName = '';
     let retval = '';
     names.shift(); // Shift off the first item that is blank.
-    let pkgName = names.shift();
-    let package = global.packages[pkgName];
+    let action = Action.find(name);
+    if(!action) {
+        return {sname:"Null", color:"Gray"};
+    }
+    let package = action.pkg;
     let slen = 0;
     for(let i in names) {
         let aname = names[i];
