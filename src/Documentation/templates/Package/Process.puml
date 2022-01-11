@@ -1,16 +1,16 @@
 @startuml
 left to right direction
 <%
-    const messageMap = {};
-    const stateMap = {};
-    const getMessage = (from, to) => {
-        if(!messageMap.hasOwnProperty(from+to)) {
-            messageMap[from+to] = 1;
-            return `${from} ---> ${to}`;
-        }
-        return "";
+const messageMap = {};
+const stateMap = {};
+const getMessage = (from, to) => {
+    if(!messageMap.hasOwnProperty(from+to)) {
+        messageMap[from+to] = 1;
+        return `${from} ---> ${to}`;
     }
-    const getStates = (name) => {
+    return "";
+}
+const getStates = (name) => {
     if(stateMap.hasOwnProperty(name)) {
         return stateMap[name];
     }
@@ -19,30 +19,29 @@ left to right direction
     let retval = '';
     names.shift(); // Shift off the first item that is blank.
     let pkgName = names.shift();
-    if(global.packages.hasOwnProperty(pkgName)) {
-    let package = global.packages[pkgName];
-    let slen = 0;
-    for(let i in names) {
-        let aname = names[i];
-        if(aname.length > 0) {
-            slen++;
-            if(package.hasOwnProperty('subpackages')) {
-                if(package.subpackages.hasOwnProperty(aname)) {
-                    package = package.subpackages[aname];
+    let package = APackage.getPackage(pkgName);
+    if(package) {
+        let slen = 0;
+        for(let i in names) {
+            let aname = names[i];
+            if(aname.length > 0) {
+                slen++;
+                if(package.hasOwnProperty('subpackages')) {
+                    if(package.subpackages.hasOwnProperty(aname)) {
+                        package = package.subpackages[aname];
+                    }
                 }
+                asName += aname;
+                retval += `state \"${aname}\" as ${asName.toLowerCase()} #${package.color.replace('#','')} {\n`;
             }
-            asName += aname;
-            retval += `state \"${aname}\" as ${asName.toLowerCase()} #${package.color.replace('#','')} {\n`;
         }
-    }
-    retval += '}\n'.repeat(slen);
-    asName = asName.toLowerCase();
-    if(!asName) {
-        asName = global.topPackage.name.toLowerCase();
-    }
-
-    stateMap[name] = {sname:asName, states:'', color:package.color};
-    return {sname:asName, states:retval, color:package.color};
+        retval += '}\n'.repeat(slen);
+        asName = asName.toLowerCase();
+        if(!asName) {
+            asName = global.topPackage.name.toLowerCase();
+        }
+        stateMap[name] = {sname:asName, states:'', color:package.color};
+        return {sname:asName, states:retval, color:package.color};
     }
     else {
         return {sname:asName, states:"", color:"white"};

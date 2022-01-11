@@ -137,7 +137,7 @@ module.exports = {
         let ailPath = __dirname + "/../../interface";
         Action.load(server, '', path.resolve(ailPath), config); // Load the ailtire defaults from the interface directory.
         Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'), config);
-        Action.mapRoutes(server, config.routes);
+        Action.mapRoutes(server, config);
 
         if(config.persist) {
             let pAdaptor = config.persist.adaptor;

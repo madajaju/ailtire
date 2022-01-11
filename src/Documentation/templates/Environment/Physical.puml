@@ -33,8 +33,8 @@ package "<%= package.name %>" #<%= package.color.replace('#','') %> {
   <% for(let bname in package.deploy.build) {
       let build = package.deploy.build[bname];
     %>
-      artifact <%= build.tag %>
-      <%= bname %>_container --> <%= build.tag %>
+      artifact <%= build.contexts.default.tag %>
+      <%= bname %>_container --> <%= build.contexts.default.tag %>
     <% } %>
   }
 }

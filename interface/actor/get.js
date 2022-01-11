@@ -20,7 +20,7 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
-        // Find the scenario from the usecase.
+        // Find the actor from the usecase.
         let aname = inputs.id;
         let actor = findActor(aname);
         if(actor) {

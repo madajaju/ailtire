@@ -4,7 +4,6 @@ title: <%= usecase.name %>
 permalink: usecase-<%= usecase.name.replace(/\s/g, '') %>
 parent: usecases
 ---
-
 # <%= usecase.name %>
 
 <%= usecase.description %>
@@ -24,15 +23,17 @@ parent: usecases
 %>
 ## Extended Use Cases
 
-<% for(let ucname in usecases.extended) { 
+<% for(let ucname in usecase.extended) { 
 %>
 * [<%= ucname %>](usecase-<%= ucname %>)
 <% } 
 } %>
 
+<% if(usecase.extends) {
+  %>
 ## Extends Use Cases
 
-<% for(let ucname in usecases.extends) {
+<% for(let ucname in usecase.extends) {
 %>
 * [<%= ucname %>](usecase-<%= ucname %>)
 <% }
@@ -43,7 +44,7 @@ parent: usecases
 %>
 ## Included Use Cases
 
-<% for(let ucname in usecases.included) {
+<% for(let ucname in usecase.included) {
 %>
 * [<%= ucname %>](usecase-<%= ucname %>)
 <% }
@@ -53,12 +54,11 @@ parent: usecases
 %>
 ## Includes Use Cases
 
-<% for(let ucname in usecases.includes) {
+<% for(let ucname in usecase.includes) {
 %>
 * [<%= ucname %>](usecase-<%= ucname %>)
   <% }
   } %>
-
 
 ## Detail Scenarios
 
@@ -77,3 +77,4 @@ let pkgPath = global.packages[usecase.package.replace(/ /g, '')].prefix;
 -%>
 <%- partial('templates/Scenario/_index.emd', {scenario:scenario, pageDir: pageDir}) %>
 <% } %>
+

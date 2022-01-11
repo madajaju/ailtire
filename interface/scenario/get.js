@@ -22,7 +22,7 @@ module.exports = {
 
     fn: function (inputs, env) {
         // Find the scenario from the usecase.
-        let retscenario;
+        let retscenario = undefined;
         let [ucname, sname] = inputs.id.split(/\./);
         if (global.usecases.hasOwnProperty(ucname)) {
             let usecase = global.usecases[ucname];
@@ -54,7 +54,11 @@ module.exports = {
             }
         }
         if (env.req) {
-            env.res.json(retscenario)
+            if(retscenario) {
+                env.res.json(retscenario)
+            } else {
+                env.res.json({error:"Scenario:"+ inputs.id+ " not found!"});
+            }
             return retscenario;
         } else {
             return retscenario;
