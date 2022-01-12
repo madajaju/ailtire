@@ -1,7 +1,7 @@
 @startuml
 <% let ucNoSpace = usecase.name.replace(/ /g, '') %>
 
-usecase "<%= usecase.name %>" as <%= ucNoSpace %>
+usecase "<%= usecase.name %>" as <%= ucNoSpace %> #yellow
 <% for(let aname in usecase.actors) {
 aname = aname.replace(/\s/g, '');
 let actor = actors[aname];
@@ -17,5 +17,37 @@ let snameNoSpace = sname.replace(/ /g, '')
 usecase "<%= sname %>" as <%= snameNoSpace %> #lightgrey
 
 <%= ucNoSpace %> --> <%= snameNoSpace %>
+<% } %>
+
+<% for(let sname in usecase.extends) {
+let snameNoSpace = sname.replace(/ /g, '')
+%>
+usecase "<%= sname %>" as <%= snameNoSpace %> #lightyellow
+
+<%= ucNoSpace %> <-- <%= snameNoSpace %> : extends
+<% } %>
+
+<% for(let sname in usecase.extended) {
+let snameNoSpace = sname.replace(/ /g, '')
+%>
+usecase "<%= sname %>" as <%= snameNoSpace %> #lightyellow
+
+<%= ucNoSpace %> --> <%= snameNoSpace %> : extends
+<% } %>
+
+<% for(let sname in usecase.includes) {
+let snameNoSpace = sname.replace(/ /g, '')
+%>
+usecase "<%= sname %>" as <%= snameNoSpace %> #white
+
+<%= ucNoSpace %> ..> <%= snameNoSpace %> : includes
+<% } %>
+
+<% for(let sname in usecase.included) {
+let snameNoSpace = sname.replace(/ /g, '')
+%>
+usecase "<%= sname %>" as <%= snameNoSpace %> #white
+
+<%= ucNoSpace %> <.. <%= snameNoSpace %> : includes
 <% } %>
 @enduml

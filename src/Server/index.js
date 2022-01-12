@@ -137,7 +137,7 @@ module.exports = {
         let ailPath = __dirname + "/../../interface";
         Action.load(server, '', path.resolve(ailPath), config); // Load the ailtire defaults from the interface directory.
         Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'), config);
-        Action.mapRoutes(server, config.routes);
+        Action.mapRoutes(server, config);
 
         if(config.persist) {
             let pAdaptor = config.persist.adaptor;
@@ -177,7 +177,16 @@ module.exports = {
         });
 
         global.io = io = new Server(http, {path: config.urlPrefix + '/socket.io/'});
+        global.io2 = io2 = new Server(http, {path: '/socket.io/'});
 
+        io2.on('connection', (msocket) => {
+            console.log("Connection 2 happen!");
+            io2.emit("ConnectedEdge", "Connected Edge made it");
+            AEvent.addHandlers(msocket);
+        });
+        io2.on('ailtire.server.started', (msocket) => {
+            console.log("Peer Server Started", msocket);
+        })
         io.on('connection', function (msocket) {
             console.log("Connection happen!");
             io.emit("ConnectedEdge", "Connected Edge made it");
@@ -186,6 +195,11 @@ module.exports = {
 
         http.listen(config.listenPort, () => {
             console.log("Listening on port: " + config.listenPort);
+            // call the post configuration script.
+            if(config.hasOwnProperty('post')) {
+                config.post(config);
+                console.log("Done!");
+            }
         });
     },
     micro: (config) => {
@@ -309,7 +323,6 @@ function standardFileTypes(config,server) {
     });
     server.get(`${config.urlPrefix}/js/*`, (req, res) => {
         let apath = path.resolve('./assets' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
-        // let str = fs.readFileSync(apath, 'utf8');
         res.sendFile(apath);
     });
     server.get(`${config.urlPrefix}/views/*`, (req, res) => {

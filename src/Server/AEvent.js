@@ -4,26 +4,42 @@ const clientio = require('socket.io-client');
 
 module.exports = {
     // Pass an array of pattern and server url
+    // This should have the following json format
+    // servers: [ {url:localhost:3000, pattern: }, ...]
+    //
     addServers: (servers) => {
         if(!global.hasOwnProperty('servers')) {
             global.servers = [];
         }
         for(let i in servers) {
             let server = servers[i];
-            let url = 'http://' + server.url;
+            let items = server.url.split('/');
+            let url = 'http://' + items.shift();
+            let path = '/' + items.join('/');
+            let childsocket = clientio.connect(url);
             global.servers.push( {
                 pattern: server.pattern,
-                socket: clientio(url),
+                socket: childsocket,
                 url: server.url
-            })
+            });
+            childsocket.on('connect', () => {
+                let url = `${global.ailtire.config.host}:${global.ailtire.config.port}${global.ailtire.config.urlPrefix}`
+                childsocket.emit('ailtire.server.started', {url:url});
+                if(server.connectionEvent) {
+                    childsocket.emit(server.connectionEvent, server.connectionData);
+                }
+            });
         }
     },
     addHandlers: (socket) => {
         for (let event in global.handlers) {
-            // Make sure the handlers are only installed once.
-            if (!global.handlers[event]._installed) {
+            // Make sure the handlers are only installed once. per socket.
+            if(!global.handlers[event].hasOwnProperty('sockets')) {
+                global.handlers[event].sockets = {};
+            }
+            if (!global.handlers[event].sockets[socket.id]) {
                 console.log("Install Handle Event:", event);
-                global.handlers[event]._installed = true;
+                global.handlers[event].sockets[socket.id] = true;
                 socket.on(event, function (data) {
                     callActions(event, data);
                 });
@@ -49,6 +65,7 @@ module.exports = {
             server.socket.emit(nevent, sdata);
         }
         global.io.emit(nevent, sdata);
+        global.io2.emit(nevent, sdata);
         // Check to see if the current server handles this event.
         // If it does then call the Call the handlers defined.
         // This allows for a server to have events handled.

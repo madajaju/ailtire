@@ -24,7 +24,8 @@ function processPackage(pkg) {
         interface: {},
         classes: {},
         usecases: {},
-        subpackages: {}
+        subpackages: {},
+        handlers: {}
     }
 
     for(let iname in pkg.interface) {
@@ -34,6 +35,13 @@ function processPackage(pkg) {
             description: interface.description,
             inputs: interface.inputs,
             static: interface.static
+        };
+    }
+    for(let hname in pkg.handlers) {
+        let handler = pkg.handlers[hname];
+        jpkg.interface[hname] = {
+            friendlyName: handler.friendlyName,
+            description: handler.description,
         };
     }
 
@@ -47,6 +55,12 @@ function processPackage(pkg) {
     }
     for(let spkg in pkg.subpackages) {
         jpkg.subpackages[spkg] = processPackage(pkg.subpackages[spkg]);
+    }
+    // Only push the shortname of the depends to prevent circular references.
+    jpkg.depends = [];
+    for(let dname in pkg.definition.depends) {
+        let dpnd = pkg.definition.depends[dname];
+        jpkg.depends.push(dpnd.shortname);
     }
     return jpkg;
 }

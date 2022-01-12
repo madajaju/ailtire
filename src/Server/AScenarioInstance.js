@@ -14,9 +14,9 @@ module.exports = {
             _scenarioInstances[scenario.id] = [];
         }
         let myInstance = { id: scenario.id, scenario:scenario, state:'started', steps:[]};
-        
+
         _scenarioInstances[scenario.id].push(myInstance);
-        
+
         for (let i in scenario.steps) {
             let step = scenario.steps[i];
             let stepInstance = {step:step, state:'started'};
@@ -31,7 +31,8 @@ module.exports = {
             AEvent.emit("step.started", {obj:scenario});
             let command = `bash -c "bin/${global.ailtire.config.prefix} ${step.action.replace(/\//g,' ')} ${params.join(" ")}"`;
             try {
-                let results = await execP('bash -c "pwd"');
+                console.log("Scenario calling step:", command);
+                //let results = await execP('bash -c "pwd"');
                 results = await execP(command);
                 stepInstance.stdio = { stderr: results.stderr, stdout: results.stdout};
                 if(results.stderr) {

@@ -11,7 +11,6 @@ end box
 
 <% for (let pname in pkgs) {
 let pkgtop = pkgs[pname];
-console.log("Models:", pkgtop.models);
 let pkg1 = pkgtop.pkg;
 %>
 box <%= pkg1.name %> #<%= pkg1.color.replace(/\#/g,'') %>
@@ -26,11 +25,13 @@ end box
 <% for(let i in scenario.steps) {
     let step = scenario.steps[i];
     let names = step.action.split('/');
-    let method = names.pop();
-    let object = names.join('/');
+    let object = package.shortname;
+    let method = names.pop().toLowerCase();
+    let calledObj = names.pop().toLowerCase();
     if(step.act) {
-        step.act.obj;
+        object = step.act.obj;
     }
+    object = object.toLowerCase();
     let parameters = "";
     if(step.parameters) {
         let items = [];
@@ -40,21 +41,10 @@ end box
         parameters = items.join(',');
     }
 %>
-    <%= package.shortname %> -> "<%= object %>": <%= method %> (<%= parameters %>)
+    <%= package.shortname.toLowerCase() %> -> "<%= object %>": <%= method %> (<%= parameters %>)
 
+    "<%= object %>" --/ EventBus: <%= calledObj + '.' + method %>
 <% } %>
 <% } %>
 
-<% for(let i in package.depends) {
-    let  dpkg = package.depends[i];
-    if(dpkg) {
--%>
-box "<%= dpkg.name %>" #<%= dpkg.color.replace(/\#/g,'') %>
-    boundary <%= dpkg.shortname %> #white
-end box
-EventBus -\ <%= dpkg.shortname %>: method()
-<%= dpkg.shortname %> --/ EventBus: Model.Event2
-<% }
-} %>
-EventBus --/ <%= package.shortname %> : method2()
 @enduml

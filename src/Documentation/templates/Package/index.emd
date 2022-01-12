@@ -13,6 +13,7 @@ grand_parent: <%= grand_parent.name %>
 has_children: true
 <% } -%>
 ---
+
 # <%= package.name %>
 
 <%= package.description %>

@@ -41,21 +41,26 @@ const processItem = (item, target, objects) => {
     }
     if (item.action === 'template') {
         objects.partial = partialProcess;
-        ejs.renderFile(apath, objects, {}, (err, str) => {
-            if (err) {
-                console.error("Error processing model:", objects, "with", item, "targeted to", target);
-                console.error(err);
-                console.error('=====');
-                console.error(str);
-            }
-            // Create the directory and then store the file.
-            let apath = path.resolve(target);
-            let dirname = path.dirname(apath);
-            fs.mkdirSync(dirname, {recursive: true});
-            if (str) {
-                fs.writeFileSync(apath, str);
-            }
-        });
+        try {
+            ejs.renderFile(apath, objects, {}, (err, str) => {
+                if (err) {
+                    console.error("Error processing model:", objects, "with", item, "targeted to", target);
+                    console.error(err);
+                    console.error('=====');
+                    console.error(str);
+                }
+                // Create the directory and then store the file.
+                let apath = path.resolve(target);
+                let dirname = path.dirname(apath);
+                fs.mkdirSync(dirname, {recursive: true});
+                if (str) {
+                    fs.writeFileSync(apath, str);
+                }
+            });
+        }
+        catch(e) {
+            console.error("RenderFile:", e);
+        }
     } else if (item.action === 'folder') {
         let dirname = path.resolve(target);
         fs.mkdirSync(dirname, {recursive: true});

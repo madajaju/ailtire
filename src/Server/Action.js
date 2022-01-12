@@ -3,7 +3,6 @@ const path = require('path');
 const renderer = require('../Documentation/Renderer.js');
 const AClass = require('./AClass');
 
-
 const isDirectory = source => fs.lstatSync(source).isDirectory();
 const isFile = source => !fs.lstatSync(source).isDirectory();
 const getDirectories = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
@@ -27,14 +26,16 @@ module.exports = {
         // Routes are mapped to action paths.
         for (let i in config.routes) {
             // Get Action handler from the actions.
-            let route = config.urlPrefix + i.toLowerCase();
-            if (global.actions.hasOwnProperty(routes[i])) {
+            let routeTarget = config.routes[i];
+            let route = config.urlPrefix + '/' + i.toLowerCase();
+            let action = find(config.routes[i]);
+            if (action) {
                 console.log("Route:", route);
                 server.all(route, (req, res) => {
-                    execute(global.actions[routes[i]], req.query, {req: req, res: res});
+                    execute(action, req.query, {req: req, res: res});
                 });
             } else {
-                console.error("Could not find the route: ", i, routes[i]);
+                console.error("Could not find the route: ", i, config.routes[i]);
             }
         }
     },
@@ -329,11 +330,25 @@ const find = (name) => {
     }
     else {
         let items = name.replace(/[\/\\]/g, '/').replace(/^\//, '').split('/');
-        let nName = '/' + global.topPackage.shortname + '/' + items.join('/');
+        let nName = global.topPackage.shortname + '/' + items.join('/');
         if(global.actions.hasOwnProperty(nName)) {
             return global.actions[nName];
         }
-        else {
+        else if(global.actions.hasOwnProperty('/' + nName)) {
+            return global.actions['/' + nName];
+        } else {
+            // Look for automatic actions like create, destroy, etc.
+            // First look if the first name is a class. If it is then check the methods on the class.
+            // If it is available then return that action.
+            let cls = AClass.getClass(items[0]);
+            if(cls) {
+                if(cls.definition.methods.hasOwnProperty(items[1])) {
+                    let retval = cls.definition.methods[items[1]];
+                    retval.pkg = cls.definition.package;
+                    retval.obj = cls.definition.name;
+                    return retval;
+                } 
+            }
             return null;
         }
     }

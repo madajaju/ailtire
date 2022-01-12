@@ -9,6 +9,7 @@ statenet: {
         events: {
             eventName: {
                 StateName: {
+                    // Condition checked after the eventName method is called.
                     condition: function(obj) { ... },
                     action: function(obj) { ... },
                 }
@@ -28,7 +29,7 @@ module.exports = {
     // To the next state with a call to this method.
     processEvent: (proxy, obj, event, args) => {
         // Check that the parameters are valid.
-        console.log("Process Event: ", event, "on", proxy.id, "[", proxy.state, "]");
+        // console.log("....................Process Event: ", event, "on", proxy.id, "[", proxy.state, "]");
         let currentState = proxy.state;
         let statenet = getStateNet(proxy.definition);
         if (!statenet[currentState].hasOwnProperty('events')) {
@@ -37,20 +38,22 @@ module.exports = {
         }
 
         if (!statenet[currentState].events.hasOwnProperty(event)) {
-            console.warn(`There is not a transistion from current state ${currentState} with the event ${event} for ${obj.name}`);
+            // console.error(`There is not a transistion from current state ${currentState} with the event ${event}
+            // for ${proxy.id}`);
             let retval = undefined;
             if (proxy.definition.methods.hasOwnProperty(event)) {
                 retval = funcHandler.run(proxy.definition.methods[event], proxy, args[0]);
             }
             return retval;
         }
-        // Check the condition of the event
+        // Check the condition of the event this should happen before the event is called.
         let eventObj = statenet[currentState].events[event];
         // Now iterate over all of the potential states and check the conditions.
         let transition = null;
         for (let stateName in eventObj) {
-            if (stateName.hasOwnProperty('condition')) {
-                if (stateName.condition(proxy)) {
+            eventI = eventObj[stateName];
+            if (eventI.hasOwnProperty('condition')) {
+                if (eventI.condition(proxy)) {
                     transition = eventObj[stateName];
                     transition.state = stateName;
                 }
@@ -86,6 +89,9 @@ module.exports = {
                 retval = funcHandler.run(proxy.definition.methods[event], proxy, args[0]);
             }
             // Now call the event method.
+            if(obj._state === transition.state) {
+                return;
+            }
             obj._state = transition.state;
             // console.log("Moved to State:", obj._state);
 
@@ -100,8 +106,6 @@ module.exports = {
                 AEvent.emit(`${definition.name}.${obj._state}`, {obj:proxy});
             }
             return retval;
-        } else {
-            console.error("Cannot transition!");
         }
     }
 };
