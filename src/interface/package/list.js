@@ -1,5 +1,3 @@
-const renderer = require('../../src/Documentation/Renderer.js');
-
 module.exports = {
     friendlyName: 'list',
     description: 'List the Packages',

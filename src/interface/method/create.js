@@ -2,7 +2,7 @@ const path = require('path');
 const api = require('../../Documentation/api');
 module.exports = {
     friendlyName: 'create',
-    description: 'Create an Scenario in a UseCase',
+    description: 'Create a Method in a Model',
     static: true,
     inputs: {
         name: {

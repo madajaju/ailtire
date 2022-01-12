@@ -4,14 +4,12 @@ const program = require('commander');
 require('./lib/subcommander');
 
 program
-    .version('0.2.18')
-    .command('create --name <string> --short <string>', 'Create a ailtire project')
-    .command('actor create --name <name> --short <string>', 'Create actor with name')
-    .command('app create --name <name> --short <string>', 'Create app with name')
-    .command('action create --name <name> --path <string> --subsystem <name>', 'Create action in the subsystem')
-    .command('package --name <name>', 'Create a package')
-    .command('usecase --name <name>', 'Create a usecase')
-    .command('scenario --name <name>', 'Create a scenario')
-    .command('model --name <name>', 'Create a model')
-    .command('method --name <name>', 'Create a model')
+    .version('0.3.0')
+    .command('actor <cmd> [arguments]', 'Manage an actor')
+    .command('app <cmd> [arguments]', 'Manage an applications')
+    .command('method <cmd> [arguments]', 'Manage a method')
+    .command('model <cmd> [arguments]', 'Manage a model')
+    .command('package <cmd> [arguments]', 'Manage a package')
+    .command('scenario <cmd> [arguments]', 'Manage a scenario')
+    .command('usecase <cmd> [arguments]', 'Manage a usecase')
     .parse(process.argv);

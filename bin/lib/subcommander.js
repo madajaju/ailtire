@@ -11,8 +11,7 @@ const commander = require('commander');
 
 // Get the package.json to get the current working directory and project name.
 
-commander.executeSubCommand = function (argv, args, unknown) {
-    args = args.concat(unknown);
+commander._executeSubCommand = function (subcommand, args) {
     if (!args.length) {
         this.help();
     }
@@ -26,25 +25,16 @@ commander.executeSubCommand = function (argv, args, unknown) {
         args[1] = '--help';
     }
 
-    // executable
-    let f = argv[1];
+    args.unshift(subcommand._name);
 
     // name of the subcommand, link `pm-install`
     let bin = args.join('/');
 
     // In case of globally installed, get the base dir where executable
     //  subcommand file should be located at
-    let baseDir;
+    let baseDir = this._scriptPath;
 
-
-    let link = fs.lstatSync(f).isSymbolicLink() ? fs.readlinkSync(f) : f;
-
-    // when symbolink is relative path
-    if (link !== f && link.charAt(0) !== '/') {
-        link = path.join(dirname(f), link);
-    }
-    baseDir = dirname(link);
-
+    baseDir = dirname(baseDir);
 
     // prefer local `./<bin>` to bin in the $PATH
 
@@ -97,12 +87,15 @@ const getFiles = source => fs.readdirSync(source).map(name => path.join(source, 
 
 
 const findHelp = (args, baseDir) => {
-
     let found = _findHelpCommand(args, baseDir);
     if (!found.act) {
         found = _findHelpAction(args, baseDir);
+        if(found.action) {
+            found = _helpCommand(found);
+        } else {
+            found = _helpCommandGroup(found,baseDir);
+        }
     }
-    found = _helpCommand(found);
     return found;
 };
 
@@ -134,23 +127,20 @@ const findCommand = (args, baseDir) => {
         // Look for the bin in the interface definitions.
         let interfaceDir = path.resolve(baseDir + "/../src/interface");
         let serverDir = path.resolve(baseDir + "/../src/Server");
-        serverDir = serverDir.replace(/\\/g,'\\\\');
-        serverDir = serverDir.replace(/\//g,'\\\\');
+        serverDir = serverDir.replace(/\\/g,'\/');
+        serverDir = serverDir.replace(/\//g,'\/');
         let isAction = _findCommand(args, interfaceDir);
         if (isAction.bin) {
             var tdir = './.tmp/';
             var tfile = tdir + isAction.bin.replace(interfaceDir, '').split('/').pop();
             let tempString = '#!/usr/bin/env node\n\nconst program = require(\'commander\');\n\n';
             let actionPath = path.resolve(isAction.bin);
-            actionPath = actionPath.replace(/\\/g, '\\\\');
-            actionPath = actionPath.replace(/\//g, '\\\\');
+            actionPath = actionPath.replace(/\\/g, '\/');
+            actionPath = actionPath.replace(/\//g, '\/');
             tempString += `const action = require('${actionPath}');\n`;
             tempString += `const ActionHandler = require('${serverDir}/Action.js');\n`;
-            tempString += "global.ailtire = { config: require('" + __dirname.replace(/\\/g, '\\\\') + "/../../.ailtire.js') };\n";
+            tempString += "global.ailtire = { config: require('" + __dirname.replace(/\\/g, '\/') + "/../../.ailtire.js') };\n";
             let action = require(path.resolve(isAction.bin));
-            tempString += `program`;
-            tempString += `\n\t.storeOptionsAsProperties(false)`;
-            tempString += `\n\t.passCommandToAction(false);\n`;
             tempString += `program`;
             for (let iname in action.inputs) {
                 let input = action.inputs[iname];
@@ -182,7 +172,6 @@ const _findCommand = (args, localBin) => {
         testString += "/" + args[i];
         i++;
         if (existsDir(testString)) {
-            console.log("Directory Found:", testString);
         } else if (exists(testString)) {
             bin = testString;
         } else if (exists(testString + '.js')) {
@@ -199,7 +188,6 @@ const _findCommand = (args, localBin) => {
 const runCommand = (found, args) => {
     if (found.bin) {
         let proc;
-        args.unshift(found.bin);
         args.unshift(found.bin);
         proc = spawn(process.execPath, args, {stdio: 'inherit'});
 
@@ -330,7 +318,6 @@ const _findHelpAction = (args, localBin) => {
             act = act[args[i]];
         }
     }
-
     return {action: act};
 };
 const _helpCommand = (found) => {
@@ -357,7 +344,6 @@ const _helpCommand = (found) => {
         }
         tempString += '\n';
         tempString += 'program.parse(process.argv);\n';
-        console.log(tempString);
         tfile = path.resolve(tfile);
         let dirname = path.dirname(tfile);
         fs.mkdirSync(dirname, {recursive: true});
@@ -366,6 +352,48 @@ const _helpCommand = (found) => {
     }
     return found;
 };
+
+const _helpCommandGroup = (found, baseDir) => {
+    let interfaceDir = path.resolve(baseDir + "/../src/interface");
+    let testDir = interfaceDir + '/' + found.args[0];
+    let tdir = './.tmp/';
+    let tfile = tdir + found.args[0] + '.js';
+
+    let tempString = '#!/usr/bin/env node\n\nconst program = require(\'commander\');\n\n';
+
+    if (existsDir(testDir)) {
+        // Find all of the .js files that have the commands for this
+        let files = getFiles(testDir);
+        for(let i in files) {
+            let cmd = require(files[i]);
+            let name = cmd.friendlyName;
+            let options = "";
+            for(let j in cmd.inputs) {
+                if(cmd.inputs[j].required) {
+                    options += ` <--${j}=${cmd.inputs[j].type}>`;
+                }
+                else {
+                    options += ` [--${j}=${cmd.inputs[j].type}]`;
+                }
+            }
+            let desc = cmd.description;
+            tempString += `program.command('${name}${options}', '${desc}');\n`;
+        }
+    }
+    tempString += '\n';
+    tempString += 'program.parse(process.argv);\n';
+    tfile = path.resolve(tfile);
+    let dirname = path.dirname(tfile);
+    fs.mkdirSync(dirname, {recursive: true});
+    try {
+        fs.writeFileSync(tfile, tempString);
+    }
+    catch(e) {
+        console.error("Makefile Error", e);
+    }
+    found = {bin: tfile, args: ['help'], temp: true};
+    return found;
+}
 
 const actionMap = () => {
     let actions = {};

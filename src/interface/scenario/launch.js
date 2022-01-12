@@ -1,6 +1,5 @@
-const path = require('path');
-const AScenarioInstance = require('../../src/Server/AScenarioInstance');
-const AEvent = require('../../src/Server/AEvent');
+const AScenarioInstance = require('../../Server/AScenarioInstance');
+const AEvent = require('../../Server/AEvent');
 
 module.exports = {
     friendlyName: 'launch',

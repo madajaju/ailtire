@@ -1,5 +1,4 @@
-const renderer = require('../../src/Documentation/Renderer.js');
-const APackage = require('../../src/Server/APackage');
+const APackage = require('../../Server/APackage');
 
 module.exports = {
     friendlyName: 'get',
