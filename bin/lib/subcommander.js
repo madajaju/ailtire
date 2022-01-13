@@ -224,14 +224,14 @@ const findAction = (args, localBin) => {
     if (found.action) {
         // Look for the bin in the interface definitions.
         let tdir = './.tmp/';
-        let tfile = tdir + found.action.path.split('/').pop();
-        let action = found.action;
+        let tfile = tdir + found.action._path.split('/').pop();
+        let action = found.action.action;
         let tempString = `#!/user/bin/env node
 const bent = require('bent');
 const program = require('commander');
+const YAML = require('yamljs');
 global.ailtire = { config: require('${__dirname.replace(/\\/g, '\\\\')}/../../.ailtire.js') };
-program.parse(process.argv);
-program.command('${action.friendlyName} [options]', '${action.description}');`;
+program.description('${action.description}')`;
         for (let iname in action.inputs) {
             let input = action.inputs[iname];
             tempString += `\n\t.option('--${iname} <${input.type}>', '${input.description}')`;
@@ -239,17 +239,23 @@ program.command('${action.friendlyName} [options]', '${action.description}');`;
         tempString += `;\n`;
         tempString += `program.parse(process.argv);
 let url = global.ailtire.config.host;
-let params = '${found.action.path}?';
-params += 'mode=json';`;
+let args = {};
+let params = '${found.action._path}?';
+params += 'mode=json';
+let options = program.opts();
+\n`;
         for (key in action.inputs) {
-            if(action.inputs[key].type.toUpperCase() === 'YAML') {
-                tempString += `if(program['${key}']) { args.data['${key}'] = YAML.load(program['${key}']); }\n`;
-            }
-            else {
-                tempString += `if(program['${key}']) { args.data['${key}'] = program['${key}']); }\n`;
+            if (action.inputs[key].type.toUpperCase() === 'YAML') {
+                tempString += `if(program['${key}']) { args['${key}'] = YAML.load(program['${key}']); }\n`;
+            } else if(action.inputs[key].type.toUpperCase() === 'FILE') {
+                tempString += `if(program['${key}']) { args['${key}'] = fs.readFileSync(program['${key}']); }\n`;
+            } else {
+                tempString += `if(program['${key}']) { args['${key}'] = program['${key}']; }\n`;
             }
         }
-        tempString += `(async () => {
+        tempString += `
+const post = bent(url, 'POST', 'json', 200);
+(async () => {
     const response = await post(params, args);
     console.log("Response:", response);
 })().catch(e => {
@@ -282,8 +288,8 @@ const _findAction = (args, localBin) => {
             found = false;
         } else {
             pathString += '/' + args[i];
-            action = aIter[args[i]].action;
-            action.path = pathString;
+            action = aIter[args[i]];
+            action._path = pathString;
             aIter = aIter[args[i]];
         }
         i++;
