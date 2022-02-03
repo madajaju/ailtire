@@ -12,12 +12,12 @@
   "author": "Darren W Pulsipher - darren@pulsipher.org",
   "license": "ISC",
   "dependencies": {
-    "bent": "^7.3.0",
-    "body-parser": "^1.19.0",
-    "ejs": "^3.0.1",
-    "express": "^4.17.1",
-    "socket.io": "^4.1.2",
-    "socket.io-client": "^4.1.2",
+    "bent": "^7.3.12",
+    "body-parser": "^1.19.1",
+    "ejs": "^3.1.6",
+    "express": "^4.17.2",
+    "socket.io": "^4.4.1",
+    "socket.io-client": "^4.4.1",
     "yamljs": "^0.3.0"
   }
 }

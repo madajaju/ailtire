@@ -3,23 +3,37 @@ const spawn = require('child_process').spawnSync;
 const Generator = require('../Documentation/Generator');
 const fs = require('fs');
 
-
-
 module.exports = {
     pkg: (pkg, opts) => {
         console.log("Build pkg:", opts);
         buildPackage(pkg, opts);
     },
-    services: (pkg, opts) => {
-        buildBaseImages(pkg, opts);
+    services: (dir) => {
+        buildBaseImages(dir);
     },
     serviceFiles:(pkg, opts) => {
         return buildServiceFiles(pkg,opts);
     }
 }
+const isDirectory = source => fs.lstatSync(source).isDirectory();
+const isFile = source => !fs.lstatSync(source).isDirectory();
+const getDirectories = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
+const getFiles = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isFile);
 
-function buildBaseImages(pkg, opts) {
+function buildBaseImages(dir) {
+    // read the directory and get the
+    let ndir = path.resolve(dir);
+    let dirs = getDirectories(ndir);
+    for(let i in dirs) {
+        let dirname = dirs[i];
+        console.log(dirname);
+        let npath = path.resolve(dirname + '/build.js');
+        isFile(npath);
+        let build = require(npath);
+        build.rootdir = dirname;
+        buildImage(build);
 
+    }
 }
 
 function buildServiceFiles(pkg,opts) {
@@ -120,3 +134,24 @@ function buildPackage(pkg, opts) {
     }
 }
 
+function buildImage(build) {
+
+    let env = process.env;
+    for(let name in build.env) {
+        env[name] = build.env[name];
+    }
+    console.log("Building", build.name);
+    let proc = spawn('docker', ['build', '-t', build.tag, '-f', build.dockerfile, '.'], {
+        cwd: build.rootdir,
+        stdio: 'pipe',
+        env: process.env
+    });
+    if(proc.status != 0) {
+        console.error("Error Building Service Container", build.name);
+        console.error(proc.error);
+        if(proc.stdout) {
+            console.error(proc.stdout.toString('utf-8'));
+            console.error(proc.stderr.toString('utf-8'));
+        }
+    }
+}

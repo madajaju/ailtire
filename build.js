@@ -1,3 +1,3 @@
 const BuildServices = require('./src/Services/Build');
 
-BuildServices.services();
+BuildServices.services('./src/Services');
