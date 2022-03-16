@@ -61,6 +61,9 @@ const analyzeClasses = classes => {
                 gcls.definition.dependant.push(d);
                 // Push the association owner into the definition for the persistent layer.
                 if(assoc.owner || assoc.composite) {
+                    if(!gcls.definition.hasOwnProperty('owners')) {
+                        gcls.definition.owners = new Array();
+                    }
                     gcls.definition.owners.push(d);
                 }
             } else {

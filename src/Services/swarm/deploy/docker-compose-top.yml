@@ -20,4 +20,4 @@ networks:
   children:
     driver: overlay
     attachable: true
-    name: ${AILTIRE_APPNAME}__family
+    name: ${AILTIRE_APPNAME}family

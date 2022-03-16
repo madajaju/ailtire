@@ -5,7 +5,7 @@ const server = require('ailtire/src/Server/doc-md');
 
 module.exports = {
     friendlyName: 'docs',
-    description: 'Generate Documention of the app',
+    description: 'Generate Documentation of the app',
     static: true,
     inputs: {
     },
@@ -25,7 +25,7 @@ module.exports = {
         let urlPrefix = process.env.AITIRE_BASEURL || '/docs'
 
         let project = require(process.cwd() + '/package.json');
-        
+
         server.docBuild( {
             version: project.version,
             baseDir: '.',

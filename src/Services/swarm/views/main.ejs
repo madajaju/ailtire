@@ -63,6 +63,8 @@
 <div id="main" style="width: 100%; height: 1000px;"></div>
 
 <script type="text/javascript">
+let nodes = {};
+
     const status = {
         Running: {
             color: 'black',
@@ -136,8 +138,8 @@
                     tabs: {
                         active: 'stdout',
                         tabs: [
-                            {id: 'stdout', caption: 'stdout'},
-                            {id: 'stderr', caption: 'stderr'},
+                            {id: 'stdout', text: 'stdout'},
+                            {id: 'stderr', text: 'stderr'},
                         ],
                         onClick: function (event) {
                             if (event.target === 'stdout') {
@@ -159,37 +161,55 @@
             ],
             onClick: function (event) {
                 w2ui['detailGrid'].clear();
-                let detailItems = [];
-                for (let i in event.node.data) {
-                    detailItems.push({
-                        recid: i,
-                        name: i,
-                        value: event.node.data[i]
-                    });
-                }
-                w2ui['detailGrid'].add(detailItems);
-                w2ui['logGrid'].clear();
-                w2ui['logGrid'].add({
-                    recid: 0,
-                    text: `Snatching the Log for ${event.target} ...`
-                });
-                $.ajax({
-                    url: `<%= prefix %>/log?name=${event.target}`,
-                    success: function (results) {
-                        w2ui['logGrid'].clear();
-                        let logItems = [];
-                        for (let i in results.stdout) {
-                            logItems.push({recid: i, text: results.stdout[i]});
-                        }
-                        w2ui['logGrid'].add(logItems);
-                        w2ui['logGridError'].clear();
-                        logItems = [];
-                        for (let i in results.stderr) {
-                            logItems.push({recid: i, text: results.stderr[i]});
-                        }
-                        w2ui['logGridError'].add(logItems);
+                if(event.node.type == 'Service') {
+                    let detailItems = [];
+                    for (let i in event.node.data) {
+                        detailItems.push({
+                            recid: i,
+                            name: i,
+                            value: event.node.data[i]
+                        });
                     }
-                });
+                    w2ui['detailGrid'].add(detailItems);
+                    w2ui['logGrid'].clear();
+                    w2ui['logGrid'].add({
+                        recid: 0,
+                        text: `Snatching the Log for ${event.target} ...`
+                    });
+                    $.ajax({
+                        url: `<%= prefix %>/log?name=${event.target}`,
+                        success: function (results) {
+                            w2ui['logGrid'].clear();
+                            let logItems = [];
+                            for (let i in results.stdout) {
+                                logItems.push({recid: i, text: results.stdout[i]});
+                            }
+                            w2ui['logGrid'].add(logItems);
+                            w2ui['logGridError'].clear();
+                            logItems = [];
+                            for (let i in results.stderr) {
+                                logItems.push({recid: i, text: results.stderr[i]});
+                            }
+                            w2ui['logGridError'].add(logItems);
+                        }
+                    });
+                } else if(event.node.type == 'Node') {
+                   let detailItems = [];
+                   for (let i in event.node.services) {
+                       let statum = {background: 'white', color: 'black'};
+                       if (status.hasOwnProperty(event.node.services[i].status)) {
+                           statum = status[event.node.services[i].status];
+                       }
+                       detailItems.push({
+                           recid: i,
+                           name: event.node.services[i].name,
+                           value: event.node.services[i].status,
+                           style: `background-color:${statum.background}; color=${statum.color}`,
+                       });
+                   }
+                   w2ui['detailGrid'].add(detailItems);
+                   w2ui['logGrid'].clear();
+               }
             },
         },
         logGrid: {
@@ -227,9 +247,9 @@
             $.ajax({
                 url: '<%= prefix %>/status',
                 success: function (results) {
-                    let nodes = [];
                     loadServices('services', results);
-                    w2ui['sidebar'].add('nodes', nodes);
+                    nodes = {};
+                    loadNodes('nodes', results);
                     w2ui['sidebar'].refresh();
                 },
                 failed: function (err) {
@@ -241,6 +261,7 @@
             );
             socket.on('status', (results) => {
                 loadServices('services', results);
+                loadNodes('nodes', results);
                 w2ui['sidebar'].refresh();
             });
         }
@@ -255,6 +276,7 @@
             }
             let sitem = {
                 id: i,
+                type: 'Service',
                 text: result.name,
                 status: result.status,
                 data: result,
@@ -266,6 +288,32 @@
                 w2ui['sidebar'].add(parent, [sitem]);
             }
             loadServices(i, result.services);
+        }
+    }
+    function loadNodes(parent, results) {
+        for (let i in results) {
+            let result = results[i];
+            let statum = {background: 'white', color: 'black'};
+            if (status.hasOwnProperty(result.status)) {
+                statum = status[result.status];
+            }
+            if(!nodes.hasOwnProperty(result.node)) {
+                let sitem = {
+                    id: result.node,
+                    type: 'Node',
+                    text: result.node,
+                    services: [result],
+                    nodes: []
+                };
+                nodes[result.node] = sitem;
+                if (!w2ui['sidebar'].set(parent, i, sitem)) {
+                    w2ui['sidebar'].add(parent, [sitem]);
+                }
+            } else {
+                nodes[result.node].services.push(result);
+            }
+
+            loadNodes(parent, result.services);
         }
     }
 </script>

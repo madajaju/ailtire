@@ -9,7 +9,7 @@ parent: classes
 
 <%= model.description %>
 
-![Logical Diagram](./logical.svg)
+![Logical Diagram](./logical.png)
 
 ## Attributes
 
@@ -43,7 +43,7 @@ let cls = model.dependant[aname].model;
 <% if(model.statenet) {
 %>
 ## State Net
-![State Net Diagram](./statenet.svg)
+![State Net Diagram](./statenet.png)
 
 | Name | Description | Events |
 | --- | --- | --- |
@@ -56,7 +56,7 @@ let cls = model.dependant[aname].model;
     }
 -%>
 | <%= name %> | <%= state.description %> | <%= eventNames %> |
-<% } 
+<% }
 }%>
 
 

@@ -1,0 +1,68 @@
+version: "3.7"
+services:
+  gw:
+    image: traefik:latest
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --api.debug=true
+      - --log.level=DEBUG
+      - --providers.docker=true
+      - --providers.docker.swarmMode=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=testA__family
+      - --entrypoints.http.address=:80
+      - --entrypoints.https.address=:443
+      - --providers.docker.constraints=Label(`traefik.tags`,`top`)
+    ports:
+      - '80:80'
+      - '8080:8080'
+      - '443:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - sibling
+  testb:
+    image: testms:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      sibling:
+      childtestb:
+        aliases:
+            - admin
+    environment:
+    - AILTIRE_APPNAME=testB
+    - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+    - AILTIRE_PARENT={{.Service.Name}}
+    - AILTIRE_PATH_PREFIX=/testb
+    - AILTIRE_TRAEFIK_TAGS=top
+  testa:
+    image: testms:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      sibling:
+      childtesta:
+        aliases:
+          - admin
+    environment:
+      - AILTIRE_APPNAME=testA
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT={{.Service.Name}}
+      - AILTIRE_PARENT_NETWORK=testA_testa_family
+      - AILTIRE_PATH_PREFIX=/testa
+      - AILTIRE_TRAEFIK_TAGS=top
+networks:
+  sibling:
+    driver: overlay
+    attachable: true
+    name: testA__family
+  childtesta:
+    driver: overlay
+    attachable: true
+    name: testA_testa_family
+  childtestb:
+    driver: overlay
+    attachable: true
+    name: testA_testb_family

@@ -8,7 +8,7 @@ parent: usecases
 
 <%= usecase.description %>
 
-![Activities Diagram](./activities.svg)
+![Activities Diagram](./activities.png)
 
 ## Actors
 
@@ -19,14 +19,14 @@ parent: usecases
 * [<%= actor.name %>](actor-<%= actor.shortname %>)
 <% } %>
 
-<% if(usecase.extended) { 
+<% if(usecase.extended) {
 %>
 ## Extended Use Cases
 
-<% for(let ucname in usecase.extended) { 
+<% for(let ucname in usecase.extended) {
 %>
 * [<%= ucname %>](usecase-<%= ucname %>)
-<% } 
+<% }
 } %>
 
 <% if(usecase.extends) {
@@ -40,7 +40,7 @@ parent: usecases
 } %>
 
 
-<% if(usecase.included) { 
+<% if(usecase.included) {
 %>
 ## Included Use Cases
 
@@ -69,7 +69,7 @@ let prefix = usecase.prefix;
 -%>
 * [<%= usecase.name %>](#scenario-<%- nameNoSpaces %>)
 <% } %>
-  
+
 <% for(let sname in usecase.scenarios) {
 let nameNoSpaces = sname.replace(/ /g, '');
 let scenario = usecase.scenarios[sname];

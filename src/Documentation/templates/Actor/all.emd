@@ -15,4 +15,4 @@ has_children: true
 * [<%= actor.name %>](actor-<%= actor.shortname %>) - <%= actor.description %>
 <% } %>
 
-![All Actors](./actors.svg)
+![All Actors](./actors.png)

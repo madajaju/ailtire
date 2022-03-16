@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node doc.js",
-    "buildAll": "node docbuild.js && cd docs && java -jar plantuml.jar -tsvg \"**/*.puml\"; exit 0"
+    "buildAll": "node docbuild.js && cd docs && java -jar plantuml.jar -tpng \"**/*.puml\"; exit 0"
   },
   "keywords": [],
   "author": "",

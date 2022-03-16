@@ -173,7 +173,7 @@ function standardFileTypes(config,server) {
     server.get('*.puml', (req, res) => {
         let apath = path.resolve('./docs/' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
         apath = apath.toLowerCase();
-        let svgPath = apath.replace(/.puml$/, '.svg');
+        let svgPath = apath.replace(/.puml$/, '.png');
         if (fs.existsSync(svgPath)) {
             res.set('Content-Type', 'image/svg+xml');
             res.sendFile(svgPath);

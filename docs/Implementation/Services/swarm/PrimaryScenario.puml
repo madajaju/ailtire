@@ -1,0 +1,25 @@
+@startuml
+
+Participant User
+Participant parent.ailtire_service as parent
+Participant child.ailtire_service as child
+Participant grandchild.Service as gchild
+
+User -/ parent : run
+parent -/ User : register(name, url)
+parent -> parent : deploy()
+parent -/ child : run()
+child -/ parent : register(name, url)
+parent -/ child : watch.socket()
+child -> child : deploy()
+child -/ gchild : run()
+child -/ gchild : checkStatus()
+parent -> parent : handleRequests
+
+User -> parent : checkStatus()
+parent -> child : checkStatus()
+child -> gchild : checkStatus()
+
+User -> parent: log()
+
+@enduml

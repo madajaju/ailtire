@@ -22,17 +22,16 @@ if(service.type === 'stack') {
     deploy:
       replicas: 1
       labels:
-        - traefik.tags=<%= stack.name %>
         - traefik.enable=true
-        - traefik.docker.network=${AILTIRE_APPNAME}_family
+        - traefik.tags=<%= stack.name %>
         - traefik.http.routers.<%= sname %>_http.service=<%= sname %>
 <%
   for(let iname in service.interface) {
   let interface = service.interface[iname];
 -%>
         - traefik.http.services.<%= sname %>.loadbalancer.server.port=<%= interface.port %>
-        - traefik.http.routers.<%= sname %>_http.rule=PathPrefix(`<%= interface.path %>`)
-        - traefik.http.routers.<%= sname %>_http.entrypoints=<%= interface.protocol %>
+        - traefik.http.routers.<%= sname %>.rule=PathPrefix(`<%= interface.path %>`)
+        - traefik.http.routers.<%= sname %>.entrypoints=<%= interface.protocol %>
 <%
 }
 -%>
@@ -41,8 +40,15 @@ if(service.type === 'stack') {
       - AILTIRE_PARENT=${AILTIRE_APPNAME}
       - AILTIRE_PARENTHOST=admin
       - AILTIRE_APPNAME=${AILTIRE_APPNAME}
+<% 
+for(let ename in service.environment) { 
+-%>
+      - <%= ename %>=<%= service.environment[ename] %>
+<%
+}
+-%>
     networks:
-      - children
+      - child<%= sname %>
       - sibling
 <%
 } else {
@@ -67,15 +73,14 @@ if(service.type === 'stack') {
       labels:
         - traefik.tags=<%= stack.name %>
         - traefik.enable=true
-        - traefik.docker.network=${AILTIRE_APPNAME}_family
 <%
       for(let iname in service.interface) {
         let interface = service.interface[iname];
 -%>
         - traefik.http.services.<%= sname %>.loadbalancer.server.port=<%= interface.port %>
-        - traefik.http.routers.<%= sname %>_http.rule=PathPrefix(`<%= interface.path %>`)
-        - traefik.http.routers.<%= sname %>_http.service=<%= sname %>
-        - traefik.http.routers.<%= sname %>_http.entrypoints=<%= interface.protocol %>
+        - traefik.http.routers.<%= sname %>.rule=PathPrefix(`<%= interface.path %>`)
+        - traefik.http.routers.<%= sname %>.service=<%= sname %>
+        - traefik.http.routers.<%= sname %>.entrypoints=<%= interface.protocol %>
 <%
       }
 -%>
@@ -84,41 +89,71 @@ if(service.type === 'stack') {
       - AILTIRE_PARENT=${AILTIRE_APPNAME}
       - AILTIRE_PARENTHOST=admin
       - AILTIRE_APPNAME=${AILTIRE_APPNAME}
+<% 
+for(let ename in service.environment) { 
+-%>
+      - <%= ename %>=<%= service.environment[ename] %>
+<%
+}
+-%>
     networks:
       - sibling
 <% }
 } -%>
-  frontend:
+  gw:
     image: traefik:latest
     command:
-      - --api=true
       - --api.dashboard=true
       - --api.insecure=true
       - --api.debug=true
       - --log.level=DEBUG
       - --providers.docker=true
       - --providers.docker.swarmMode=true
-      - --providers.docker.network=children
+      - --providers.docker.network=sibling
       - --providers.docker.exposedbydefault=false
       - --entrypoints.http.address=:80
       - --entrypoints.https.address=:443
       - --providers.docker.constraints=Label(`traefik.tags`,`<%= stack.name %>`)
-    ports:
-      - '80:80'
-      - '8080:8080'
-      - '443:443'
+    deploy:
+      replicas: 1
+      labels:
+      - traefik.tags=${AILTIRE_TRAEFIK_TAGS}
+      - traefik.enable=true
+      - traefik.http.services.${AILTIRE_PARENT}_gw.loadbalancer.server.port=80
+      - traefik.http.routers.${AILTIRE_PARENT}_gw.rule=PathPrefix(`${AILTIRE_PATH_PREFIX}/`)
+      - traefik.http.middlewares.gw_strip.stripprefix.prefixes=${AILTIRE_PATH_PREFIX}/
+      - traefik.http.routers.${AILTIRE_PARENT}_gw.middlewares=gw_strip@docker
+      - traefik.http.routers.${AILTIRE_PARENT}_gw.service=${AILTIRE_PARENT}_gw
+      - traefik.http.routers.${AILTIRE_PARENT}_gw.entrypoints=http
+      - traefik.http.services.${AILTIRE_PARENT}_gw_admin.loadbalancer.server.port=8080
+      - traefik.http.routers.${AILTIRE_PARENT}_gw_admin.rule=PathPrefix(`${AILTIRE_PATH_PREFIX}/traefik/`)
+      - traefik.http.middlewares.gw_strip_admin.stripprefix.prefixes=${AILTIRE_PATH_PREFIX}/traefik/
+      - traefik.http.routers.${AILTIRE_PARENT}_gw_admin.middlewares=gw_strip_admin@docker
+      - traefik.http.routers.${AILTIRE_PARENT}_gw_admin.service=${AILTIRE_PARENT}_gw
+      - traefik.http.routers.${AILTIRE_PARENT}_gw_admin.entrypoints=http
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      - children
+      sibling:
+      parent:
+        aliases:
+          - ${AILTIRE_PARENT}_gw
 networks:
-  children:
-    driver: overlay
-    attachable: true
-    name: ${APPNAME}_<%= stack.name %>_family
   sibling:
     driver: overlay
   parent:
     external: true
-    name: ${APPNAME}_<%= stack.prefix %>_family
-
+    name: ${AILTIRE_PARENT_NETWORK}
+<% 
+  for(let sname in stack.services) {
+    let service = stack.services[sname];
+    if(service.type === 'stack') {
+-%>
+  child<%- sname %>:
+    driver: overlay
+    attachable: true
+    name: ${AILTIRE_APPNAME}_<%= stack.name %>_<%= sname %>_family
+<%
+  }
+}
+%>

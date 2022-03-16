@@ -51,18 +51,18 @@ function buildServiceFiles(pkg,opts) {
             repo: repo
         },
         targets: {
-            '.tmp-dockerfile': {template: '/templates/Package/deploy/Dockerfile-Service'},
-            '.tmp-stack-compose.yml': {template: '/templates/Package/deploy/stack-compose.yml'},
+            './.tmp-dockerfile': {template: '/templates/Package/deploy/Dockerfile-Service'},
+            './.tmp-stack-compose.yml': {template: '/templates/Package/deploy/stack-compose.yml'},
         }
     };
     Generator.process(files, pkg.deploy.dir);
-    let composeFile = '.tmp-stack-compose.yml';
+    let composeFile = './.tmp-stack-compose.yml';
     if(pkg.deploy.envs[opts.env].file) {
         composeFile = pkg.deploy.envs[opts.env].file;
         
     }
     
-    console.error("Building Service Container:", pkg.deploy.name);
+    console.error("Building Stack Container:", pkg.deploy.name);
     return {dockerFile: '.tmp-dockerfile', composeFile: composeFile };
 }
 function buildService(pkg, opts) {
@@ -77,7 +77,7 @@ function buildService(pkg, opts) {
             // console.error("Environments:", pkg.deploy.envs);
             return;
         }
-        let proc = spawn('docker', ['build', '-t', pkg.deploy.name, '-f', files.dockerFile, '.'], {
+        let proc = spawn('docker', ['build', '-t', pkg.deploy.name.toLowerCase(), '-f', files.dockerFile, '.'], {
             cwd: pkg.deploy.dir,
             stdio: 'pipe',
             env: process.env

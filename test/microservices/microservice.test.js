@@ -1,15 +1,21 @@
-const server = require('../../src/Server');
-
-server.start({
-    baseDir: './example',
-    prefix: '',
-    routes: {
-        "/model": "/edgemere/diml/dump",
-        "/document": "/model/document",
-    },
-});
+const {execSync} = require("child_process");
+const Build = require('../../src/Services/Build');
 
 describe('Microservice', () => {
+    describe('Microservice Basic', () => {
+        it('The multi-tiered microserver works', (done) => {
+            try {
+                let deploy = require('./deploy/deploy.js');
+                deploy.envs = deploy.contexts;
+                deploy.envs.local.design = require('./deploy/' + deploy.contexts.local.design);
+                Build.pkg({deploy:deploy, name:"test1"}, {env:'local', name:'testB'});
+                return done();
+            } catch (e) {
+                console.error(e);
+                return done(e);
+            }
+        }).timeout(20000);
+    });
     describe('Microservice Test 1', () => {
         it('No one can access a microservice except through the Parent', (done) => {
             try {

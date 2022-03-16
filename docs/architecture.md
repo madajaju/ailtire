@@ -56,7 +56,7 @@ Applications are used by Actors. An [Actor](actor) can be a person, another appl
 the application or package through [use cases](usecase). Each [use case](usecase) has several [scenarios](scenario) 
 that show different uses of the application.
 
-## Implemnetation
+## Implementation
 
 The implmentation of the architecture shows the how the application is implemented in a directory structure.
 See the [directory structure](directory) page for more information.

@@ -183,9 +183,11 @@ Here is a description of each label for the microservice.
 Using the side-car pattern for containers, stacks are treated like a microservice themselves. In fact a single
 container image is created for the whole application that basically can be scheduled as a service in a docker
 swarm stack. This allows for systems to be integrated more easily. The same is true for each package and sub package
-in the system architecture. Each package has its own deployment strategy which out of the box creates a stack
+in the system architecture. 
+
+Each package has its own deployment strategy which out of the box creates a stack
 as defined by a docker-compose.yaml file. A container image with the docker-compose.yaml file and a very lightweight
-applcation with a REST interface allows the stack to be deployed, killed and monitored just like another other
+application with a REST interface allows the stack to be deployed, killed and monitored just like another other
 container in the system. Behind the covers it is actually managing several services in the docker swarm stack.
 This enables complex architectures to be easily deployed in managed that might contain several hundred running containers.
 

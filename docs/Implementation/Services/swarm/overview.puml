@@ -1,0 +1,54 @@
+@startuml
+
+class "ailtire_service:swarm" as ASS {
+    update(parameters:list, environment:map, composefile:file)
+    shutdown()
+    status() : Status
+    register(name: string, url: string)
+    view() : WebPage
+    log() : string
+}
+
+REST ()-- ASS
+SocketIO ()-- ASS
+
+class Log {
+    stdout : string
+    stderr: string
+}
+
+abstract Service {
+    name : string
+    status: string
+    message : string
+}
+abstract Stack {
+    definition : StackDefinition
+
+    update(parameters:list, environment:map, definition:file)
+    shutdown()
+    status() : Status
+    register(name: string, url: string)
+    view() : WebPage
+    log() : string
+}
+
+Stack *--> StackDefinition
+Stack ---|> Service
+Stack *-->  Service : services
+ASS --|> Stack
+
+
+class Status {
+   type: string
+   status : string
+   name: string
+   line : string
+}
+
+class StackDefinition {
+
+}
+
+Status  o-> Service : services
+@enduml

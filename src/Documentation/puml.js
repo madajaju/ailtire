@@ -23,7 +23,7 @@ module.exports = {
  /*       glob( `${basedir}/!**!/!*.puml`, function( err, files ) {
             for(let i in files) {
                 let file = files[i];
-                let svgFile = file + '.svg';
+                let svgFile = file + '.png';
                 console.log("PUML Generate:", file);
                 try {
 

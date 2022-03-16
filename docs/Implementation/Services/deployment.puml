@@ -1,0 +1,112 @@
+@startuml
+
+left to right direction
+
+
+queue external #black [
+    <b><color:white>external</color></b>
+]
+
+interface 80
+80 -- external
+
+interface 443
+443 -- external
+
+interface 8080
+8080 -- external
+
+
+entity myapp_family #black
+entity myapp_mypackage_family #black
+entity myapp_mypackage2_family #black
+external -- myapp_family
+
+rectangle "mypackage" as mypackageStack #lightblue {
+    queue mypackageStacksnet #black [
+        <b><color:white>parent</color></b>
+    ]
+}
+rectangle "mypackage2" as mypackageStack2 #lightblue {
+    queue mypackageStacksnet2 #black [
+        <b><color:white>parent</color></b>
+    ]
+    node "frontend" as mypackageGwService {
+        card "./myservice" as myservice1
+        card "./myservice2" as myservice2
+        card "./admin" as myp1adminmap
+    }
+}
+
+
+package "myapp" #lavender {
+    queue childrennet #black [
+            <b><color:white>child</color></b>
+    ]
+    queue childrennet2 #black [
+            <b><color:white>child2</color></b>
+    ]
+    childrennet -[#black]- myapp_mypackage_family
+    childrennet2 -[#black]- myapp_mypackage2_family
+
+    queue siblingnet #blue [
+            <b><color:white>sibling</color></b>
+    ]
+
+    node "frontend" as frontendService {
+        card "/web" as webmap
+        card "/docs" as docsmap
+        card "/mypackage" as mypackagemap
+        card "/mypackage2" as mypackagemap2
+        card "/admin" as adminmap
+
+    }
+    node "admin" as adminService
+    node "mypackage" as mypackageService #lightblue
+    node "mypackage2" as mypackageService2 #lightblue
+    node "pubsub" as pubsubService
+    node "web" as webService
+    node "doc" as docService
+
+    collections "myapp:latest" as myapplatestimage
+    collections "myapp_mypackage:latest" as mypackagelatestimage
+    collections "myapp_mypackage2:latest" as mypackagelatestimage2
+    artifact "redis" as redisimage
+    artifact "traefik:latest" as traefiklatestimage
+    artifact "myapp_web" as myapp_webimage
+    artifact "myapp_doc" as myapp_docimage
+
+}
+
+external -[#black]- frontendService
+mypackageService -[#black]- childrennet
+mypackageService2 -[#black]- childrennet2
+
+mypackageService2 -[#blue]- siblingnet
+adminService -[#blue]- siblingnet
+pubsubService -[#blue]- siblingnet
+mypackageService -[#blue]- siblingnet
+webService -[#blue]- siblingnet
+docService -[#blue]- siblingnet
+frontendService -[#blue]- siblingnet
+adminService .... myapplatestimage
+mypackageService .... mypackagelatestimage
+mypackageService2 .... mypackagelatestimage2
+pubsubService .... redisimage
+webService .... myapp_webimage
+docService .... myapp_docimage
+frontendService .... traefiklatestimage
+
+mypackagelatestimage --> mypackageStack
+mypackagelatestimage2 --> mypackageStack2
+mypackageStacksnet --[#black]-- myapp_mypackage_family
+mypackageStacksnet2 --[#black]-- myapp_mypackage2_family
+
+docsmap --> docService
+webmap --> webService
+mypackagemap --> mypackageService
+mypackagemap2 --> mypackageService2
+mypackageService2 --> mypackageGwService
+adminmap --> adminService
+
+@enduml

@@ -1,4 +1,4 @@
-express = require('express');
+const express = require('express');
 const exec = require('child_process').spawnSync;
 const server = express();
 const bent = require('bent');
@@ -68,7 +68,9 @@ function setupExpress() {
         process.exit();
     });
     server.get('*/status', async (req, res) => {
+        console.log("Status:")
         let status = getStats();
+        console.log("Status:", status);
         res.json(status);
         res.end();
     });
@@ -87,7 +89,6 @@ function setupExpress() {
     });
     server.get('*/log', async (req, res) => {
         let sname = req.query.name;
-        console.log(`LOGS SERVICENAME:${sname}:`);
         let retval = getLogs(sname);
         res.json(retval);
         res.end();
@@ -109,7 +110,6 @@ function setupExpress() {
     });
     io.on('connection', (socket) => {
         console.log('a client connected');
-        console.log('Socket:', socket);
         io.emit('status', currentStatus);
     })
     app = http.listen(port);
@@ -150,7 +150,6 @@ async function register() {
         let response;
         try {
             let urlreq = `${url}/register?name=${stackName}&url=${hostname}:${port}`;
-            console.log(urlreq);
             response = await get(urlreq, 'test');
         } catch (e) {
             console.error("Could not connect to Parent:", response);
@@ -168,6 +167,7 @@ async function deploy() {
 
 async function getStatus(children, status) {
     let retval = status;
+    console.log("getStatus");
     const get = bent('GET', 'json');
     for (let name in children) {
         let response;
@@ -188,7 +188,6 @@ async function getStatus(children, status) {
         }
     }
     return retval;
-    return currentStatus;
 }
 
 function parseStatus(input) {
