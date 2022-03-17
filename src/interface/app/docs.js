@@ -37,7 +37,7 @@ module.exports = {
         });
         let volumeStr = process.cwd() + '/docs:/docs';
         let plantimage = "ailtire-plantuml";
-
+        console.log("Generating Diagrams from PUML");
         let proc = spawn('docker', ['run', '-v', volumeStr, plantimage], {
             stdio: 'pipe',
             env: process.env
@@ -47,6 +47,8 @@ module.exports = {
             console.error(proc.stdout.toString('utf-8'));
             console.error(proc.stderr.toString('utf-8'));
         }
+        console.log(proc.stdout.toString('utf-8'));
+        console.log("Done Generating Diagrams from PUML");
 
     }
 };
