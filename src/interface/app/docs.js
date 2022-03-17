@@ -1,6 +1,5 @@
 const path = require('path');
-const htmlGenerator = require('../../Documentation/html');
-const sLoader = require('../../Server/Loader.js');
+const spawn = require('child_process').spawnSync;
 const server = require('ailtire/src/Server/doc-md');
 
 module.exports = {
@@ -36,6 +35,19 @@ module.exports = {
             urlPrefix: urlPrefix,
             listenPort: port
         });
+        let volumeStr = process.cwd() + '/docs:/docs';
+        let plantimage = "ailtire-plantuml";
+
+        let proc = spawn('docker', ['run', '-v', volumeStr, plantimage], {
+            stdio: 'pipe',
+            env: process.env
+        });
+        if(proc.status != 0) {
+            console.error("Error Building PNG from Plantruml");
+            console.error(proc.stdout.toString('utf-8'));
+            console.error(proc.stderr.toString('utf-8'));
+        }
+
     }
 };
 
