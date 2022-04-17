@@ -125,6 +125,8 @@ module.exports = {
         normalizeConfig(config);
         global.ailtire = { config: config };
 
+        let apath = path.resolve(config.baseDir);
+        let topPackage = sLoader.processPackage(apath);
         /*if (config.hasOwnProperty('redis')) {
             io.adapter(redis({host: config.redis.host, port: config.redis.port}));
         }
