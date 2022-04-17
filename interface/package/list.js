@@ -1,4 +1,4 @@
-const renderer = require('../../src/Documentation/Renderer.js');
+// const renderer = require('../../src/Documentation/Renderer.js');
 
 module.exports = {
     friendlyName: 'list',
@@ -29,12 +29,12 @@ function processPackage(pkg) {
     }
 
     for(let iname in pkg.interface) {
-        let interface = pkg.interface[iname];
+        let intrface = pkg.interface[iname];
         jpkg.interface[iname] = {
-            friendlyName: interface.friendlyName,
-            description: interface.description,
-            inputs: interface.inputs,
-            static: interface.static
+            friendlyName: intrface.friendlyName,
+            description: intrface.description,
+            inputs: intrface.inputs,
+            static: intrface.static
         };
     }
     for(let hname in pkg.handlers) {
@@ -50,8 +50,7 @@ function processPackage(pkg) {
         jpkg.classes[cname] = { name: cls.name, description: cls.description, methods: cls.methods, attributes: cls.attributes, associations: cls.associations };
     }
     for(let uname in pkg.usecases) {
-        let uc = pkg.usecases[uname];
-        jpkg.usecases[uname] = uc;
+        jpkg.usecases[uname] = pkg.usecases[uname];
     }
     for(let spkg in pkg.subpackages) {
         jpkg.subpackages[spkg] = processPackage(pkg.subpackages[spkg]);

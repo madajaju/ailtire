@@ -15,7 +15,6 @@ module.exports = {
             let server = servers[i];
             let items = server.url.split('/');
             let url = 'http://' + items.shift();
-            let path = '/' + items.join('/');
             let childsocket = clientio.connect(url);
             global.servers.push( {
                 pattern: server.pattern,

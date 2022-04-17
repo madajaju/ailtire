@@ -1,5 +1,5 @@
-const renderer = require('../../src/Documentation/Renderer.js');
 const APackage = require('../../src/Server/APackage');
+const fs = require("fs");
 
 module.exports = {
     friendlyName: 'get',
@@ -10,13 +10,29 @@ module.exports = {
             type: 'string',
             required: true
         },
+        doc: {
+            description: 'Get the documentation of the package',
+            type: 'boolean',
+            required: false
+        }
     },
 
     fn: function (inputs, env) {
         try {
             let pkg = APackage.getPackage(inputs.id);
             let jpkg = processPackage(pkg, true);
-            env.res.json(jpkg);
+            if(env.res) {
+                if(inputs.doc) {
+                    if(pkg.doc && pkg.doc.basedir) {
+                        if(fs.existsSync(pkg.doc.basedir + '/doc.emd')) {
+                            jpkg.document = fs.readFileSync(pkg.doc.basedir + '/doc.emd', 'utf8');
+                        } else {
+                            jpkg.document = "Enter documentation here.";
+                        }
+                    }
+                }
+                env.res.json(jpkg);
+            }
         }
         catch(e) {
             console.error(e);
@@ -43,12 +59,12 @@ function processPackage(pkg, depth = false) {
     }
 
     for(let iname in pkg.interface) {
-        let interface = pkg.interface[iname];
+        let intrface = pkg.interface[iname];
         jpkg.interface[iname] = {
-            friendlyName: interface.friendlyName,
-            description: interface.description,
-            inputs: interface.inputs,
-            static: interface.static
+            friendlyName: intrface.friendlyName,
+            description: intrface.description,
+            inputs: intrface.inputs,
+            static: intrface.static
         };
     }
     if(depth) {
@@ -65,8 +81,7 @@ function processPackage(pkg, depth = false) {
         jpkg.classes[cname] = { name: cls.name, description: cls.description, methods: cls.methods, attributes: cls.attributes, associations: cls.associations };
     }
     for(let uname in pkg.usecases) {
-        let uc = pkg.usecases[uname];
-        jpkg.usecases[uname] = uc;
+        jpkg.usecases[uname] = pkg.usecases[uname];
     }
     for(let hname in pkg.handlers) {
         jpkg.handlers[hname] = pkg.handlers[hname];

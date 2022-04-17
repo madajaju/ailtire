@@ -1,17 +1,22 @@
 const fs = require("fs");
 module.exports = {
-    friendlyName: 'get',
-    description: 'Get an Actor',
+    friendlyName: 'set',
+    description: 'Set an Actor documentation',
     static: true,
     inputs: {
         id: {
-            description: 'The id of the actor',
+            description: 'Id of the actor',
             type: 'string',
             required: true
         },
-        doc: {
-            descritpion: 'Return the documentation of the actor',
-            type: 'boolean',
+        summary: {
+            descritpion: 'Summary of the actor',
+            type: 'string',
+            required: false
+        },
+        document: {
+            descritpion: 'Documentation of the actor',
+            type: 'string',
             required: false
         }
     },
@@ -29,17 +34,21 @@ module.exports = {
         let aname = inputs.id;
         let actor = findActor(aname);
         if(actor) {
+            actor.description = inputs.summary;
+            if(actor.doc && actor.doc.basedir) {
+                fs.writeFileSync(actor.doc.basedir + '/doc.emd', inputs.documentation)
+            }
+            let saveActor = {
+                name: actor.name,
+                shortname: actor.shortname,
+                description: inputs.summary
+            }
+            let actorDef = `module.exports = ${JSON.stringify(saveActor, null, 3)} ;`;
+            let filename = actor.dir + '/index.js';
+            fs.writeFileSync(filename, actorDef);
+
             if(env.res) {
-                if(inputs.doc) {
-                    if(actor.doc && actor.doc.basedir) {
-                        if (fs.existsSync(actor.doc.basedir + '/doc.emd')) {
-                            actor.document = fs.readFileSync(actor.doc.basedir + '/doc.emd', 'utf8');
-                        } else {
-                            actor.document = "Enter documentation here.";
-                        }
-                    }
-                }
-                env.res.json(actor);
+                env.res.redirect('/web/');
             }
             return actor;
         } else {

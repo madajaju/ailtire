@@ -1,4 +1,3 @@
-const path = require('path');
 const Action = require('../../src/Server/Action');
 module.exports = {
     friendlyName: 'get',
@@ -10,6 +9,11 @@ module.exports = {
             type: 'string',
             required: true
         },
+        doc: {
+            description: 'Get the documentation of the scenario',
+            type: 'boolean',
+            required: false
+        }
     },
 
     exits: {
@@ -29,6 +33,7 @@ module.exports = {
             if (usecase.scenarios.hasOwnProperty(sname)) {
                 let scenario = usecase.scenarios[sname];
                 retscenario = {name: scenario.name, description: scenario.description, actors: scenario.actors};
+                retscenario.document = scenario.description;
 
                 retscenario.id = inputs.id;
                 let steps = [];
@@ -53,7 +58,7 @@ module.exports = {
                 retscenario.steps = steps;
             }
         }
-        if (env.req) {
+        if (env.res) {
             if(retscenario) {
                 env.res.json(retscenario)
             } else {
@@ -63,8 +68,6 @@ module.exports = {
         } else {
             return retscenario;
         }
-        // api.scenario(inputs.package, inputs.usecase, inputs.name, '.');
-        return null;
     }
 };
 

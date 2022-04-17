@@ -1,4 +1,3 @@
-const path = require('path');
 const AClass = require('../AClass');
 
 module.exports = {

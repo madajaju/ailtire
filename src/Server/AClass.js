@@ -4,8 +4,7 @@ module.exports = {
     },
     getInstances: (className) => {
         let cls = _getClass(className);
-        let retval = _getInstances(cls);
-        return retval;
+        return _getInstances(cls);
     }
 }
 

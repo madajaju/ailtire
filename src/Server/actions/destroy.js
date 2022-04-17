@@ -1,4 +1,3 @@
-const path = require('path');
 const AEvent = require('../AEvent');
 
 module.exports = {

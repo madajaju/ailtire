@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const renderer = require('../Documentation/Renderer.js');
 const AClass = require('./AClass');
 
 const isDirectory = source => fs.lstatSync(source).isDirectory();
@@ -26,7 +25,7 @@ module.exports = {
         // Routes are mapped to action paths.
         for (let i in config.routes) {
             // Get Action handler from the actions.
-            let routeTarget = config.routes[i];
+            // let routeTarget = config.routes[i];
             let route = config.urlPrefix + '/' + i.toLowerCase();
             let action = find(config.routes[i]);
             if (action) {
@@ -217,7 +216,7 @@ const loadActions = (prefix, mDir) => {
 const mapToServer = (server, config) => {
     for (let i in global.actions) {
         let gaction = global.actions[i];
-        if (i[0] != '/') {
+        if (i[0] !== '/') {
             i = '/' + i;
         }
         let normalizedName = i.replace('/' + global.topPackage.shortname,'' );
@@ -347,7 +346,7 @@ const find = (name) => {
                     retval.pkg = cls.definition.package;
                     retval.obj = cls.definition.name;
                     return retval;
-                } 
+                }
             }
             return null;
         }

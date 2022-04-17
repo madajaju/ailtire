@@ -1,4 +1,4 @@
-const path = require('path');
+const fs = require("fs");
 module.exports = {
     friendlyName: 'get',
     description: 'Get a UseCase',
@@ -9,6 +9,11 @@ module.exports = {
             type: 'string',
             required: true
         },
+        doc: {
+            description: 'This is the documentation of the use case',
+            type: 'boolean',
+            required: true
+        }
     },
 
     exits: {
@@ -25,6 +30,15 @@ module.exports = {
         if(global.usecases.hasOwnProperty(ucname)) {
             let usecase = global.usecases[ucname];
             if(env.res) {
+                if(inputs.doc) {
+                    if(usecase.doc && usecase.doc.basedir) {
+                        if(fs.existsSync(usecase.doc.basedir + '/doc.emd')) {
+                            usecase.document = fs.readFileSync(usecase.doc.basedir + '/doc.emd', 'utf8');
+                        } else {
+                            usecase.document = "Enter documentation here.";
+                        }
+                    }
+                }
                 env.res.json(usecase);
             }
             return usecase;

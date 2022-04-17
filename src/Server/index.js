@@ -41,7 +41,6 @@ module.exports = {
         htmlGenerator.package(global.topPackage, apath + '/docs');
         htmlGenerator.actors(global.actors, apath + '/docs');
         console.log("Built the Documentation");
-        return;
     },
     doc: (config) => {
         console.log("Serving documenration");
@@ -76,7 +75,6 @@ module.exports = {
             let name = req._parsedUrl.pathname.replace(/\/doc\/action\//, '');
             name = name.replace(config.urlPrefix,'');
             console.log("Calling Action Name:", name);
-            let names = name.split('/');
             let action = Action.find(name);
             let pkg = action.pkg
             let apath = `${config.urlPrefix}${pkg.prefix}/index.html#Action-${name.replace(/\//g,'-')}`;
@@ -127,8 +125,6 @@ module.exports = {
         normalizeConfig(config);
         global.ailtire = { config: config };
 
-        let apath = path.resolve(config.baseDir);
-        let topPackage = sLoader.processPackage(apath);
         /*if (config.hasOwnProperty('redis')) {
             io.adapter(redis({host: config.redis.host, port: config.redis.port}));
         }
@@ -204,8 +200,7 @@ module.exports = {
     },
     micro: (config) => {
         normalizeConfig(config);
-        let apath = path.resolve(config.baseDir);
-        let topPackage = sLoader.processPackage(apath);
+        // let apath = path.resolve(config.baseDir);
 
         /* if (config.hasOwnProperty('redis')) {
             io.adapter(redis({host: config.redis.host, port: config.redis.port}));
@@ -256,8 +251,7 @@ module.exports = {
     },
     start: (config) => {
         normalizeConfig(config);
-        let apath = path.resolve(config.baseDir);
-        let topPackage = sLoader.processPackage(apath);
+        // let apath = path.resolve(config.baseDir);
 
         Action.defaults();
         let ailPath = __dirname + "/../../interface";

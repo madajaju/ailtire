@@ -1,4 +1,4 @@
-const renderer = require('../../src/Documentation/Renderer.js');
+// const renderer = require('../../src/Documentation/Renderer.js');
 
 module.exports = {
     friendlyName: 'get',
@@ -30,7 +30,7 @@ module.exports = {
 function normalize(id, name, design) {
 
     let retval = {
-        id: id, 
+        id: id,
         name: name,
         interface: {},
         volumes: {},
@@ -48,7 +48,7 @@ function normalize(id, name, design) {
     retval.networks = design.networks;
     retval.volumes = design.volumes;
     return retval;
-};
+}
 
 function normalize_old(id, name, definition) {
     let retval = {id: id, name: name};
@@ -76,7 +76,7 @@ function normalize_old(id, name, definition) {
             }
         }
         // Interface is defined by the labels in the deploy. Specifically the traefik
-        let interface = {};
+        let intrface = {};
         if(service.deploy) {
             for (let i in service.deploy.labels) {
 
@@ -87,7 +87,7 @@ function normalize_old(id, name, definition) {
             id: id + sname,
             networks: networks,
             volumes: volumes,
-            interface: interface,
+            interface: intrface,
             environments: definition.services[sname].environment,
             ports: definition.services[sname].ports,
             image: definition.services[sname].image,

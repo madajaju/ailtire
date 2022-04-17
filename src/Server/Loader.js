@@ -67,6 +67,17 @@ const analyzeClasses = classes => {
                     gcls.definition.owners.push(d);
                 }
             } else {
+                assoc.name = j;
+                if(!global.ailtire.hasOwnProperty('error')) {
+                    global.ailtire.error = [];
+                }
+                global.ailtire.error.push({
+                    type:'model.associations',
+                    object:{type:"Model", id:cls.definition.name, name:cls.definition.name},
+                    message:"Class association type does not map to a model",
+                    data: assoc,
+                    lookup: 'model/list'
+                });
                 console.error("Association type does not map to a model:", aType, " for Class: ", cls.definition.name);
             }
         }
@@ -137,6 +148,7 @@ let reservedDirs = {
             let myClass = require(modelDir + '/index.js');
 
             myClass.package = pkg;
+            myClass.dir = modelDir;
             if (global.classes.hasOwnProperty(myClass.definition.name)) {
                 // console.error('Class Already defined', myClass.definition.name, "in this model:", modelDir);
                 // throw new Error('Class Already defined' + myClass.definition.name + "in this model:" + modelDir);
@@ -144,6 +156,7 @@ let reservedDirs = {
                 let myProxy = new Proxy(myClass, classProxy);
                 // set the owners array for persistence.
                 myClass.definition.owners = new Array();
+                myClass.definition.dir = modelDir;
                 pkg.classes[myClass.definition.name] = myProxy;
                 global.classes[myClass.definition.name] = myProxy;
                 global[myClass.definition.name] = myProxy;
@@ -181,6 +194,9 @@ const loadDocs = (pkg, dir) => {
             nfiles.push(nfile.replace(ndir, ''));
         }
         pkg.doc = {basedir: dir, files: nfiles};
+    } else {
+        fs.mkdirSync(dir);
+        pkg.doc = {basedir: dir, files: []};
     }
 }
 
@@ -233,6 +249,16 @@ const loadDeploy = (pkg, prefix, dir) => {
             // Now get the file from the deploy and read it in.
             let compose = {};
             if(!isFile(dir + '/' + contexts[env].file)) {
+                if(!global.ailtire.hasOwnProperty('error')) {
+                    global.ailtire.error = [];
+                }
+                global.ailtire.error.push({
+                    type:'environment.contexts',
+                    object:{type:"Environment", id:env, name: env},
+                    message:"Cloud not find envrionemt association ype does not map to a model",
+                    data: dir,
+                    lookup: 'model/list'
+                });
                 console.error("Could notfind ", dir + '/' + contexts[env].file);
             }
             else {
@@ -313,7 +339,6 @@ const loadHandlers = (pkg, prefix, mDir) => {
         }
         let tempItem = require(file);
         for (let j in tempItem.handlers) {
-            let action = null;
             let handler = tempItem.handlers[j];
             global.handlers[aname].handlers.push(handler);
         }
@@ -376,8 +401,7 @@ const loadClassMethods = (mClass, mDir) => {
         if (methodname !== 'index') {
             mClass.definition.methods[methodname] = require(file);
             mClass.prototype[methodname] = function(inputs) {
-                let retval =  funcHandler.run(mClass.definition.methods[methodname], this, inputs);
-                return retval;
+                return  funcHandler.run(mClass.definition.methods[methodname], this, inputs);
             }
         }
     }
@@ -391,10 +415,10 @@ const loadDirectory = (dir, prefix) => {
         prefix += '/' + pkg.shortname;
     }
     pkg.prefix = prefix.toLowerCase();
-
+    pkg.dir = dir;
     for (let i in dirs) {
         let file = path.basename(dirs[i]);
-        if (file[0] != '.' && file != 'node_modules') {
+        if (file[0] !== '.' && file !== 'node_modules') {
             if (reservedDirs.hasOwnProperty(file)) {
                 reservedDirs[file](pkg, prefix, path.join(dir, file));
             } else {
@@ -422,6 +446,16 @@ const checkPackage = (pkg) => {
             dpkg = global.packages[depend];
             depends.push(dpkg);
         } else {
+            if(!global.ailtire.hasOwnProperty('error')) {
+                global.ailtire.error = [];
+            }
+            global.ailtire.error.push({
+                type:'package.depend',
+                object:{type:"Package", id:pkg.id, name: pkg.name},
+                message:"Package in Dependes not found",
+                data: depend,
+                lookup: 'package/list'
+            });
             console.error("Package in Depends not found:", depend, " in ", pkg.name);
         }
     }
@@ -470,6 +504,16 @@ const checkPackage = (pkg) => {
                     }
                 }
             } else {
+                if(!global.ailtire.hasOwnProperty('error')) {
+                    global.ailtire.error = [];
+                }
+                global.ailtire.error.push( {
+                        type:'model.extends',
+                        object: {type:"Model", id:cls.id, name:cls.name },
+                        message:"Class Extends points to an unknown class",
+                        data: cls.definition.extends,
+                        lookup: 'model/list',
+                });
                 console.error(`Parent Class ${cls.definition.extends} is not defined!`);
             }
         }
@@ -502,8 +546,18 @@ const checkPackage = (pkg) => {
             }
             cls.definition.messages[ename] = global.events[ename];
             if (!cls.definition.package.definition ) {
-                console.log("Class Definition package problem");
-                console.log(cls.definition.package);
+                if(!global.ailtire.hasOwnProperty('error')) {
+                    global.ailtire.error = [];
+                }
+                global.ailtire.error.push( {
+                    type:'model.definition',
+                    object: {type:'Model', id: cls.id, name: cls.name},
+                    message:"Class parent package definitition has a problem",
+                    data: cls.definition.package,
+                    lookup: 'package/list',
+                });
+                console.error("Class Definition package problem");
+                console.error(cls.definition.package);
             }
             if(!cls.definition.package.definition.hasOwnProperty('messages')) {
                 cls.definition.package.definition.messages = {};
@@ -557,6 +611,16 @@ const checkUseCase = (pkg, usecase) => {
     actionName = actionName.toLowerCase();
     if (!actionName.includes(pkg.shortname.toLowerCase())) {
         // console.warn("Method is not part of the intreface!", actionName);
+        if(!global.ailtire.hasOwnProperty('error')) {
+            global.ailtire.error = [];
+        }
+        global.ailtire.error.push( {
+            type:'usecase.method',
+            object: {type: 'UseCase', id:usecase.id, name:usecase.name},
+            message:"Usecase method is not an package interface",
+            data: usecase.method,
+            lookup: 'action/list',
+        });
     } else {
         if (!global.actions.hasOwnProperty(actionName)) {
             console.warn("Action does not exist creating:", actionName, usecase.method);
@@ -581,6 +645,16 @@ const checkUseCase = (pkg, usecase) => {
             }
             pusecase.extended[usecase.name.replace(/\s/g,'')] = usecase;
         } else {
+            if(!global.ailtire.hasOwnProperty('error')) {
+                global.ailtire.error = [];
+            }
+            global.ailtire.error.push( {
+                type:'usecase.extend',
+                object: {type: 'UseCase', id:usecase.id, name:usecase.name},
+                message:"Could not find the extend Usecase:",
+                data: usecase.extends,
+                lookup: 'usecase/list',
+            });
             console.error("Could not find extend UseCase:", usecase.extends[i], " for ", usecase.name);
         }
     }
@@ -590,7 +664,7 @@ const checkUseCase = (pkg, usecase) => {
     // Includes is used primarily for dependency between use cases.
     let newIncludes = {};
     for(let i in usecase.includes) {
-        let puscaseName = usecase.includes[i].replace(/\s/g,'');
+        let pusecaseName = usecase.includes[i].replace(/\s/g,'');
         if(global.usecases.hasOwnProperty(pusecaseName)) {
             let pusecase = global.usecases[myUC.name.replace(/\s/g, '')];
             newIncludes[pusecaseName] = pusecase;
@@ -599,6 +673,16 @@ const checkUseCase = (pkg, usecase) => {
             }
             pusecase.included[usecase.name.replace(/\s/g,'')] = usecase;
         } else {
+            if(!global.ailtire.hasOwnProperty('error')) {
+                global.ailtire.error = [];
+            }
+            global.ailtire.error.push({
+                type:'usecase.includes',
+                object:{type:"Package", id:pkg.id, name: pkg.name},
+                message:"Usecase includes use case not found.",
+                data: pusecaseName,
+                lookup: 'usecase/list'
+            });
             console.error("Could not find included UseCase:", usecase.extends[i], " for ", usecase.name);
         }
     }
@@ -646,6 +730,16 @@ const checkScenario = (pkg, scenario) => {
     }
     actionName = actionName.toLowerCase();
     if (!actionName.includes(pkg.shortname.toLowerCase())) {
+        if(!global.ailtire.hasOwnProperty('error')) {
+            global.ailtire.error = [];
+        }
+        global.ailtire.error.push({
+            type:'scenario.method',
+            object:{type:"Scenario", id:scenario, name:scenario },
+            message:"Scenario method is not found.",
+            data: actionName,
+            lookup: 'action/list'
+        });
         // console.warn("Method is not part of the intreface!", actionName);
     } else {
         if (!global.actions.hasOwnProperty(actionName)) {
@@ -666,6 +760,7 @@ const loadActors = (dir, prefix) => {
         if(!actorDir.includes('\\doc') && !actorDir.includes('\/doc') ) {
             let actor = require(actorDir + '/index.js');
             global.actors[actor.name.replace(/\s/g, '')] = actor;
+            actor.dir = actorDir;
             loadDocs(actor, actorDir + '/doc');
         }
     }
@@ -725,7 +820,17 @@ const processModelIncludefile = (prefix, dir) => {
                 loadClassMethods(myClass, path.resolve(incModelFile + '/..'));
             }
             else {
-                let apath = path.resolve(file);
+                // let apath = path.resolve(file);
+                if(!global.ailtire.hasOwnProperty('error')) {
+                    global.ailtire.error = [];
+                }
+                global.ailtire.error.push({
+                    type:'package.includesFile',
+                    object:{type:"Package", id:pkgFile, name: pkgFile},
+                    message:"Model not found in package includes.js file",
+                    data: incModelFile,
+                    lookup: 'model/list'
+                });
                 console.error("Could not find Model:", file , "in include file for ", dir );
             }
         }

@@ -1,5 +1,5 @@
-const rst = require('../../src/Documentation/rst.js');
-const path = require('path');
+// const rst = require('../../src/Documentation/rst.js');
+// const path = require('path');
 const renderer = require('../../src/Documentation/Renderer.js');
 
 module.exports = {

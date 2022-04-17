@@ -1,4 +1,4 @@
-const renderer = require('../../src/Documentation/Renderer.js');
+// const renderer = require('../../src/Documentation/Renderer.js');
 
 module.exports = {
     friendlyName: 'list',
@@ -32,6 +32,5 @@ function processDeployment(packages) {
 }
 
 function processStack(id, stack) {
-   let retval = {id: id, services: stack.services, networks: stack.networks};
-   return retval;
+   return {id: id, services: stack.services, networks: stack.networks};
 }

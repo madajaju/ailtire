@@ -1,4 +1,4 @@
-const renderer = require('../../src/Documentation/Renderer.js');
+// const renderer = require('../../src/Documentation/Renderer.js');
 
 module.exports = {
     friendlyName: 'list',

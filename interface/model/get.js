@@ -1,5 +1,5 @@
-const path = require('path');
 const AClass = require('../../src/Server/AClass');
+const fs = require("fs");
 module.exports = {
     friendlyName: 'get',
     description: 'Get a Model',
@@ -10,6 +10,11 @@ module.exports = {
             type: 'string',
             required: true
         },
+        doc: {
+            description: 'Get the documentation of the model',
+            type: 'boolean',
+            required: false
+        }
     },
 
     exits: {
@@ -28,6 +33,15 @@ module.exports = {
         cls.id = cname;
         if(cls) {
             if(env.res) {
+                if(inputs.doc) {
+                    if(cls.doc && cls.doc.basedir) {
+                        if(fs.existsSync(cls.doc.basedir + '/doc.emd')) {
+                            cls.document = fs.readFileSync(cls.doc.basedir + '/doc.emd', 'utf8');
+                        } else {
+                            cls.document = "Enter documentation here.";
+                        }
+                    }
+                }
                 env.res.json(cls);
             }
             return cls;

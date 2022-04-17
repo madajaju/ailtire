@@ -1,6 +1,3 @@
-const path = require('path');
-const fs = require('fs');
-const renderer = require('../../Documentation/Renderer.js');
 const AClass = require('../../Server/AClass');
 
 module.exports = {
@@ -16,17 +13,19 @@ module.exports = {
         let modelName = env.req.url.split(/\//)[1];
         // Remove the cls  from the inputs so they are not passed down to the constructor
         delete inputs.cls;
-        let apath = path.resolve(__dirname + '/../../views/model/list.ejs');
-        let str = fs.readFileSync(apath, 'utf8');
+        // let apath = path.resolve(__dirname + '/../../views/model/list.ejs');
+        // let str = fs.readFileSync(apath, 'utf8');
         let objs = [];
         let cls = AClass.getClass(modelName);
         if (global._instances) {
             objs = AClass.getInstances(modelName);
         }
+        /*
         let hostURL = global.ailtire.config.host;
         if(global.ailtire.config.listenPort) {
             hostURL += ':' + global.ailtire.config.listenPort;
         }
+         */
         // hostURL += global.ailtire.config.urlPrefix;
         let cols = {};
         for(let aname in cls.definition.attributes) {

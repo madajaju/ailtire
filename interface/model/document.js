@@ -1,5 +1,4 @@
 const rst = require('../../src/Documentation/rst.js');
-const puml = require('../../src/Documentation/puml.js');
 const path = require('path');
 
 module.exports = {

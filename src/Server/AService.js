@@ -11,8 +11,7 @@ module.exports = {
             const post = bent(url, 'POST', 'string', 200);
             const astring = action.replace(/\./g, '/');
             try {
-                const response = await post(astring, opts);
-                return response;
+                return await post(astring, opts);
             } catch (e) {
                 console.error("Response Error:", e);
             }

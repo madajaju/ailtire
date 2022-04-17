@@ -1,6 +1,4 @@
-const path = require('path');
 const AEvent = require('../../src/Server/AEvent');
-const execSync = require('child_process').execSync;
 const exec = require('child_process').exec;
 const promisify = require('util').promisify;
 const execP = promisify(exec);

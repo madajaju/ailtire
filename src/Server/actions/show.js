@@ -1,6 +1,3 @@
-const path = require('path');
-const fs = require('fs');
-const renderer = require('../../Documentation/Renderer.js');
 const AClass = require('../../Server/AClass');
 
 module.exports = {
@@ -15,10 +12,12 @@ module.exports = {
         // inputs contains the obj for the this method.
         let modelName = env.req.url.split(/[\/\?]/)[1];
         let cls = AClass.getClass(modelName);
+        /*
         let hostURL = global.ailtire.config.host;
         if (global.ailtire.config.listenPort) {
             hostURL += ':' + global.ailtire.config.listenPort;
         }
+         */
         let cols = {};
         for(let aname in cls.definition.attributes) {
             let attr = cls.definition.attributes[aname];

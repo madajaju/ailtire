@@ -1,16 +1,13 @@
 var server = require('express')();
 var http = require('http').createServer(server);
-var io = require('socket.io')(http);
 const path = require('path');
 
 const sLoader = require('./Loader.js');
-const AEvent = require('./AEvent.js');
 const Action = require('./Action.js');
 const fs = require('fs');
 // const redis = require('socket.io-redis');
 const bodyParser = require("body-parser");
 const mdGenerator = require('../Documentation/md');
-const Renderer = require('../Documentation/Renderer');
 
 
 // Here we are configuring express to use body-parser as middle-ware.
@@ -40,7 +37,6 @@ module.exports = {
         mdGenerator.package(global.topPackage, apath + '/docs');
         mdGenerator.actors(global.actors, apath + '/docs');
         console.log("Built the Documentation");
-        return;
     },
     doc: (config) => {
         console.log("Serving documenration");
@@ -75,7 +71,6 @@ module.exports = {
             let name = req._parsedUrl.pathname.replace(/\/doc\/action\//, '');
             name = name.replace(config.urlPrefix,'');
             console.log("Calling Action Name:", name);
-            let names = name.split('/');
             let action = Action.find(name);
             let pkg = action.pkg
             let apath = `${config.urlPrefix}${pkg.prefix}/index.html#Action-${name.replace(/\//g,'-')}`;

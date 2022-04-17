@@ -1,4 +1,4 @@
-const renderer = require('../../src/Documentation/Renderer.js');
+// const renderer = require('../../src/Documentation/Renderer.js');
 
 module.exports = {
     friendlyName: 'list',
@@ -12,7 +12,7 @@ module.exports = {
     }
 };
 function processClasses(classes) {
-    retval = {};
+    let retval = {};
     for(let cname in classes) {
         let cls = classes[cname].definition;
         let noi = 0;
