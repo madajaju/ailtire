@@ -4,12 +4,12 @@
     <title>ailtire</title>
     <!-- Viewport mobile tag for sensible mobile support -->
     <link rel="stylesheet" type="text/css"
-          href="<%= prefix %>/styles/w2ui.css"/>
+          href="/styles/w2ui.css"/>
     <!--STYLES END-->
-    <script src="<%= prefix %>/js/less.js" type="text/javascript"></script>
-    <script src="<%= prefix %>/js/socket.io.js"></script>
-    <script src="<%= prefix %>/js/jquery.js"></script>
-    <script src="<%= prefix %>/js/w2ui.js"></script>
+    <script src="/js/less.js" type="text/javascript"></script>
+    <script src="/js/socket.io.js"></script>
+    <script src="/js/jquery.js"></script>
+    <script src="/js/w2ui.js"></script>
     <style>
         .Running {
             color: white;
@@ -156,6 +156,7 @@ let nodes = {};
         sidebar: {
             name: 'sidebar',
             nodes: [
+                {id: 'interfaces', text: 'Interface'},
                 {id: 'services', text: 'Services'},
                 {id: 'nodes', text: 'Nodes'},
             ],
@@ -170,6 +171,7 @@ let nodes = {};
                             value: event.node.data[i]
                         });
                     }
+                    detailItems.push({ recid: "Iface", name: "Interfaces", value: event.node.interfaces });
                     w2ui['detailGrid'].add(detailItems);
                     w2ui['logGrid'].clear();
                     w2ui['logGrid'].add({
@@ -177,7 +179,7 @@ let nodes = {};
                         text: `Snatching the Log for ${event.target} ...`
                     });
                     $.ajax({
-                        url: `<%= prefix %>/log?name=${event.target}`,
+                        url: `/_admin/log?name=${event.target}`,
                         success: function (results) {
                             w2ui['logGrid'].clear();
                             let logItems = [];
@@ -209,7 +211,29 @@ let nodes = {};
                    }
                    w2ui['detailGrid'].add(detailItems);
                    w2ui['logGrid'].clear();
-               }
+               } else if(event.node.type == 'Interface') {
+                    let detailItems = [];
+                    let i=0;
+                    for(let j in event.node.route) {
+                        let route = event.node.route[j];
+                        let pathRewrite = Object.keys(route.pathRewrite).map((key) => {
+                            return `${key}=>${route.pathRewrite[key]}`;
+                        });
+                        detailItems.push({recid: i++, name: 'Interface', value: event.node.id});
+                        detailItems.push({recid: i++, name: 'Target', value: route.target});
+                        detailItems.push({recid: i++, name: 'Service', value: route.service});
+                        if(event.node.serviceInstance) {
+                            detailItems.push({
+                                recid: i++,
+                                name: 'ServiceInstance',
+                                value: event.node.serviceInstance.name,
+                            });
+                        }
+                        detailItems.push({recid: i++, name: 'Path Rewrite', value: pathRewrite.join(',')});
+                    }
+                    w2ui['detailGrid'].add(detailItems);
+                    w2ui['logGrid'].clear();
+                }
             },
         },
         logGrid: {
@@ -245,11 +269,13 @@ let nodes = {};
             $().w2grid(config.logGrid);
             $().w2grid(config.logGridError);
             $.ajax({
-                url: '<%= prefix %>/status',
+                url: '/_admin/status',
                 success: function (results) {
-                    loadServices('services', results);
+                    loadInterfaces('interfaces', results.interfaces, results.services);
+                    loadServices('services', results.services, 'interfaces', results.interfaces);
                     nodes = {};
-                    loadNodes('nodes', results);
+                    loadNodes('nodes', results.services);
+
                     w2ui['sidebar'].refresh();
                 },
                 failed: function (err) {
@@ -257,29 +283,33 @@ let nodes = {};
                 }
             });
             let socket = io(window.location.origin,
-                {path:  '<%= prefix %>/socket.io'}
+                {path:  '/socket.io'}
             );
             socket.on('status', (results) => {
-                loadServices('services', results);
-                loadNodes('nodes', results);
+                loadInterfaces('interfaces', results.interfaces, results.services);
+                loadServices('services', results.services, 'interfaces', results.interfaces);
+                loadNodes('nodes', results.services);
                 w2ui['sidebar'].refresh();
             });
         }
     );
 
-    function loadServices(parent, results) {
+    function loadServices(parent, results, iparent, interfaces) {
         for (let i in results) {
             let result = results[i];
             let statum = {background: 'white', color: 'black'};
             if (status.hasOwnProperty(result.status)) {
                 statum = status[result.status];
             }
+            let ifaces = getInterfaces(result.shortName, interfaces);
+            let ifaceNames = ifaces.map((iface) => { return iface.name}).join(',');
             let sitem = {
                 id: i,
                 type: 'Service',
                 text: result.name,
                 status: result.status,
                 data: result,
+                interfaces: ifaceNames,
                 class: result.status,
                 style: `background-color:${statum.background}; color=${statum.color}`,
                 nodes: []
@@ -287,7 +317,13 @@ let nodes = {};
             if (!w2ui['sidebar'].set(parent, i, sitem)) {
                 w2ui['sidebar'].add(parent, [sitem]);
             }
-            loadServices(i, result.services);
+            if(result.services && result.services.services) {
+                for(let iface in ifaces) {
+                    let nodename = iparent + '--' + ifaces[iface].name.replace(/\//g, '-');
+                    loadServices(i, result.services.services, nodename, result.services.interfaces);
+                    loadInterfaces(nodename, result.services.interfaces, result.services.services);
+                }
+            }
         }
     }
     function loadNodes(parent, results) {
@@ -312,9 +348,55 @@ let nodes = {};
             } else {
                 nodes[result.node].services.push(result);
             }
-
-            loadNodes(parent, result.services);
+            if(result.services && result.services.services) {
+                loadNodes(parent, result.services.services);
+            }
         }
+    }
+    function loadInterfaces(parent, results, services) {
+        for (let i in results) {
+            let result = results[i];
+            // Find the status of the cooresponding service.
+            let [statum, serviceInstance] = getServiceStatus(result.service, services);
+            let id = parent + '--' + i.replace(/\//g,'-');
+            let sitem = {
+                id: id,
+                type: 'Interface',
+                text: i,
+                route: [result],
+                service: result.service,
+                serviceInstance: serviceInstance,
+                style: `background-color:${statum.background}; color=${statum.color}`,
+                nodes: [],
+            };
+            if (!w2ui['sidebar'].set(parent, i, sitem)) {
+                w2ui['sidebar'].add(parent, [sitem]);
+            }
+        }
+    }
+    function getServiceStatus(sname, services) {
+        let statum = {background: 'white', color: 'black'};
+        for(let i in services) {
+            let service = services[i];
+            if(service.shortName === sname) {
+                if (status.hasOwnProperty(service.status)) {
+                    statum = status[service.status];
+                }
+                return [statum, service];
+            }
+        }
+        return [statum, undefined];
+    }
+    function getInterfaces(sname, interfaces) {
+        let retval = [];
+        for(let i in interfaces) {
+            let iface = interfaces[i];
+            iface.name = i;
+            if(iface.service === sname) {
+                retval.push(iface);
+            }
+        }
+        return retval;
     }
 </script>
 </body>

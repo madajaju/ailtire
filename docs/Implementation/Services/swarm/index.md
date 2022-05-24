@@ -7,7 +7,7 @@ has_children: true
 
 # ailtire_service swarm
 
-![Overrview](./overview.svg)
+![Overrview](./overview.png)
 
 ## ailtire_service:swarm
 

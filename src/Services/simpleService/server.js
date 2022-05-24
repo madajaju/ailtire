@@ -2,7 +2,6 @@ const express = require('express');
 const server = express();
 const http = require('http').createServer(server);
 let port = process.env.AILTIRE_PORT || '3000';
-// let prefix = process.env.AILTIRE_PREFIX || '/admin';
 let stackName = process.env.AILTIRE_STACKNAME || process.env.HOSTNAME;
 console.log("StackName", stackName);
 
@@ -26,7 +25,7 @@ function setupExpress() {
 
     server.get('*', (req, res) => {
         console.log("Got Request", req.originalUrl);
-        res.end(req.originalUrl);
+        res.end("Stack:" + stackName + "REQ:"+ req.originalUrl);
     });
     console.log(stackName, "- Listening on port:", port);
     http.listen(port);

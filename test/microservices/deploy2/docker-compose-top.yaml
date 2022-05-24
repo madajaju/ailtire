@@ -1,0 +1,28 @@
+version: "3.7"
+services:
+  testme:
+    image: test2t:latest
+    ports:
+      - '80:3000'
+      - '8080:8080'
+      - '443:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - AILTIRE_PARENT_NETWORK=top_parent
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_APPNAME=test
+    networks:
+      proxy:
+        aliases:
+          - testme
+      children:
+        aliases:
+          - admin
+networks:
+  proxy:
+    driver: overlay
+  children:
+    driver: overlay
+    attachable: true
+    name: top_parent

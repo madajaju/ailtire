@@ -1,0 +1,51 @@
+version: "3.7"
+services:
+  serviceA:
+    image: testms:latest
+    deploy:
+      replicas: 1
+    environment:
+      - AILTIRE_PORT=3000
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT_NETWORK=two_parent
+      - AILTIRE_PREFIX=/a0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - proxy
+      - children
+  serviceB:
+    image: testms:latest
+    deploy:
+      replicas: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - AILTIRE_PORT=3000
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT_NETWORK=two_parent
+      - AILTIRE_PREFIX=/b0
+    networks:
+      - proxy
+      - children
+  serviceC:
+    image: testms:latest
+    deploy:
+      replicas: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - AILTIRE_PORT=3000
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT_NETWORK=two_parent
+      - AILTIRE_PREFIX=/c0
+    networks:
+      - proxy
+      - children
+networks:
+  proxy:
+    driver: overlay
+  children:
+    driver: overlay
+    attachable: true
+    name: two_parent

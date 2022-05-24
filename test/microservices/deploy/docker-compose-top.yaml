@@ -34,8 +34,8 @@ services:
         - traefik.http.routers.serviceA.entrypoints=http
         - traefik.http.services.serviceA.loadbalancer.server.port=3000
     environment:
-      AILTIRE_PORT: 3000
-      AILTIRE_STACKNAME: {{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PORT=3000
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
     networks:
       - proxy
   serviceB:
@@ -50,8 +50,8 @@ services:
         - traefik.http.routers.serviceB.service=serviceB
         - traefik.http.routers.serviceB.entrypoints=http
     environment:
-      AILTIRE_PORT: 3001
-      AILTIRE_STACKNAME: {{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PORT=3001
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
     networks:
       - proxy
 

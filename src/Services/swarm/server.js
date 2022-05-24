@@ -4,25 +4,27 @@ const server = express();
 const bent = require('bent');
 const bodyParser = require("body-parser");
 const http = require('http').createServer(server);
-const { Server } = require("socket.io");
+const {Server} = require("socket.io");
 const path = require('path');
 const fs = require('fs');
 const ejs = require('ejs');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+const routes = require('./router.js');
 let app = null;
 
-let children = {};
+let _children = {};
 // Needs
 // name of the stack to run AILTIRE_PARENT_AILTIRE_STACKNAME-AILTIRE_TASK
 // name of the parent to connect to. Host and port AILTIRE_PARENTHOST:AILTIRE_PARENTPORT
 // Host of the server.js process and port HOSTNAME: AILTIRE_STACKPORT
 let hostname = process.env.HOSTNAME;
-let stackName = process.env.AILTIRE_STACKNAME || process.env.HOSTNAME;
-let parent = process.env.AILTIRE_PARENTHOST || '';
+let stackName = process.env.AILTIRE_STACKNAME || 'ailtire';
+let parent = process.env.AILTIRE_PARENTHOST || 'admin';
 let parentport = process.env.AILTIRE_PARENTPORT || '3000';
 let port = process.env.AILTIRE_STACKADMINPORT || '3000';
-let prefix = process.env.AILTIRE_PREFIX || '/admin';
+let serviceName = process.env.AILTIRE_SERVICENAME || 'service';
 
-const io = new Server(http, {path: prefix + '/socket.io/'});
+const io = new Server(http, {path: '/socket.io/'});
 
 let currentStatus = {};
 
@@ -30,7 +32,9 @@ process.env.AILTIRE_PARENTHOST = process.env.HOSTNAME;
 
 (async () => {
     try {
+        console.log("Registering to the parent:", parent);
         await register();
+        console.log("Done Registering to the parent:", parent);
         await deploy();
         setupExpress();
     } catch (e) {
@@ -40,7 +44,7 @@ process.env.AILTIRE_PARENTHOST = process.env.HOSTNAME;
 })();
 
 function setupExpress() {
-// Here we are configuring express to use body-parser as middle-ware.
+    // Here we are configuring express to use body-parser as middle-ware.
     server.use(function (req, res, next) {
         res.header("Access-Control-Allow-Origin", "*");
         res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -49,15 +53,50 @@ function setupExpress() {
     server.use(bodyParser.urlencoded({extended: false}));
     server.use(bodyParser.json());
 
+    for(let tag in routes ) {
+        let options = routes[tag];
+        server.use(`${tag}`, createProxyMiddleware(`${tag}`, options));
+    }
 
-    server.get('*/update', (req, res) => {
+    server.get('/_admin/update', (req, res) => {
         console.log("Update stack:");
         console.log("Update Stack Environment Parameters:", req.body.parameters);
         console.log("Update Stack Environment Variables:", req.body.environment);
         console.log("Update Stack definition:", req.body.composefile);
         res.end("Done");
     });
-    server.get('*/shutdown', (req, res) => {
+    server.use('/_admin/route/add', (req, res) => {
+        let tag = req.query.interface;
+        let target = req.query.target;
+        let pathArray = req.query.path.split(',');
+        let pathRewrite = {};
+        for(i in pathArray) {
+            [key, value] = pathArray[i].split(':');
+            pathRewrite[key] = value;
+        }
+        let options = {
+            target: target,
+            ws: true,
+            pathRewrite: pathRewrite
+        }
+        routes[tag] = options;
+        server.use(`${tag}`, createProxyMiddleware(`${tag}`, options));
+    });
+    server.get('/_admin/route/list', (req, res) => {
+        res.json(routes);
+        res.end();
+    });
+    server.get('/_admin/route/show', (req, res) => {
+        let id = req.query.id;
+        if(routes.hasOwnProperty(id)) {
+            res.json(routes[id]);
+            res.end();
+        } else {
+            res.json({error:'Route not found!'});
+            res.end();
+        }
+    });
+    server.get('/_admin/shutdown', (req, res) => {
         console.log("Shutdown");
         let proc = exec('docker', ['stack', 'rm', stackName], {cwd: '.', stdio: 'pipe', env: process.env});
         console.log("proc:", proc.stdout.toString('utf8'));
@@ -67,27 +106,27 @@ function setupExpress() {
         });
         process.exit();
     });
-    server.get('*/status', async (req, res) => {
-        console.log("Status:")
+    server.get('/_admin/status', async (req, res) => {
         let status = getStats();
-        console.log("Status:", status);
         res.json(status);
         res.end();
     });
-    server.get('*/register', (req, res) => {
+    server.get('/_admin/register', (req, res) => {
         console.log("Register");
         console.log("Register", req.query);
-        children[req.query.name] = req.query.url;
+        if(req.query.name !== stackName) {
+            _children[req.query.name] = req.query;
+        }
         res.json({status: 'ok'});
         res.end()
     });
-    server.get('*/view', async (req, res) => {
+    server.get('/_admin/view', async (req, res) => {
         let apath = path.resolve('./views/main.ejs');
         let status = getStats();
-        let retval = renderPage('./views/main.ejs', {prefix: prefix, stats: status});
+        let retval = renderPage('./views/main.ejs', {prefix: '', stats: status});
         res.end(retval);
     });
-    server.get('*/log', async (req, res) => {
+    server.get('/_admin/log', async (req, res) => {
         let sname = req.query.name;
         let retval = getLogs(sname);
         res.json(retval);
@@ -102,16 +141,16 @@ function setupExpress() {
         res.sendFile(apath);
     });
     server.get('/', async (req, res) => {
-        console.log("Catch All:", req.url);
         let apath = path.resolve('./views/main.ejs');
         let status = getStats();
-        let retval = renderPage('./views/main.ejs', {prefix: prefix, stats: status});
+        let retval = renderPage('./views/main.ejs', {prefix: '', stats: status});
         res.end(retval);
     });
     io.on('connection', (socket) => {
         console.log('a client connected');
         io.emit('status', currentStatus);
     })
+
     app = http.listen(port);
 
     process.once('SIGINT', (code) => {
@@ -125,7 +164,9 @@ function setupExpress() {
 
 
 async function checkStatus() {
-    console.log("Checking ", stackName);
+    // Add the routes to the status.
+    currentStatus.interfaces = routes;
+    currentStatus.service = stackName;
     let proc = exec('docker', ['stack', 'ps', stackName], {cwd: '.', stdio: 'pipe', env: process.env});
     if (proc.status !== 0) {
         console.error(proc.stderr.toString('utf8'));
@@ -136,69 +177,73 @@ async function checkStatus() {
         });
     } else {
         let status = parseStatus(proc.stdout.toString('utf8'));
-        currentStatus = await getStatus(children, status);
+        currentStatus = await getStatus(_children, status);
+        currentStatus.interfaces = routes;
+        currentStatus.service = stackName;
         io.emit('status', currentStatus);
     }
 }
 
 async function register() {
     if (parent) {
-        console.log("Parent:", parent);
         let url = `http://${parent}:${parentport}`;
-        console.log("URL:", url);
         const get = bent('GET', 'json');
         let response;
         try {
-            let urlreq = `${url}/register?name=${stackName}&url=${hostname}:${port}`;
+            let urlreq = `${url}/_admin/register?name=${stackName}&url=${hostname}:${port}&service=${serviceName}`;
             response = await get(urlreq, 'test');
         } catch (e) {
+            console.error("Could not connect to Parent:", url);
             console.error("Could not connect to Parent:", response);
             console.error("Could not connect to Parent:", e);
             setTimeout(register, 30000);
-        }
-        ;
+        };
+    } else {
+        console.error("Parent not Defined!");
     }
 }
 
 async function deploy() {
     await checkStatus();
-    setInterval(checkStatus, 60000);
+    setInterval(checkStatus, 10000);
 }
 
 async function getStatus(children, status) {
     let retval = status;
-    console.log("getStatus");
     const get = bent('GET', 'json');
+    // Services
     for (let name in children) {
         let response;
         try {
-            let urlreq = `http://${children[name]}/status`;
-            if (!retval.hasOwnProperty(name)) {
-                retval[name] = {type: 'stack'};
+            let child = children[name];
+            let urlreq = `http://${child.url}/_admin/status`;
+            if (!retval.services.hasOwnProperty(name)) {
+                retval.services[name] = {type: 'stack'};
             }
-            retval[name].name = name;
+            retval.services[name].name = name;
             response = await get(urlreq, '');
-            retval[name].type = 'stack';
-            retval[name].services = response;
+            retval.services[name].type = 'stack';
+            retval.services[name].services = response;
         } catch (err) {
-            retval[name].status = "Network Error";
-            retval[name].name = name;
-            retval[name].line = err;
-            console.log("Could not connect to Service:", err);
+            retval.services[name].status = "Network Error";
+            retval.services[name].name = name;
+            retval.services[name].line = err;
         }
     }
     return retval;
 }
 
 function parseStatus(input) {
-    let retval = {};
+    let retval = { services: {} };
     const lines = input.split('\n');
     for (let line in lines) {
         let items = lines[line].split(/\s+/);
         if (items[1] && items[1] !== 'NAME' && items[1] !== "\\_") {
-            let serviceName = items[1].replace(/\./g, '-');
-            retval[serviceName] = {
+            let sName = items[1].replace(/\./g, '-');
+            let shortName = items[1].replace(/\..*$/,'').replace(stackName + '_','');
+            retval.services[sName] = {
                 name: items[1],
+                shortName: shortName,
                 image: items[2],
                 node: items[3],
                 desired: items[4],
@@ -217,7 +262,7 @@ function getLogs(name) {
         return proc.stderr.toString('utf8');
     }
     let logs = proc.stdout.toString('utf-8').split(/\n/);
-    let retval = {stdout:[], stderr:[]};
+    let retval = {stdout: [], stderr: []};
     for (let i in logs) {
         retval.stdout.push(logs[i].replace(/.+\|/, ''));
     }
@@ -229,6 +274,8 @@ function getLogs(name) {
 }
 
 function getStats() {
+    currentStatus.interfaces = routes;
+    currentStatus.service = stackName;
     return currentStatus;
 }
 

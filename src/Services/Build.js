@@ -53,15 +53,16 @@ function buildServiceFiles(pkg,opts) {
         targets: {
             './.tmp-dockerfile': {template: '/templates/Package/deploy/Dockerfile-Service'},
             './.tmp-stack-compose.yml': {template: '/templates/Package/deploy/stack-compose.yml'},
+            './.router.js': {template: '/templates/Package/deploy/router.ejs'},
         }
     };
     Generator.process(files, pkg.deploy.dir);
     let composeFile = './.tmp-stack-compose.yml';
     if(pkg.deploy.envs[opts.env].file) {
         composeFile = pkg.deploy.envs[opts.env].file;
-        
+
     }
-    
+
     console.error("Building Stack Container:", pkg.deploy.name);
     return {dockerFile: '.tmp-dockerfile', composeFile: composeFile };
 }

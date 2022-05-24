@@ -1,6 +1,8 @@
-FROM node:latest
+FROM alpine:latest
 
 WORKDIR /usr/src/app
+
+RUN apk update && apk add --update nodejs npm
 
 COPY package*.json ./
 

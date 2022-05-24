@@ -1,9 +1,10 @@
 module.exports = {
     services: {
         servicea: {
-            image: "ailtire_simple_service:latest",
+            image: "testms:latest",
+            type: 'stack',
             interface: {
-                '/a': { path: '/', port: 3000, protocol:"http"},
+                '/a0': { path: '/', port: 3000, protocol:"http"},
             },
             policies: { },
             environment: {
@@ -11,9 +12,10 @@ module.exports = {
             },
         },
         serviceb: {
-            image: "ailtire_simple_service:latest",
+            image: "testms:latest",
+            type: 'stack',
             interface: {
-                '/b': { path: '/', port: 3000, protocol:"http"},
+                '/b0': { path: '/', port: 3000, protocol:"http"},
             },
             policies: { },
             environment: {
@@ -21,9 +23,10 @@ module.exports = {
             },
         },
         servicec: {
-            image: "ailtire_simple_service:latest",
+            image: "testms:latest",
+            type: 'stack',
             interface: {
-                '/c': { path: '/', port: 3000, protocol:"http"},
+                '/c0': { path: '/', port: 3000, protocol:"http"},
             },
             policies: { },
             environment: {

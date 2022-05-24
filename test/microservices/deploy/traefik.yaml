@@ -1,0 +1,20 @@
+http:
+  routers:
+    serviceA:
+      rule: "PathPrefix('/a0/')"
+      services:
+        loadBalancer:
+          servers:
+            - http://serviceA:3000
+    serviceB:
+      rule: "PathPrefix('/b0/')"
+      services:
+        loadBalancer:
+          servers:
+            - http://serviceB:3000
+      serviceC:
+        rule: "PathPrefix('/c0/')"
+        services:
+          loadBalancer:
+            servers:
+              - http://serviceC:3000

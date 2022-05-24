@@ -1,0 +1,94 @@
+version: "3.7"
+services:
+  gw:
+    image: traefik:latest
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --api.debug=true
+      - --log.level=DEBUG
+      - --providers.docker=true
+      - --providers.docker.swarmMode=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=proxy
+      - --entrypoints.http.address=:80
+      - --entrypoints.https.address=:443
+      - --providers.docker.constraints=Label(`traefik.tags`,`testtop`)
+    ports:
+      - '80:80'
+      - '8080:8080'
+      - '443:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - proxy
+  serviceA:
+    image: testms:latest
+    deploy:
+      replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.tags=testtop
+        - traefik.http.routers.serviceA.rule=PathPrefix(`/a0/`)
+        - traefik.http.routers.serviceA.service=serviceA
+        - traefik.http.routers.serviceA.entrypoints=http
+        - traefik.http.services.serviceA.loadbalancer.server.port=3000
+    environment:
+      - AILTIRE_PORT=3000
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT_NETWORK=two_parent
+      - AILTIRE_PREFIX=/a0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - proxy
+      - children
+  serviceB:
+    image: testms:latest
+    deploy:
+      replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.tags=testtop
+        - traefik.http.routers.serviceB.rule=PathPrefix(`/b0/`)
+        - traefik.http.routers.serviceB.service=serviceB
+        - traefik.http.routers.serviceB.entrypoints=http
+        - traefik.http.services.serviceB.loadbalancer.server.port=3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - AILTIRE_PORT=3000
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT_NETWORK=two_parent
+      - AILTIRE_PREFIX=/b0
+    networks:
+      - proxy
+      - children
+  serviceC:
+    image: testms:latest
+    deploy:
+      replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.tags=testtop
+        - traefik.http.routers.serviceC.rule=PathPrefix(`/c0/`)
+        - traefik.http.routers.serviceC.service=serviceC
+        - traefik.http.routers.serviceC.entrypoints=http
+        - traefik.http.services.serviceC.loadbalancer.server.port=3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - AILTIRE_PORT=3000
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT_NETWORK=two_parent
+      - AILTIRE_PREFIX=/c0
+    networks:
+      - proxy
+      - children
+networks:
+  proxy:
+    driver: overlay
+  children:
+    driver: overlay
+    attachable: true
+    name: two_parent
