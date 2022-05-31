@@ -11,6 +11,12 @@ module.exports = {
     services: (dir) => {
         buildBaseImages(dir);
     },
+    buildService: (pkg, opts) => {
+        return buildService(pkg, opts);
+    },
+    serviceStartFile: (pkg, opts) => {
+        return buildStartFile(pkg,opts);
+    },
     serviceFiles:(pkg, opts) => {
         return buildServiceFiles(pkg,opts);
     }
@@ -23,26 +29,43 @@ const getFiles = source => fs.readdirSync(source).map(name => path.join(source, 
 function buildBaseImages(dir) {
     // read the directory and get the
     let ndir = path.resolve(dir);
+    let bpath = path.resolve(ndir + '/build.js');
+    if(isFile(bpath)) {
+        let tbuild = require(bpath);
+        tbuild.rootdir = bpath;
+        for(let name in tbuild) {
+            let service = tbuild[name];
+            service.name = name;
+            buildImage(service);
+        }
+    }
+    // Look for other directories.
     let dirs = getDirectories(ndir);
     for(let i in dirs) {
         let dirname = dirs[i];
         console.log(dirname);
         let npath = path.resolve(dirname + '/build.js');
-        isFile(npath);
-        let build = require(npath);
-        build.rootdir = dirname;
-        buildImage(build);
-
+        try {
+            if (isFile(npath)) {
+                let build = require(npath);
+                build.rootdir = dirname;
+                for (let name in build) {
+                    let service = build[name];
+                    service.name = name;
+                    buildImage(service);
+                }
+            }
+        }
+        catch(e) { }
     }
 }
-
 function buildServiceFiles(pkg,opts) {
 
     let stack = pkg.deploy.envs[opts.env].design;
     stack.name = pkg.deploy.name;
     let repo ='';
     if(opts.repo) {
-       repo = opts.repo + '/';
+        repo = opts.repo + '/';
     }
     let files = {
         context: {
@@ -60,34 +83,59 @@ function buildServiceFiles(pkg,opts) {
     let composeFile = './.tmp-stack-compose.yml';
     if(pkg.deploy.envs[opts.env].file) {
         composeFile = pkg.deploy.envs[opts.env].file;
-
     }
 
     console.error("Building Stack Container:", pkg.deploy.name);
     return {dockerFile: '.tmp-dockerfile', composeFile: composeFile };
 }
+function buildStartFile(pkg,opts) {
+    let stack = pkg.deploy.envs[opts.env].design;
+    stack.name = pkg.deploy.name;
+    let repo ='';
+    if(opts.repo) {
+        repo = opts.repo + '/';
+    }
+    let files = {
+        context: {
+            imageName: pkg.deploy.name.toLowerCase(),
+            appName: pkg.deploy.name.toLowerCase(),
+        },
+        targets: {
+            './.tmp-single-compose.yml': {template: '/templates/Package/deploy/single-compose.yml'},
+        }
+    };
+    Generator.process(files, pkg.deploy.dir);
+    let composeFile = './.tmp-single-compose.yml';
+    if(pkg.deploy.envs[opts.env].file) {
+        composeFile = pkg.deploy.envs[opts.env].file;
+    }
+
+    console.error("Building Stack Container:", pkg.deploy.name);
+
+    return {composeFile: composeFile };
+}
 function buildService(pkg, opts) {
     // Build process will build an docker image that will start the stack if there is one.
-   // let apath = path.resolve(pkg.deploy.dir + '/deploy.js');
-   // if(fs.existsSync(apath)) {
-        // let deploy = require(apath);
-        let files = buildServiceFiles(pkg,opts);
-        // Create the Dockerfile from the template with contexts set from the deploy
-        if(!pkg.deploy.envs.hasOwnProperty(opts.env)) {
-            // console.error("Could not find the environment:", opts.env);
-            // console.error("Environments:", pkg.deploy.envs);
-            return;
-        }
-        let proc = spawn('docker', ['build', '-t', pkg.deploy.name.toLowerCase(), '-f', files.dockerFile, '.'], {
-            cwd: pkg.deploy.dir,
-            stdio: 'pipe',
-            env: process.env
-        });
-        if(proc.status != 0) {
-            console.error("Error Building Service Container", pkg.deploy.name);
-            console.error(proc.stdout.toString('utf-8'));
-            console.error(proc.stderr.toString('utf-8'));
-        }
+    // let apath = path.resolve(pkg.deploy.dir + '/deploy.js');
+    // if(fs.existsSync(apath)) {
+    // let deploy = require(apath);
+    let files = buildServiceFiles(pkg,opts);
+    // Create the Dockerfile from the template with contexts set from the deploy
+    if(!pkg.deploy.envs.hasOwnProperty(opts.env)) {
+        // console.error("Could not find the environment:", opts.env);
+        // console.error("Environments:", pkg.deploy.envs);
+        return;
+    }
+    let proc = spawn('docker', ['build', '-t', pkg.deploy.name.toLowerCase(), '-f', files.dockerFile, '.'], {
+        cwd: pkg.deploy.dir,
+        stdio: [process.stdin, process.stdout, process.stderr],
+        env: process.env
+    });
+    if(proc.status != 0) {
+        console.error("Error Building Service Container", pkg.deploy.name);
+        console.error(proc.stdout.toString('utf-8'));
+        console.error(proc.stderr.toString('utf-8'));
+    }
     // }
     // else {
     //     console.log("BuildService not found!:", apath);
@@ -116,12 +164,14 @@ function buildPackage(pkg, opts) {
             console.error("==== ContainerName ====", buildTag);
             let proc = spawn('docker', ['build', '-t', buildTag, '-f', build.file, build.dir], {
                 cwd: pkg.deploy.dir,
-                stdio: 'pipe',
+                stdio: [process.stdin, process.stdout, process.stderr],
                 env: process.env
             });
             if(proc.status != 0) {
                 console.error("Error Building Service Container");
-                console.error(proc.stderr.toString('utf-8'));
+                if(proc.stderr) {
+                    console.error(proc.stderr.toString('utf-8'));
+                }
             }
         }
         buildService(pkg, opts);
@@ -142,9 +192,9 @@ function buildImage(build) {
         env[name] = build.env[name];
     }
     console.log("Building", build.name);
-    let proc = spawn('docker', ['build', '-t', build.tag, '-f', build.dockerfile, '.'], {
+    let proc = spawn('docker', ['build', '-t', build.tag, '-f', build.file, '.'], {
         cwd: build.rootdir,
-        stdio: 'pipe',
+        stdio: [process.stdin, process.stdout, process.stderr],
         env: process.env
     });
     if(proc.status != 0) {
@@ -156,3 +206,5 @@ function buildImage(build) {
         }
     }
 }
+
+

@@ -97,11 +97,13 @@ node "<%= sname %>" as <%= service.id %>
 // Now put the images for the services in the top stack
 for(let iname in deploy.images) {
     let image = deploy.images[iname];
+    let imagename = image.id.replace(/[:\\\/\-]/g, '_');
+
     if(image.stack) {
     -%>
-        collections "<%= image.name %>" as <%= image.id %>
+        collections "<%= image.name %>" as <%= imagename %>
     <% } else { %>
-        artifact "<%= image.name %>" as <%= image.id %>
+        artifact "<%= image.name %>" as <%= imagename %>
     <% }
 }
 %>
@@ -144,8 +146,9 @@ for(let sname in deploy.services) {
 for(let sname in deploy.services) {
     let service = deploy.services[sname];
     let image = deploy.images[service.image];
+    let imagename = image.id.replace(/[:\\\/\-]/g, '_');
 -%>
-<%= service.id %> .... <%= image.id %>
+<%= service.id %> .... <%= imagename %>
 <%
 }
 
@@ -154,8 +157,9 @@ for(let sname in deploy.services) {
 if(deploy.frontend.id) {
     let serviceid = deploy.frontend.id;
     let image = deploy.images[deploy.frontend.image];
+    let imagename = image.id.replace(/[:\\\/\-]/g, '_');
 %>
-<%= serviceid %> .... <%= image.id %>
+<%= serviceid %> .... <%= imagename %>
 <%
 }
 /////
@@ -163,8 +167,9 @@ if(deploy.frontend.id) {
 for(let sname in deploy.stacks) {
     let stack = deploy.stacks[sname];
     let image = deploy.images[stack.image]
+    let imagename = image.id.replace(/[:\\\/\-]/g, '_');
 %>
-<%= image.id %> --> <%= stack.id %>
+<%= imagename %> --> <%= stack.id %>
     <% if(stack.deploy.externalNetwork) { %>
 <%= stack.id %>snet --[<%= stack.deploy.externalNetwork.color %>]-- <%= stack.deploy.externalNetwork.externalName %>
     <% }

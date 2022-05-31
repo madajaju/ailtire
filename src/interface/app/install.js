@@ -62,7 +62,8 @@ function installPackage(package, opts) {
         stackName = stackName.replace(/:/g, '-');
         stackName = stackName.toLowerCase().replace(/\//,'').replace(/\//g, '_');
         let dockerfile = package.deploy.envs[opts.env].file;
-        let files = Build.serviceFiles(package, opts);
+        Build.buildService(package, opts);
+        let files = Build.serviceStartFile(package, opts);
         console.log("Stack Name:", stackName);
         console.log("Environment:", opts.env)
         process.env.AILTIRE_STACKNAME = stackName;
@@ -78,7 +79,7 @@ function installPackage(package, opts) {
         });
         console.error(proc.stdout.toString('utf-8'));
         if(proc.status != 0) {
-            console.error("Error Building Service Container", package.deploy.name);
+            console.error("Error Deploying Service Container: ", package.deploy.name);
             console.error(proc.stderr.toString('utf-8'));
         }
         console.log("Done running command!");

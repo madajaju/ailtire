@@ -48,7 +48,12 @@ module.exports = {
         console.log("Analyzing the Project");
         let topPackage = sLoader.processPackage(apath);
         console.log("Starting the build");
-        Build.services(topPackage, {name: name, env: inputs.env, repo: inputs.repo });
+        // Build the top level deploy
+        Build.services(apath + '/deploy');
+        // Build all of the images.
+        if(env.recursive) {
+            Build.services(topPackage.dir);
+        }
         Build.pkg(topPackage, {name: name,recursive:inputs.recursive, env: inputs.env, repo: inputs.repo});
         return `Building Application`;
     }

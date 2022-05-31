@@ -1,5 +1,5 @@
 @startuml
-<% if(actors && actors.length > 0) { %>
+<% if(actors && Object.keys(actors).length > 0) { %>
 <% for(let aname in actors) { %>
 actor "<%= actors[aname].name %>" as <%= actors[aname].shortname %>
 <% }%>
@@ -11,7 +11,7 @@ actor "<%= actors[aname].name %>" as <%= actors[aname].shortname %>
         let usecase = actor.usecases[ucname];
 %>
 <%= actors[aname].shortname %> -> "<%= package.name %>": <%= usecase.name %>
-"<%= package.name %>" -> bin: <%= usecase.method %>
+"<%= package.name %>" -> bin: <%= usecase.method.replace(/\//g, " ") %>
 bin -> REST: <%= usecase.method %>
 <% } } %>
 <% } else { %>

@@ -50,10 +50,11 @@ const getStates = (name) => {
 %>
 <%
     let pstate = getStates(package.prefix);
+    let pstatename = pstate.sname.replace(/\s/g, '');
 %>
 <%- pstate.states %>
 
-state <%= pstate.sname %> #<%= pstate.color.replace('#','') %> {
+state "<%= pstate.sname %>" as pstatename #<%= pstate.color.replace('#','') %> {
     state "Custom Function" as <%= package.shortname.toLowerCase() %>function {
     }
 }

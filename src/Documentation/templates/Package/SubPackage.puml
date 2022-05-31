@@ -49,6 +49,10 @@ package "<%= pkg.name %>" #<%= pkg.color.replace('#','') %> {
 package "<%= package.name %>" #<%= package.color.replace('#','') %> {
 
     interface "<%= package.name %>" as i {
+    <% for (let hname in package.handlers) {
+    -%>
+        ^<%= hname %>
+    <% } %>
     <% for (let iname in package.interface) {
         let inter = package.interface[iname];
     -%>
@@ -57,9 +61,15 @@ package "<%= package.name %>" #<%= package.color.replace('#','') %> {
     }
 }
 
-CLI ()-- i
-REST ()-- i
-Web ()-- i
+circle REST
+circle Web
+circle CLI
+circle WebSocket
+
+i -down- Web
+i -down- CLI
+i -down- REST
+WebSocket -left- i: events >
 
 package "<%= package.name %>" #<%= package.color.replace('#','') %> {
 
@@ -84,7 +94,7 @@ rectangle "<%= pkg.name %>" #white {
 <% for(let i in package.depends) {
     let dpkg = package.depends[i];
     %>
-    "<%= package.name %>" --> "<%= dpkg.name %>"
+    "<%= dpkg.name %>" <-- "<%= package.name %>"
 <% } %>
 
 @enduml

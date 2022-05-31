@@ -55,6 +55,7 @@ function setupExpress() {
 
     for(let tag in routes ) {
         let options = routes[tag];
+        console.log(`Adding Proxy: ${tag} -> ${options}`);
         server.use(`${tag}`, createProxyMiddleware(`${tag}`, options));
     }
 

@@ -142,6 +142,39 @@ const packageGenerator = (package, output, urlPath, parent, grand_parent) => {
             actors[aname].usecases[ucnameNoSpace] = usecase;
         }
     }
+    let depkgs = {};
+    let depends = [];
+    for(let i in package.depends) {
+        let dpkg = package.depends[i];
+        depkgs[dpkg.prefix] = dpkg;
+        depends.push({from: package.prefix, to:dpkg.prefix});
+    }
+    for(let sname in package.subpackages) {
+        let spkg = package.subpackages[sname];
+        for(let i in spkg.depends) {
+            let dpkg = spkg.depends[i];
+            depkgs[dpkg.prefix] = dpkg;
+            depends.push({from: spkg.prefix, to:dpkg.prefix});
+        }
+    }
+    let dpkgs = {subpackages:{}};
+    dpkgs.subpackages[global.topPackage.shortname] = {subpackages:{}};
+    for(let prefix in depkgs) {
+        let path = prefix.split('/');
+        let depkg = depkgs[prefix];
+        let map = dpkgs;
+        for(let i in path) {
+            let value = path[i];
+            if(value) {
+                if (!map.subpackages.hasOwnProperty(value)) {
+                    map.subpackages[value] = {subpackages: {}, shortname: value, color: depkg.color};
+                }
+                map = map.subpackages[value];
+            }
+        }
+        map.name = depkgs[prefix].name;
+    }
+    dpkgs = dpkgs.subpackages[global.topPackage.shortname];
     let files = {
         context: {
             parent: parent,
@@ -154,7 +187,9 @@ const packageGenerator = (package, output, urlPath, parent, grand_parent) => {
             packageNameNoSpace: package.name.replace(/ /g, ''),
             pageDir: '.' + urlPath + '/' + package.shortname.replace(/ /g, '').toLowerCase(),
             Action: Action,
-            APackage: APackage
+            APackage: APackage,
+            depends: depends,
+            packages: dpkgs,
         },
         targets: {
             ':shortname:/index.md': {template: '/templates/Package/index.emd'},

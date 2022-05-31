@@ -2,6 +2,7 @@
   interface CLI
   interface Web
   interface WebSocket
+
 package "<%= package.name %>" #<%= package.color.replace('#','') %> {
   component express as REST
   component socket.io as socket
@@ -32,9 +33,10 @@ package "<%= package.name %>" #<%= package.color.replace('#','') %> {
 
   <% for(let bname in package.deploy.build) {
       let build = package.deploy.build[bname];
+      let buildtag = build.tag.replace(/:/g, '_');
     %>
-      artifact <%= build.tag %>
-      <%= bname %>_container --> <%= build.tag %>
+      artifact "<%= build.tag %>" as <%= buildtag %>
+      <%= bname %>_container --> <%= buildtag %>
     <% } %>
   }
 }
