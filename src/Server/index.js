@@ -213,7 +213,8 @@ module.exports = {
         Action.defaults(server);
         let ailPath = __dirname + "/../../interface";
         Action.load(server, '', path.resolve(ailPath), config); // Load the ailtire defaults from the interface directory.
-        Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'), config);
+        // The Package microservice does not have an api directory. Everything is in the baseDirectory.
+        Action.load(server, config.prefix, path.resolve(config.baseDir + '/interface'), config);
         Action.mapRoutes(server, config);
 
         if(config.persist) {
