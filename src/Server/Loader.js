@@ -22,26 +22,18 @@ module.exports = {
         global.usecases = {};
         global.appBaseDir = dir;
         global.topPackage = processDirectory(dir);
-        for (let i in global.packages) {
-            checkPackage(global.packages[i]);
-            analyzeClasses(global.classes);
-        }
         return global.topPackage;
+    },
+    checkPackages: () => {
     }
+
 };
 
 const analyzeApp = app => {
-
-    // analyzeClasses
-    analyzeClasses(global.classes);
-    // analyzePackages
-    // analyzePackages(global.packages);
-    // analyzeEvents
-    // analyzeEvents(global.events);
-    // analyzeActions
-    // analyzeActions(global.actions);
-    // analyzeHandlers
-    // analyzeHandlers(global.handlers);
+    for (let i in global.packages) {
+        checkPackage(global.packages[i]);
+        analyzeClasses(global.classes);
+    }
 }
 const analyzeClasses = classes => {
     // go through each association and set the dependant map on the type of the association.
@@ -255,11 +247,11 @@ const loadDeploy = (pkg, prefix, dir) => {
                 global.ailtire.error.push({
                     type:'environment.contexts',
                     object:{type:"Environment", id:env, name: env},
-                    message:"Cloud not find envrionemt association ype does not map to a model",
+                    message:"Cloud not find envrionemt association type does not map to a model",
                     data: dir,
                     lookup: 'model/list'
                 });
-                console.error("Could notfind ", dir + '/' + contexts[env].file);
+                // console.error(`Could not find ${env} file ${dir}/${contexts[env].file}`);
             }
             else {
                 compose = YAML.load(dir + '/' + contexts[env].file);
