@@ -13,7 +13,9 @@ module.exports = {
         pathRewrite: {
             '^<%- iname %>': '<%- path %>'
         },
-        service: '<%= sname %>'
+        service: '<%= sname %>',
+        logLevel: 'debug',
+        changeOrigin: true
     },
 <%  }
 }

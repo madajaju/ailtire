@@ -140,15 +140,13 @@ const packageGenerator = (pkg, output) => {
                         ':nameNoSpace:/interface': {folder: true},
                         ':nameNoSpace:/models': {folder: true},
                         ':nameNoSpace:/deploy': {folder: true},
-                        ':nameNoSpace:/deploy/docker-compose.yml': {template: '/templates/Package/deploy/docker-compose.yml'},
+                        ':nameNoSpace:/deploy/services.js': {template: '/templates/Package/deploy/services.js'},
                         ':nameNoSpace:/deploy/build.js': {template: '/templates/Package/deploy/build.js'},
                         ':nameNoSpace:/deploy/deploy.js': {template: '/templates/Package/deploy/deploy.js'},
                         ':nameNoSpace:/deploy/web/Dockerfile': {template: '/templates/Package/deploy/Dockerfile'},
                         ':nameNoSpace:/deploy/web/package.json': {template: '/templates/Package/deploy/package.json'},
                         ':nameNoSpace:/deploy/web/server.js': {template: '/templates/Package/deploy/server.js'},
-                        ':nameNoSpace:/deploy/gateway/Dockerfile': {template: '/templates/Package/deploy/Dockerfile'},
                         ':nameNoSpace:/usecases': {folder: true},
-
                     }
                 };
                 Generator.process(files, output);
