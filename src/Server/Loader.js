@@ -46,11 +46,11 @@ const analyzeClasses = classes => {
             if(global.classes.hasOwnProperty(aType)) {
                 let gcls = global.classes[aType];
                 if(!gcls.definition.hasOwnProperty('dependant')) {
-                    gcls.definition.dependant = [];
+                    gcls.definition.dependant = {};
                 }
                 let d = {model: cls.definition, assoc:assoc}
                 d.assoc.name = j;
-                gcls.definition.dependant.push(d);
+                gcls.definition.dependant[j+cls.definition.name] = d;
                 // Push the association owner into the definition for the persistent layer.
                 if(assoc.owner || assoc.composite) {
                     if(!gcls.definition.hasOwnProperty('owners')) {
@@ -515,6 +515,38 @@ const checkPackage = (pkg) => {
     for (let i in pkg.usecases) {
         let usecase = pkg.usecases[i];
         checkUseCase(pkg, usecase);
+    }
+    // Event Emitter Checker.
+    // Add an event to the package and to each class for the following
+    // Every state in the state net
+    // And the following builtin event
+    // model.create
+    // model.destroy
+    // model.updated
+    for(let i in pkg.classes) {
+        let cls = pkg.classes[i];
+        let ename = cls.definition.name.toLowerCase();
+        let events = {
+            'create': {name: `${ename}.create`, description:`When an object of type ${cls.definition.name} is created.`, emitter: cls, handlers:{}},
+            'destroy': {name :`${ename}.destroy`, description: `When an object of type ${cls.definition.name} is destroyed.`, emitter: cls, handlers:{}},
+            'updated': {name :`${ename}.updated`, description: `When an object of type ${cls.definition.name} has an attribute or association updated.`, emitter: cls, handlers:{}},
+        }
+        for(let sname in cls.statenet) {
+            let state = cls.statenet[sname];
+            desc = state.description || `When a ${cls.definition.name} moves into the ${sname} state.`;
+            events[sname] = {name: `${ename}.${sname.toLowerCase()}`, description: desc, emitter: cls};
+        }
+        for(let evname in events) {
+            let exname = ename + '.' + evname;
+            if(!global.events.hasOwnProperty(exname)) {
+                global.events[exname] = events[evname];
+            }
+            if(!pkg.events) {
+                pkg.events = {};
+            }
+            pkg.events[exname] = global.events[exname];
+
+        }
     }
     // Handler Checker
     // Create a new member that has the events that are emited from the Package.

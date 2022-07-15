@@ -22,7 +22,7 @@ module.exports = {
                 url: server.url
             });
             childsocket.on('connect', () => {
-                let url = `${global.ailtire.config.host}:${global.ailtire.config.port}${global.ailtire.config.urlPrefix}`
+                let url = `${global.ailtire.config.host}:${global.ailtire.config.port}${global.ailtire.config.urlPrefix}`;
                 childsocket.emit('ailtire.server.started', {url:url});
                 if(server.connectionEvent) {
                     childsocket.emit(server.connectionEvent, server.connectionData);
@@ -47,29 +47,34 @@ module.exports = {
     },
     emit: (event, data) => {
         // TODO: Could check if the event has the right signature in the data
-        const nevent = event.toLowerCase();
-        console.log("Event:", nevent);
-        // send the event to all clients.
-        let sdata = data.toJSON;
-        if(!sdata) {
-            if(data.hasOwnProperty('obj')) {
-                sdata = data.obj.toJSON;
+        try {
+            const nevent = event.toLowerCase();
+            console.log("Event:", nevent);
+            // send the event to all clients.
+            let sdata = data.toJSON;
+            if (!sdata) {
+                if (data.hasOwnProperty('obj')) {
+                    sdata = data.obj.toJSON;
+                }
+            }
+            if (!sdata) {
+                sdata = data;
+            }
+            for (let i in global.servers) {
+                let server = global.servers[i];
+                server.socket.emit(nevent, sdata);
+            }
+            global.io.emit(nevent, sdata);
+            global.io2.emit(nevent, sdata);
+            // Check to see if the current server handles this event.
+            // If it does then call the Call the handlers defined.
+            // This allows for a server to have events handled.
+            if (global.handlers.hasOwnProperty(nevent)) {
+                callActions(nevent, data);
             }
         }
-        if(!sdata) {
-            sdata = data;
-        }
-        for(let i in global.servers) {
-            let server = global.servers[i];
-            server.socket.emit(nevent, sdata);
-        }
-        global.io.emit(nevent, sdata);
-        global.io2.emit(nevent, sdata);
-        // Check to see if the current server handles this event.
-        // If it does then call the Call the handlers defined.
-        // This allows for a server to have events handled.
-        if (global.handlers.hasOwnProperty(nevent)) {
-            callActions(nevent, data);
+        catch (e) {
+            console.log("Error on Emit:", e);
         }
     }
 }
