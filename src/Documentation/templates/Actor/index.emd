@@ -22,7 +22,7 @@ parent: All Actors
 * [<%= name %>](usecase-<%= ucname %>)
 <% } %>
 
-![Use Case Diagram](./usecase.png)
+![Use Case Diagram](./UseCase.png)
 
 ## User Interface
 TBD
@@ -36,5 +36,5 @@ TBD
     let method = prefix.replace(/\s/g, '-') + '-' + actor.usecases[uname].method.replace(/\//g, '-');
     let description = actor.usecases[uname].description;
 -%>
-* [<%= prefix %> <%= action %>](action-<%= method %>) - <%= description %>
+* [<%= prefix %> <%= action.replace(/\//g, ' ') %>](action-<%= method %>) - <%= description %>
 <% } %>

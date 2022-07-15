@@ -13,7 +13,8 @@ module.exports = {
             try {
                 return await post(astring, opts);
             } catch (e) {
-                console.error("Response Error:", e);
+                console.error("POST: ", astring, opts);
+                console.error("AServer call Response Error:", e);
             }
         }
     },

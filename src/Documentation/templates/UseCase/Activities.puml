@@ -19,8 +19,9 @@ usecase "<%= sname %>" as <%= snameNoSpace %> #lightgrey
 <%= ucNoSpace %> --> <%= snameNoSpace %>
 <% } %>
 
-<% for(let sname in usecase.extends) {
-let snameNoSpace = sname.replace(/ /g, '')
+<% for(let i in usecase.extends) {
+let sname = usecase.extends[i];
+let snameNoSpace =sname.replace(/ /g, '')
 %>
 usecase "<%= sname %>" as <%= snameNoSpace %> #lightyellow
 

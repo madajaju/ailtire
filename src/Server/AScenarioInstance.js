@@ -28,6 +28,7 @@ module.exports = {
             myInstance.currentstep = i;
             AEvent.emit("step.started", {obj:scenario});
             let command = `bash -c "bin/${global.ailtire.config.prefix} ${step.action.replace(/\//g,' ')} ${params.join(" ")}"`;
+            console.log("CALLING:", command);
             try {
                 console.log("Scenario calling step:", command);
                 //let results = await execP('bash -c "pwd"');
@@ -47,7 +48,7 @@ module.exports = {
                 stepInstance.stdio = e;
                 stepInstance.state = 'failed';
                 AEvent.emit("step.failed", {obj:scenario});
-                console.error(e);
+                console.error("Scenario Failed:",e);
             }
         }
         myInstance.state = 'completed';

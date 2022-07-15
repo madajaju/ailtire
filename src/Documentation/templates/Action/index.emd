@@ -1,11 +1,26 @@
 ### Action <%= action.name.replace(/\//g, ' ') %>
 
-* REST - <%= action.name %>
-* bin - <%= action.name.replace(/\//g, ' '); %>
-* js - <%= action.name.replace(/\//g, '.'); %>
+<%
+let restParam = [];
+let binParam = [];
+let jsParam = [];
+for(let i in action.inputs) {
+let input = action.inputs[i];
+restParam.push(i + "=" + input.type);
+binParam.push("--" + i + " " + input.type);
+jsParam.push(i + ":" + input.type);
+}
+%>
 
+* REST - <%= action.name %>?<%= restParam.join('&') %>
+* bin - <%= action.name.replace(/\//g, ' '); %> <%= binParam.join(' ') %>
+* js - <%= action.name.replace(/\//g, '.'); %>({ <%= jsParam.join(',') %> })
+
+#### Description
 <%= action.description %>
 
+#### Parameters
+<% if(action.inputs && Object.keys(action.inputs).length > 0) { %>
 | Name | Type | Required | Description |
 |---|---|---|---|
 <% for(let iname in action.inputs)  {
@@ -13,4 +28,6 @@
 -%>
 | <%= iname %> | <%= input.type %> |<%= input.required %> | <%= input.description %> |
 <% } %>
-
+<% } else { %>
+No parameters
+<% } %>
