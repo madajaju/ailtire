@@ -160,8 +160,9 @@ these events.
 
 | Message | Action | Description |
 | --- | --- | --- |
-<% for(let name in package.handlers) {
-let handler = package.definition.handlers[name];
+<% 
+for(let name in package.handlers) {
+let handler = package.handlers[name];
 let message = handler.name;
 for(let i in handler.handlers) {
 let h = handler.handlers[i];
