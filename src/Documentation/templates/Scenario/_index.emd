@@ -21,13 +21,13 @@ if(scenario.steps) {
             }
             parameters = items.join(' ');
         }
-    %>
+    -%>
 1. [<%= step.action.replace(/\//, ' ')%> <%- parameters %>](#action-<%= step.action.replace(/\//g, '-') %>)
 <% }
 } else {
-%>
+-%>
 1. To Be Defined
-<% } %>
+<% } -%>
 
 #### Actors
 
