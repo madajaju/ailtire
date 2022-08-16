@@ -34,8 +34,9 @@ module.exports = {
                 //let results = await execP('bash -c "pwd"');
                 results = await execP(command);
                 stepInstance.stdio = { stderr: results.stderr, stdout: results.stdout};
-                if(results.stderr) {
-                    console.log(results.stderr);
+                if(results.error) {
+                    console.error("Step Failed: ", command);
+                    console.error(results.stderr);
                     stepInstance.state = 'failed';
                     AEvent.emit("step.failed", {obj:scenario});
                 } else {
@@ -44,11 +45,13 @@ module.exports = {
                 }
             }
             catch (e) {
+                console.log("Command Failed:", command);
                 scenario.error = e;
                 stepInstance.stdio = e;
                 stepInstance.state = 'failed';
                 AEvent.emit("step.failed", {obj:scenario});
                 console.error("Scenario Failed:",e);
+                throw e;
             }
         }
         myInstance.state = 'completed';

@@ -6,22 +6,21 @@ module.exports = {
     inputs: {},
 
     fn: function (inputs, env) {
-        let [pname, ename] = inputs.id.split(/\./);
-        let pkg = global.packages[pname];
-        if (!pkg) {
-            console.error("Cound not find the package:", pname);
+        let [envname, sname] = inputs.id.split(/\./);
+        let environ = global.deploy.envs[envname];
+        if(!environ) {
+            console.error("Could not find the environment!", envname);
+            res.json("Could not find the environment");
+        }
+        let service = environ[sname];
+        if(!service) {
+            console.error("Could not find the service:", sname);
             return;
         }
-        if (!pkg.deploy.envs[ename]) {
-            console.error("Could not find the enviornment:", ename);
-            return;
+        let retval = normalize_old(inputs.id, sname, service.definition);
+        if(service.design) {
+            retval = normalize(inputs.id, sname, service.design);
         }
-        let definition = pkg.deploy.envs[ename].definition;
-        let retval = normalize_old(inputs.id, pkg.deploy.name, definition);
-        if(pkg.deploy.envs[ename].design) {
-            retval = normalize(inputs.id, pkg.deploy.name, pkg.deploy.envs[ename].design);
-        }
-
         env.res.json(retval);
         return retval;
     }
@@ -45,6 +44,11 @@ function normalize(id, name, design) {
         }
     }
     retval.services = design.services;
+    let [env,lname] = id.split(/\./);
+    for(let sname in design.services) {
+        retval.services[sname] = design.services[sname];
+        retval.services[sname].id = `${env}.${sname}`;
+    }
     retval.networks = design.networks;
     retval.volumes = design.volumes;
     return retval;

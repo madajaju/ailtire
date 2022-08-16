@@ -1,4 +1,6 @@
 const Action = require('../../src/Server/Action');
+const AScenarioInstance = require('../../src/Server/AScenarioInstance');
+
 module.exports = {
     friendlyName: 'get',
     description: 'Get a Scenario in a UseCase',
@@ -58,6 +60,9 @@ module.exports = {
                 retscenario.steps = steps;
             }
         }
+        // Now get any scenario instances and put them with the scenario.
+        let instances = AScenarioInstance.show({id:inputs.id});
+        retscenario._instances = instances;
         if (env.res) {
             if(retscenario) {
                 env.res.json(retscenario)

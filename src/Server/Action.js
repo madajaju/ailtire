@@ -313,7 +313,17 @@ const execute = (action, inputs, env) => {
         }
     }
     // run the function
-    return action.fn(finputs, env);
+    try {
+        if(action.fn.constructor.name === 'AsyncFunction') {
+            (async () => { await action.fn(finputs, env); })();
+        } else {
+            action.fn(finputs, env);
+        }
+    }
+    catch(e) {
+        console.error("Error calling Action:", action.friendlyName);
+        console.error(e);
+    }
 };
 const find = (name) => {
     name = name.toLowerCase();

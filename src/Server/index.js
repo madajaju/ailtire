@@ -13,6 +13,51 @@ const bodyParser = require("body-parser");
 const htmlGenerator = require('../Documentation/html');
 const Renderer = require('../Documentation/Renderer');
 
+const circularReplacer = () => {
+    //return value;
+    let seen = null;
+    let checkDeep = (key, value, deepSeen) => {
+        let retval = {};
+        for(let k in value) {
+            if(typeof value[k] === "object" && value != null) {
+                if(deepSeen.get(value[k])) {
+                    retval[k] = "Circular";
+                } else {
+                    deepSeen.set(value[k], k);
+                    retval[k] = checkDeep(k,value[k], deepSeen);
+                }
+            } else {
+                retval[k] = value[k];
+            }
+        }
+    }
+    return (key, value) => {
+        if(key === '') {
+            seen = null;
+            seen = new WeakMap();
+        }
+        if (typeof value === "object" && value !== null) {
+            if (seen.has(value)) {
+                let path = seen.get(value);
+                if(path === "") {
+                    path = "the root object";
+                }
+                let retval = {}
+                for(let i in value) {
+                    if(typeof value[i] === "object" && value != null) {
+                        retval[i] = checkDeep(key, value, new WeakMap())
+                    } else {
+                        retval[i] = value[i];
+                    }
+                }
+                return retval;
+            }
+            seen.set(value, key);
+        }
+        return value;
+    }
+}
+
 
 // Here we are configuring express to use body-parser as middle-ware.
 server.use(function(req, res, next) {
@@ -23,6 +68,7 @@ server.use(function(req, res, next) {
 server.use(bodyParser.urlencoded({extended: true}));
 server.use(bodyParser.json());
 server.use(bodyParser.raw());
+server.set('json replacer', circularReplacer());
 
 module.exports = {
     docBuild: (config) => {
@@ -168,8 +214,8 @@ module.exports = {
             res.end(str);
         });
         server.all('*', (req, res) => {
-            console.error(`Config: ${config.urlPrefix}`)
-            console.error("Catch All", req.originalUrl);
+            // console.error(`Config: ${config.urlPrefix}`)
+            // console.error("Catch All", req.originalUrl);
             // Look in the views directly for items to load.
             let str = findPage(req.originalUrl, config);
             res.end(str);

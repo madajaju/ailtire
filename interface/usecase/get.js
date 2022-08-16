@@ -39,6 +39,7 @@ module.exports = {
                         }
                     }
                 }
+                usecase.id = ucname;
                 env.res.json(usecase);
             }
             return usecase;

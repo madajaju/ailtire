@@ -7,25 +7,20 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
-        let environments = processDeployment(global.packages);
+        let environments = processDeployment(global.deploy.envs);
         env.res.json(environments);
     }
 };
-function processDeployment(packages) {
-    retval = {environments:{}, images:{}};
+function processDeployment(envs) {
+    retval = {environments:{}};
 
-    for(let pname in packages) {
-        let pkg = packages[pname];
-        for(let ename in pkg.deploy.envs) {
-            let env = pkg.deploy.envs[ename];
-            if(!retval.environments.hasOwnProperty(ename)) {
-                retval.environments[ename] = { stacks: {}};
-            }
-            retval.environments[ename].stacks[env.tag] = processStack(`${pname}.${ename}`, env.definition);
+    for(let ename in envs) {
+        if(!retval.environments.hasOwnProperty(ename)) {
+            retval.environments[ename] = { stacks: {}};
         }
-        for(let bname in pkg.deploy.build) {
-            let bld = pkg.deploy.build[bname];
-            retval.images[bld.tag] = bld;
+        for(let sname in envs[ename]) {
+            let service = envs[ename][sname];
+            retval.environments[ename].stacks[service.tag] = processStack(`${ename}.${sname}`, service.definition);
         }
     }
     return retval;
