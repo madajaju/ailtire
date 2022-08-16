@@ -45,6 +45,7 @@ const analyzeClasses = classes => {
             let aType = assoc.type;
             if (global.classes.hasOwnProperty(aType)) {
                 let gcls = global.classes[aType];
+
                 if (!gcls.definition.hasOwnProperty('dependant')) {
                     gcls.definition.dependant = {};
                 }
@@ -244,9 +245,11 @@ const loadDeploy = (pkg, prefix, dir) => {
                     global.ailtire.error = [];
                 }
                 global.ailtire.error.push({
+
                     type: 'environment.contexts',
                     object: {type: "Environment", id: env, name: env},
                     message: "Cloud not find envrionemt association type does not map to a model",
+
                     data: dir,
                     lookup: 'model/list'
                 });
@@ -528,6 +531,7 @@ const checkPackage = (pkg) => {
     // model.create
     // model.destroy
     // model.updated
+
     for (let i in pkg.classes) {
         let cls = pkg.classes[i];
         let ename = cls.definition.name.toLowerCase();
@@ -552,16 +556,19 @@ const checkPackage = (pkg) => {
             },
         }
         for (let sname in cls.statenet) {
+
             let state = cls.statenet[sname];
             desc = state.description || `When a ${cls.definition.name} moves into the ${sname} state.`;
             events[sname] = {name: `${ename}.${sname.toLowerCase()}`, description: desc, emitter: cls};
         }
+
         for (let evname in events) {
             let exname = ename + '.' + evname;
             if (!global.events.hasOwnProperty(exname)) {
                 global.events[exname] = events[evname];
             }
             if (!pkg.events) {
+
                 pkg.events = {};
             }
             pkg.events[exname] = global.events[exname];
