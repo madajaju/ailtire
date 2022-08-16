@@ -1,5 +1,6 @@
 const handler = require('./ClassProxy');
 const funcHandler = require('./MethodProxy');
+const {parse, stringify, toJSON, fromJSON} = require('flatted');
 
 module.exports = {
     get: (obj, prop) => {
@@ -26,7 +27,9 @@ module.exports = {
          */
         if (prop === 'toJSON') {
             return function (...args) {
-                let retval = {};
+                let retval = toJSON(obj.definition);
+                return retval;
+                /*let retval = {};
                 for(let i in obj.definition) {
                     if(typeof obj.definition[i] === 'object') {
                         retval[i] = {};
@@ -39,7 +42,8 @@ module.exports = {
                                     retval[i][j] = obj.definition[i][j].toJSON();
                                 }
                                 else {
-                                    retval[i][j] = obj.definition[i][j];
+                                    // Just return the value not the object.
+                                    retval[i][j] = toJSON(j;
                                 }
                             }
                             else {
@@ -51,7 +55,7 @@ module.exports = {
                         retval[i] = obj.definition[i];
                     }
                 }
-                return retval;
+                return retval;*/
             }
         }
         if(obj.definition.hasOwnProperty(prop)) {

@@ -6,7 +6,7 @@ let nameNoSpaces = scenario.name.replace(/ /g, '');
 
 <%= scenario.description %>
 
-![Scenario <%=nameNoSpaces%>](./<%= scenario.name.replace(/\s/g,'').toLowerCase() %>.png)
+![Scenario <%=nameNoSpaces%>](./<%= nameNoSpaces %>.png)
 
 #### Steps
 <%
@@ -21,13 +21,13 @@ if(scenario.steps) {
             }
             parameters = items.join(' ');
         }
-    %>
+    -%>
 1. [<%= step.action.replace(/\//, ' ')%> <%- parameters %>](#action-<%= step.action.replace(/\//g, '-') %>)
 <% }
 } else {
-%>
+-%>
 1. To Be Defined
-<% } %>
+<% } -%>
 
 #### Actors
 

@@ -29,7 +29,12 @@ module.exports = {
             if(usecase.scenarios.hasOwnProperty(sname)) {
                 let scenario = usecase.scenarios[sname];
                 scenario.id = inputs.id;
-                env.res.json("started");
+                let instances = AScenarioInstance.show({id:scenario.id});
+                let instanceid = 0;
+                if(instances) {
+                    instanceid = instances.length;
+                }
+                env.res.json({id: instanceid});
                 AScenarioInstance.launch(scenario);
             } else {
                 AEvent.emit("scenario.failed", {obj:{error: "Scenario not found"}});

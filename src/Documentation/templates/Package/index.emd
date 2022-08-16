@@ -149,7 +149,7 @@ Services in the <%= ename %> environment
 The <%= package.name %> subsystem provides the following activities and flows that help satisfy the use
 cases and scenarios of the subsystem.
 
-<% if(package.handles && package.handler.size > 0) {
+<% if(package.handlers) {
 -%>
 
 ### Messages Handled
@@ -160,7 +160,8 @@ these events.
 
 | Message | Action | Description |
 | --- | --- | --- |
-<% for(let name in package.handlers) {
+<% 
+for(let name in package.handlers) {
 let handler = package.handlers[name];
 let message = handler.name;
 for(let i in handler.handlers) {
@@ -176,7 +177,18 @@ let action = h.action || "Custom Action" ;
 
 ### Messages Sent
 
-TBD
+| Event | Description | Emitter |
+|-------|-------------|---------|
+<% 
+for(let name in package.events) {
+let event = package.events[name].name;
+let desc = package.events[name].description;
+let emitter = package.events[name].emitter.definition.name;
+-%>
+| <%= event %> |  <%= desc %> | <%= emitter %>
+<%
+} %>
+
 
 ## Interface Details
 The <%= package.name %> subsystem has a well defined interface. This interface can be accessed using a

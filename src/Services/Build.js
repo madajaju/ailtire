@@ -60,7 +60,10 @@ function buildBaseImages(dir) {
     }
 }
 function buildServiceFiles(pkg,opts) {
-
+    if(!pkg.deploy.envs.hasOwnProperty(opts.env)) {
+        console.error(`Building ${pkg.name}: Error: environment design ${opts.env} not found! Look in the deploy.js file for the package!`);
+        return;
+    }
     let stack = pkg.deploy.envs[opts.env].design;
     stack.name = pkg.deploy.name;
     let repo ='';
@@ -148,7 +151,7 @@ function buildPackage(pkg, opts) {
             let bc = pkg.deploy.build[name];
             let build = {};
             if(!bc.contexts.hasOwnProperty(opts.env)) {
-                console.log(`${opts.env} environment not found! Using default`);
+                console.warn(`Building ${pkg.name} Warning:${opts.env} environment not found! Using default environment`);
                 build = bc.contexts.default;
             } else {
                 build = bc.contexts[opts.env];
@@ -156,7 +159,6 @@ function buildPackage(pkg, opts) {
             for(ename in build.env) {
                 process.env[ename] = build.env[ename];
             }
-            console.error("Working Directory:", pkg.deploy.dir);
             let buildTag = build.tag;
             if(opts.repo) {
                 buildTag = opts.repo + '/' + build.tag;

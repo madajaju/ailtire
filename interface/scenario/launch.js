@@ -1,7 +1,5 @@
 const AEvent = require('../../src/Server/AEvent');
-const exec = require('child_process').exec;
-const promisify = require('util').promisify;
-const execP = promisify(exec);
+const AScenarioInstance = require('../../src/Server/AScenarioInstance');
 
 module.exports = {
     friendlyName: 'launch',
@@ -31,35 +29,13 @@ module.exports = {
             if(usecase.scenarios.hasOwnProperty(sname)) {
                 let scenario = usecase.scenarios[sname];
                 scenario.id = inputs.id;
-                env.res.json("started");
-                AEvent.emit("scenario.started", {obj:scenario});
-                for (let i in scenario.steps) {
-                    let step = scenario.steps[i];
-                    let params = [];
-                    for(let j in step.parameters) {
-                        params.push(`--${j}`);
-                        params.push(`${step.parameters[j]}`);
-                    }
-                    scenario.currentstep = i;
-                    AEvent.emit("step.started", {obj:scenario});
-                    let command = `bash -c "bin/${global.ailtire.config.prefix} ${step.action.replace(/\//g,' ')} ${params.join(" ")}"`;
-                    try {
-                        let results = await execP('bash -c "pwd"');
-                        results = await execP(command);
-                        if(results.stderr) {
-                            console.log(results.stderr);
-                            AEvent.emit("step.failed", {obj:scenario});
-                        } else {
-                            AEvent.emit("step.completed", {obj:scenario});
-                        }
-                    }
-                    catch (e) {
-                        scenario.error = e;
-                        AEvent.emit("step.failed", {obj:scenario});
-                        console.error(e);
-                    }
+                let instances = AScenarioInstance.show({id:scenario.id});
+                let instanceid = 0;
+                if(instances) {
+                    instanceid = instances.length;
                 }
-                AEvent.emit("scenario.completed", {obj:scenario});
+                env.res.json({id: instanceid});
+                AScenarioInstance.launch(scenario);
             } else {
                 AEvent.emit("scenario.failed", {obj:{error: "Scenario not found"}});
             }

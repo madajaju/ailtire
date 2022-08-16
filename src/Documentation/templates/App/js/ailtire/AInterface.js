@@ -5,8 +5,25 @@ export default class AInterface {
         this.config = config;
     }
 
+    static default = {
+        fontSize: 16,
+        height: 40,
+        width: 40,
+        depth: 30
+    }
+
+    static calculateBox(node) {
+        let height = AInterface.default.height;
+        let width = AInterface.default.width;
+        let depth = AInterface.default.depth;
+        let radius = width/2;
+        return {w: width, h: height, d: depth, r:radius};
+    }
+
     static view3D(node, type) {
-        let color = "blue";
+        let opacity = node.opacity || 1;
+        let size = AInterface.calculateBox(node);
+        let color = "#0088FF";
         if (type === 'Selected') {
             color = "yellow";
         } else if (type === 'Targeted') {
@@ -14,22 +31,44 @@ export default class AInterface {
         } else if (type === 'Sourced') {
             color = "green";
         }
-        let geo = new THREE.SphereGeometry(20, 16, 12);
-        const material = new THREE.MeshPhongMaterial({color: color, opacity: 1});
+        let geo = new THREE.SphereGeometry(size.w/2);
+        const material = new THREE.MeshPhysicalMaterial({
+            color: color,
+            transparent: true,
+            opacity: opacity,
+            depthTest: true,
+            depthWrite: true,
+            alphaTest: 0,
+            reflectivity: 0.2,
+            thickness: 6,
+            metalness: 0,
+            side: THREE.DoubleSide
+        });
         const item1 = new THREE.Mesh(geo, material);
-        let geo2 = new THREE.CylinderGeometry(5, 5, 30);
-        const material2 = new THREE.MeshPhongMaterial({color: color, opacity: 1});
+        let geo2 = new THREE.CylinderGeometry(size.w/4, size.w/4, size.d);
+        const material2 = new THREE.MeshPhysicalMaterial({
+            color: color,
+            transparent: true,
+            opacity: opacity,
+            depthTest: true,
+            depthWrite: true,
+            alphaTest: 0,
+            reflectivity: 0.2,
+            thickness: 6,
+            metalness: 0,
+            side: THREE.DoubleSide
+        });
         const item2 = new THREE.Mesh(geo2, material2);
-        item2.position.set(0, -30, 0);
+        item2.position.set(0, -size.d/2, 0);
         const group = new THREE.Group();
         group.add(item1);
         group.add(item2);
         group.position.set(node.x, node.y, node.z);
         let name = node.name;
         name.replace('/','');
-        let label = AText.view3D({text:name.replace(/\//g, '\n'), color:"#ffffff", width: 50, size: 16});
-        label.applyMatrix4(new THREE.Matrix4().makeRotationX(-3.14/2));
-        label.position.set(0,20+1,0);
+        let label = AText.view3D({text:name.replace(/\//g, '\n'), color:"#ffffff", width: 50, size: AInterface.default.fontSize});
+        label.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI/2));
+        label.position.set(0,(size.w/2)+1,0);
         group.add(label)
         group.aid = node.id;
         if (node.rotate) {
@@ -44,13 +83,24 @@ export default class AInterface {
             }
         }
         group.aid = node.id;
-        node.box = 50;
+        node.box = size.r;
         node.expandLink = `interface/get?id=${node.id}`;
         node.expandView = AInterface.viewDeep3D;
+        node.getDetail = AInterface.getDetail;
 
         return group;
     }
+    static getDetail(node) {
+        $.ajax({
+            url: node.expandLink,
+            success: (results) => {
+                AInterface.showDetail(results);
+            }
+        });
+    }
+    static showDetail(result) {
 
+    }
     static viewDeep3D(obj) {
 
     }

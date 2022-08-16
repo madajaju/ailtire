@@ -22,59 +22,51 @@ module.exports = {
         global.usecases = {};
         global.appBaseDir = dir;
         global.topPackage = processDirectory(dir);
-        for (let i in global.packages) {
-            checkPackage(global.packages[i]);
-            analyzeClasses(global.classes);
-        }
         return global.topPackage;
+    },
+    checkPackages: () => {
     }
+
 };
 
 const analyzeApp = app => {
-
-    // analyzeClasses
-    analyzeClasses(global.classes);
-    // analyzePackages
-    // analyzePackages(global.packages);
-    // analyzeEvents
-    // analyzeEvents(global.events);
-    // analyzeActions
-    // analyzeActions(global.actions);
-    // analyzeHandlers
-    // analyzeHandlers(global.handlers);
+    for (let i in global.packages) {
+        checkPackage(global.packages[i]);
+        analyzeClasses(global.classes);
+    }
 }
 const analyzeClasses = classes => {
     // go through each association and set the dependant map on the type of the association.
-    for(let i in classes) {
+    for (let i in classes) {
         let cls = classes[i];
         let assocs = cls.definition.associations
-        for(let j in assocs) {
+        for (let j in assocs) {
             let assoc = assocs[j];
             let aType = assoc.type;
-            if(global.classes.hasOwnProperty(aType)) {
+            if (global.classes.hasOwnProperty(aType)) {
                 let gcls = global.classes[aType];
-                if(!gcls.definition.hasOwnProperty('dependant')) {
-                    gcls.definition.dependant = [];
+                if (!gcls.definition.hasOwnProperty('dependant')) {
+                    gcls.definition.dependant = {};
                 }
-                let d = {model: cls.definition, assoc:assoc}
+                let d = {model: cls.definition, assoc: assoc}
                 d.assoc.name = j;
-                gcls.definition.dependant.push(d);
+                gcls.definition.dependant[j + cls.definition.name] = d;
                 // Push the association owner into the definition for the persistent layer.
-                if(assoc.owner || assoc.composite) {
-                    if(!gcls.definition.hasOwnProperty('owners')) {
+                if (assoc.owner || assoc.composite) {
+                    if (!gcls.definition.hasOwnProperty('owners')) {
                         gcls.definition.owners = new Array();
                     }
                     gcls.definition.owners.push(d);
                 }
             } else {
                 assoc.name = j;
-                if(!global.ailtire.hasOwnProperty('error')) {
+                if (!global.ailtire.hasOwnProperty('error')) {
                     global.ailtire.error = [];
                 }
                 global.ailtire.error.push({
-                    type:'model.associations',
-                    object:{type:"Model", id:cls.definition.name, name:cls.definition.name},
-                    message:"Class association type does not map to a model",
+                    type: 'model.associations',
+                    object: {type: "Model", id: cls.definition.name, name: cls.definition.name},
+                    message: "Class association type does not map to a model",
                     data: assoc,
                     lookup: 'model/list'
                 });
@@ -213,17 +205,16 @@ const loadDeploy = (pkg, prefix, dir) => {
         let normalizedBuild = {};
         let build = require(dir + '/' + 'build.js');
         // Check for contexts. If not there then create the default
-        for(let iname in build) {
+        for (let iname in build) {
             let image = build[iname];
-            if(!image.hasOwnProperty('contexts')) {
+            if (!image.hasOwnProperty('contexts')) {
                 let newimage = {
                     contexts: {
                         default: image
                     }
                 };
-               normalizedBuild[iname] = newimage;
-            }
-            else {
+                normalizedBuild[iname] = newimage;
+            } else {
                 normalizedBuild[iname] = image;
             }
         }
@@ -248,26 +239,25 @@ const loadDeploy = (pkg, prefix, dir) => {
         for (let env in contexts) {
             // Now get the file from the deploy and read it in.
             let compose = {};
-            if(!isFile(dir + '/' + contexts[env].file)) {
-                if(!global.ailtire.hasOwnProperty('error')) {
+            if (!isFile(dir + '/' + contexts[env].file)) {
+                if (!global.ailtire.hasOwnProperty('error')) {
                     global.ailtire.error = [];
                 }
                 global.ailtire.error.push({
-                    type:'environment.contexts',
-                    object:{type:"Environment", id:env, name: env},
-                    message:"Cloud not find envrionemt association ype does not map to a model",
+                    type: 'environment.contexts',
+                    object: {type: "Environment", id: env, name: env},
+                    message: "Cloud not find envrionemt association type does not map to a model",
                     data: dir,
                     lookup: 'model/list'
                 });
-                console.error("Could notfind ", dir + '/' + contexts[env].file);
-            }
-            else {
+                // console.error(`Could not find ${env} file ${dir}/${contexts[env].file}`);
+            } else {
                 compose = YAML.load(dir + '/' + contexts[env].file);
             }
             let design = {};
-            if(isFile(dir + '/' + contexts[env].design)) {
+            if (isFile(dir + '/' + contexts[env].design)) {
                 let fext = contexts[env].design.split('.').pop();
-                switch(fext) {
+                switch (fext) {
                     case 'yaml':
                         design = YAML.load(dir + '/' + contexts[env].design);
                         break;
@@ -286,39 +276,46 @@ const loadDeploy = (pkg, prefix, dir) => {
                 file: contexts[env].file,
                 design: design
             };
+            if(!global.hasOwnProperty('deploy')) {
+                global.deploy = {envs:{}};
+            }
+            if(!global.deploy.envs.hasOwnProperty(env)) {
+               global.deploy.envs[env] = {};
+            }
+            global.deploy.envs[env][pkg.deploy.name] = pkg.deploy.envs[env];
         }
     }
     return pkg;
 };
 const normalizeStack = (stack) => {
     // Add the default networks if needed
-    if(!stack.networks.hasOwnProperty('parent')) {
-       stack.networks.parent = { external: true, name: "Parent"};
+    if (!stack.networks.hasOwnProperty('parent')) {
+        stack.networks.parent = {external: true, name: "Parent"};
     }
-    if(!stack.networks.hasOwnProperty('children')) {
+    if (!stack.networks.hasOwnProperty('children')) {
         stack.networks.children = {driver: "overlay", attachable: true, name: "Children"};
     }
-    if(!stack.networks.hasOwnProperty('siblings')) {
+    if (!stack.networks.hasOwnProperty('siblings')) {
         stack.networks.siblings = {driver: "overlay", name: "Siblings"};
     }
     // Go through the services and make sure networks are set coorectly.
-    for(let sname in stack.services) {
+    for (let sname in stack.services) {
         let service = stack.services[sname];
-        if(service.type === 'stack') {
-            if(service.networks) {
+        if (service.type === 'stack') {
+            if (service.networks) {
                 if (service.networks.hasOwnProperty('children')) {
                     service.networks.children = {};
                 }
             } else {
-                service.networks = { children: {}};
+                service.networks = {children: {}};
             }
         }
-        if(service.networks) {
+        if (service.networks) {
             if (service.networks.hasOwnProperty('siblings')) {
                 service.networks.siblings = {};
             }
         } else {
-            service.networks = { siblings: {}};
+            service.networks = {siblings: {}};
         }
     }
 }
@@ -387,7 +384,7 @@ const loadUCScenarios = (mUC, mDir) => {
         let scenarioName = path.basename(file).replace('.js', '');
         if (scenarioName !== 'index') {
             mUC.scenarios[scenarioName] = require(file);
-            mUC.scenarios[scenarioName].uid = mUC.name.replace(/\s/g,'') + '.' + mUC.scenarios[scenarioName].name.replace(/\s/g,'');
+            mUC.scenarios[scenarioName].uid = mUC.name.replace(/\s/g, '') + '.' + mUC.scenarios[scenarioName].name.replace(/\s/g, '');
         }
     }
 };
@@ -400,8 +397,8 @@ const loadClassMethods = (mClass, mDir) => {
         let methodname = path.basename(file).replace('.js', '');
         if (methodname !== 'index') {
             mClass.definition.methods[methodname] = require(file);
-            mClass.prototype[methodname] = function(inputs) {
-                return  funcHandler.run(mClass.definition.methods[methodname], this, inputs);
+            mClass.prototype[methodname] = function (inputs) {
+                return funcHandler.run(mClass.definition.methods[methodname], this, inputs);
             }
         }
     }
@@ -446,13 +443,13 @@ const checkPackage = (pkg) => {
             dpkg = global.packages[depend];
             depends.push(dpkg);
         } else {
-            if(!global.ailtire.hasOwnProperty('error')) {
+            if (!global.ailtire.hasOwnProperty('error')) {
                 global.ailtire.error = [];
             }
             global.ailtire.error.push({
-                type:'package.depend',
-                object:{type:"Package", id:pkg.id, name: pkg.name},
-                message:"Package in Dependes not found",
+                type: 'package.depend',
+                object: {type: "Package", id: pkg.id, name: pkg.name},
+                message: "Package in Dependes not found",
                 data: depend,
                 lookup: 'package/list'
             });
@@ -504,15 +501,15 @@ const checkPackage = (pkg) => {
                     }
                 }
             } else {
-                if(!global.ailtire.hasOwnProperty('error')) {
+                if (!global.ailtire.hasOwnProperty('error')) {
                     global.ailtire.error = [];
                 }
-                global.ailtire.error.push( {
-                        type:'model.extends',
-                        object: {type:"Model", id:cls.id, name:cls.name },
-                        message:"Class Extends points to an unknown class",
-                        data: cls.definition.extends,
-                        lookup: 'model/list',
+                global.ailtire.error.push({
+                    type: 'model.extends',
+                    object: {type: "Model", id: cls.id, name: cls.name},
+                    message: "Class Extends points to an unknown class",
+                    data: cls.definition.extends,
+                    lookup: 'model/list',
                 });
                 console.error(`Parent Class ${cls.definition.extends} is not defined!`);
             }
@@ -523,6 +520,53 @@ const checkPackage = (pkg) => {
     for (let i in pkg.usecases) {
         let usecase = pkg.usecases[i];
         checkUseCase(pkg, usecase);
+    }
+    // Event Emitter Checker.
+    // Add an event to the package and to each class for the following
+    // Every state in the state net
+    // And the following builtin event
+    // model.create
+    // model.destroy
+    // model.updated
+    for (let i in pkg.classes) {
+        let cls = pkg.classes[i];
+        let ename = cls.definition.name.toLowerCase();
+        let events = {
+            'create': {
+                name: `${ename}.create`,
+                description: `When an object of type ${cls.definition.name} is created.`,
+                emitter: cls,
+                handlers: {}
+            },
+            'destroy': {
+                name: `${ename}.destroy`,
+                description: `When an object of type ${cls.definition.name} is destroyed.`,
+                emitter: cls,
+                handlers: {}
+            },
+            'updated': {
+                name: `${ename}.updated`,
+                description: `When an object of type ${cls.definition.name} has an attribute or association updated.`,
+                emitter: cls,
+                handlers: {}
+            },
+        }
+        for (let sname in cls.statenet) {
+            let state = cls.statenet[sname];
+            desc = state.description || `When a ${cls.definition.name} moves into the ${sname} state.`;
+            events[sname] = {name: `${ename}.${sname.toLowerCase()}`, description: desc, emitter: cls};
+        }
+        for (let evname in events) {
+            let exname = ename + '.' + evname;
+            if (!global.events.hasOwnProperty(exname)) {
+                global.events[exname] = events[evname];
+            }
+            if (!pkg.events) {
+                pkg.events = {};
+            }
+            pkg.events[exname] = global.events[exname];
+
+        }
     }
     // Handler Checker
     // Create a new member that has the events that are emited from the Package.
@@ -545,21 +589,21 @@ const checkPackage = (pkg) => {
                 cls.definition.messages = {};
             }
             cls.definition.messages[ename] = global.events[ename];
-            if (!cls.definition.package.definition ) {
-                if(!global.ailtire.hasOwnProperty('error')) {
+            if (!cls.definition.package.definition) {
+                if (!global.ailtire.hasOwnProperty('error')) {
                     global.ailtire.error = [];
                 }
-                global.ailtire.error.push( {
-                    type:'model.definition',
-                    object: {type:'Model', id: cls.id, name: cls.name},
-                    message:"Class parent package definitition has a problem",
+                global.ailtire.error.push({
+                    type: 'model.definition',
+                    object: {type: 'Model', id: cls.id, name: cls.name},
+                    message: "Class parent package definitition has a problem",
                     data: cls.definition.package,
                     lookup: 'package/list',
                 });
                 console.error("Class Definition package problem");
                 console.error(cls.definition.package);
             }
-            if(!cls.definition.package.definition.hasOwnProperty('messages')) {
+            if (!cls.definition.package.definition.hasOwnProperty('messages')) {
                 cls.definition.package.definition.messages = {};
             }
             cls.definition.package.definition.messages[ename] = global.events[ename];
@@ -611,13 +655,13 @@ const checkUseCase = (pkg, usecase) => {
     actionName = actionName.toLowerCase();
     if (!actionName.includes(pkg.shortname.toLowerCase())) {
         // console.warn("Method is not part of the intreface!", actionName);
-        if(!global.ailtire.hasOwnProperty('error')) {
+        if (!global.ailtire.hasOwnProperty('error')) {
             global.ailtire.error = [];
         }
-        global.ailtire.error.push( {
-            type:'usecase.method',
-            object: {type: 'UseCase', id:usecase.id, name:usecase.name},
-            message:"Usecase method is not an package interface",
+        global.ailtire.error.push({
+            type: 'usecase.method',
+            object: {type: 'UseCase', id: usecase.id, name: usecase.name},
+            message: "Usecase method is not an package interface",
             data: usecase.method,
             lookup: 'action/list',
         });
@@ -629,29 +673,29 @@ const checkUseCase = (pkg, usecase) => {
             apiGenerator.action({name: aname, path: pathName}, pkg.interfaceDir);
         }
     }
-    for(let i in usecase.scenarios) {
+    for (let i in usecase.scenarios) {
         let scenario = usecase.scenarios[i];
         checkScenario(pkg, scenario);
     }
     // Extends is used primarily for aggregation. Sub use cases of a super use case.
     let newExtends = {};
-    for(let i in usecase.extends) {
-        let pusecaseName = usecase.extends[i].replace(/\s/g,'');
-        if(global.usecases.hasOwnProperty(pusecaseName)) {
+    for (let i in usecase.extends) {
+        let pusecaseName = usecase.extends[i].replace(/\s/g, '');
+        if (global.usecases.hasOwnProperty(pusecaseName)) {
             let pusecase = global.usecases[pusecaseName];
             newExtends[pusecaseName] = pusecase;
-            if(!pusecase.hasOwnProperty('extended')) {
+            if (!pusecase.hasOwnProperty('extended')) {
                 pusecase.extended = {};
             }
-            pusecase.extended[usecase.name.replace(/\s/g,'')] = usecase;
+            pusecase.extended[usecase.name.replace(/\s/g, '')] = usecase;
         } else {
-            if(!global.ailtire.hasOwnProperty('error')) {
+            if (!global.ailtire.hasOwnProperty('error')) {
                 global.ailtire.error = [];
             }
-            global.ailtire.error.push( {
-                type:'usecase.extend',
-                object: {type: 'UseCase', id:usecase.id, name:usecase.name},
-                message:"Could not find the extend Usecase:",
+            global.ailtire.error.push({
+                type: 'usecase.extend',
+                object: {type: 'UseCase', id: usecase.id, name: usecase.name},
+                message: "Could not find the extend Usecase:",
                 data: usecase.extends,
                 lookup: 'usecase/list',
             });
@@ -663,23 +707,23 @@ const checkUseCase = (pkg, usecase) => {
 
     // Includes is used primarily for dependency between use cases.
     let newIncludes = {};
-    for(let i in usecase.includes) {
-        let pusecaseName = usecase.includes[i].replace(/\s/g,'');
-        if(global.usecases.hasOwnProperty(pusecaseName)) {
+    for (let i in usecase.includes) {
+        let pusecaseName = usecase.includes[i].replace(/\s/g, '');
+        if (global.usecases.hasOwnProperty(pusecaseName)) {
             let pusecase = global.usecases[myUC.name.replace(/\s/g, '')];
             newIncludes[pusecaseName] = pusecase;
-            if(!pusecase.hasOwnProperty('included')) {
+            if (!pusecase.hasOwnProperty('included')) {
                 pusecase.included = {};
             }
-            pusecase.included[usecase.name.replace(/\s/g,'')] = usecase;
+            pusecase.included[usecase.name.replace(/\s/g, '')] = usecase;
         } else {
-            if(!global.ailtire.hasOwnProperty('error')) {
+            if (!global.ailtire.hasOwnProperty('error')) {
                 global.ailtire.error = [];
             }
             global.ailtire.error.push({
-                type:'usecase.includes',
-                object:{type:"Package", id:pkg.id, name: pkg.name},
-                message:"Usecase includes use case not found.",
+                type: 'usecase.includes',
+                object: {type: "Package", id: pkg.id, name: pkg.name},
+                message: "Usecase includes use case not found.",
                 data: pusecaseName,
                 lookup: 'usecase/list'
             });
@@ -730,13 +774,13 @@ const checkScenario = (pkg, scenario) => {
     }
     actionName = actionName.toLowerCase();
     if (!actionName.includes(pkg.shortname.toLowerCase())) {
-        if(!global.ailtire.hasOwnProperty('error')) {
+        if (!global.ailtire.hasOwnProperty('error')) {
             global.ailtire.error = [];
         }
         global.ailtire.error.push({
-            type:'scenario.method',
-            object:{type:"Scenario", id:scenario, name:scenario },
-            message:"Scenario method is not found.",
+            type: 'scenario.method',
+            object: {type: "Scenario", id: scenario, name: scenario},
+            message: "Scenario method is not found.",
             data: actionName,
             lookup: 'action/list'
         });
@@ -757,7 +801,7 @@ const loadActors = (dir, prefix) => {
     }
     for (let i in actors) {
         let actorDir = actors[i];
-        if(!actorDir.includes('\\doc') && !actorDir.includes('\/doc') ) {
+        if (!actorDir.includes('\\doc') && !actorDir.includes('\/doc')) {
             let actor = require(actorDir + '/index.js');
             global.actors[actor.name.replace(/\s/g, '')] = actor;
             actor.dir = actorDir;
@@ -789,9 +833,9 @@ const processModelIncludefile = (prefix, dir) => {
                 // Load the package first into the global namespace
                 let pkg = require(pkgFile);
                 let packageNameNoSpace = pkg.name.replace(/\s/g, '');
-                if(!global.packages.hasOwnProperty(packageNameNoSpace)) {
+                if (!global.packages.hasOwnProperty(packageNameNoSpace)) {
                     pkg.classes = {};
-                    if(!pkg.prefix) {
+                    if (!pkg.prefix) {
                         if (pkg.shortname) {
                             prefix = '/' + pkg.shortname;
                         }
@@ -816,22 +860,21 @@ const processModelIncludefile = (prefix, dir) => {
                     global.classes[myClass.definition.name] = myProxy;
                     global[myClass.definition.name] = myProxy;
                 }
-                loadDocs(myClass, path.resolve(incModelFile +  '/../doc'));
+                loadDocs(myClass, path.resolve(incModelFile + '/../doc'));
                 loadClassMethods(myClass, path.resolve(incModelFile + '/..'));
-            }
-            else {
+            } else {
                 // let apath = path.resolve(file);
-                if(!global.ailtire.hasOwnProperty('error')) {
+                if (!global.ailtire.hasOwnProperty('error')) {
                     global.ailtire.error = [];
                 }
                 global.ailtire.error.push({
-                    type:'package.includesFile',
-                    object:{type:"Package", id:pkgFile, name: pkgFile},
-                    message:"Model not found in package includes.js file",
+                    type: 'package.includesFile',
+                    object: {type: "Package", id: pkgFile, name: pkgFile},
+                    message: "Model not found in package includes.js file",
                     data: incModelFile,
                     lookup: 'model/list'
                 });
-                console.error("Could not find Model:", file , "in include file for ", dir );
+                console.error("Could not find Model:", file, "in include file for ", dir);
             }
         }
     }
@@ -839,25 +882,25 @@ const processModelIncludefile = (prefix, dir) => {
 
 const findIncludeFile = (dir, file) => {
     // Look in a relative path
-    let filename = path.resolve( dir + file + '/index.js');
-    if(fs.existsSync(filename)) {
+    let filename = path.resolve(dir + file + '/index.js');
+    if (fs.existsSync(filename)) {
         return filename;
     }
     // Look in an absolute path
-    if(fs.existsSync(file + '/index.js')) {
+    if (fs.existsSync(file + '/index.js')) {
         return file + '/index.js';
     }
     // Look for the top directory up to api directory
     let dirs = dir.split(/[\/\\]/);
-    while(1) {
+    while (1) {
         let topdir = dirs.pop();
-        if(topdir === 'api') {
+        if (topdir === 'api') {
             dirs.push('api');
             let dirname = dirs.join('/');
             let pNames = file.split(/[\/\\\.]/);
             let cName = pNames.pop();
             let filename = path.resolve(dirname + '/' + pNames.join('/') + '/models/' + cName + '/index.js');
-            if(fs.existsSync(filename)) {
+            if (fs.existsSync(filename)) {
                 return filename;
             }
             break;

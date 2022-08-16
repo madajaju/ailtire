@@ -13,6 +13,51 @@ const bodyParser = require("body-parser");
 const htmlGenerator = require('../Documentation/html');
 const Renderer = require('../Documentation/Renderer');
 
+const circularReplacer = () => {
+    //return value;
+    let seen = null;
+    let checkDeep = (key, value, deepSeen) => {
+        let retval = {};
+        for(let k in value) {
+            if(typeof value[k] === "object" && value != null) {
+                if(deepSeen.get(value[k])) {
+                    retval[k] = "Circular";
+                } else {
+                    deepSeen.set(value[k], k);
+                    retval[k] = checkDeep(k,value[k], deepSeen);
+                }
+            } else {
+                retval[k] = value[k];
+            }
+        }
+    }
+    return (key, value) => {
+        if(key === '') {
+            seen = null;
+            seen = new WeakMap();
+        }
+        if (typeof value === "object" && value !== null) {
+            if (seen.has(value)) {
+                let path = seen.get(value);
+                if(path === "") {
+                    path = "the root object";
+                }
+                let retval = {}
+                for(let i in value) {
+                    if(typeof value[i] === "object" && value != null) {
+                        retval[i] = checkDeep(key, value, new WeakMap())
+                    } else {
+                        retval[i] = value[i];
+                    }
+                }
+                return retval;
+            }
+            seen.set(value, key);
+        }
+        return value;
+    }
+}
+
 
 // Here we are configuring express to use body-parser as middle-ware.
 server.use(function(req, res, next) {
@@ -23,6 +68,7 @@ server.use(function(req, res, next) {
 server.use(bodyParser.urlencoded({extended: true}));
 server.use(bodyParser.json());
 server.use(bodyParser.raw());
+server.set('json replacer', circularReplacer());
 
 module.exports = {
     docBuild: (config) => {
@@ -127,6 +173,7 @@ module.exports = {
 
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
+        sLoader.analyze(topPackage);
         /*if (config.hasOwnProperty('redis')) {
             io.adapter(redis({host: config.redis.host, port: config.redis.port}));
         }
@@ -167,13 +214,12 @@ module.exports = {
             res.end(str);
         });
         server.all('*', (req, res) => {
-            console.error(`Config: ${config.urlPrefix}`)
-            console.error("Catch All", req.originalUrl);
+            // console.error(`Config: ${config.urlPrefix}`)
+            // console.error("Catch All", req.originalUrl);
             // Look in the views directly for items to load.
             let str = findPage(req.originalUrl, config);
             res.end(str);
         });
-
         global.io = io = new Server(http, {path: config.urlPrefix + '/socket.io/'});
         global.io2 = io2 = new Server(http, {path: '/socket.io/'});
 
@@ -202,54 +248,83 @@ module.exports = {
     },
     micro: (config) => {
         normalizeConfig(config);
-        // let apath = path.resolve(config.baseDir);
+        global.ailtire = { config: config };
 
-        /* if (config.hasOwnProperty('redis')) {
+        let apath = path.resolve(config.baseDir);
+        let topPackage = sLoader.processPackage(apath);
+        /*if (config.hasOwnProperty('redis')) {
             io.adapter(redis({host: config.redis.host, port: config.redis.port}));
         }
         */
-
         Action.defaults(server);
         let ailPath = __dirname + "/../../interface";
-        // Make sure the prefix from the config is put in here to handle forwarded url.
-        Action.load(server, config.prefix, path.resolve(ailPath),config); // Load the ailtire defaults from the interface directory.
+        Action.load(server, '', path.resolve(ailPath), config); // Load the ailtire defaults from the interface directory.
+        // The Package microservice does not have an api directory. Everything is in the baseDirectory.
         Action.load(server, config.prefix, path.resolve(config.baseDir + '/interface'), config);
+        Action.mapRoutes(server, config);
 
-        Action.mapRoutes(server, config.routes);
+        if(config.persist) {
+            let pAdaptor = config.persist.adaptor;
+            pAdaptor.load();
+        }
 
-        server.get('/', (req, res) => {
-            console.error("Hello Error", req.originalUrl);
-            res.end(req.originalUrl);
+        standardFileTypes(config,server);
+
+        server.get(`${config.urlPrefix}/init`, (req, res) => {
+            let retval = {};
+            for (let path in global.actions) {
+                let prunedPath = path.replace('\/' + config.prefix,'');
+                retval[prunedPath] = {
+                    name: prunedPath,
+                    inputs: global.actions[path].inputs,
+                    friendlyName: global.actions[path].friendlyName,
+                    description: global.actions[path].description
+                };
+            }
+            res.json(retval);
+        });
+
+        server.get(`${config.urlPrefix}/`, (req, res) => {
+            let str = mainPage(config);
+            res.end(str);
+        });
+        server.get(`${config.urlPrefix}`, (req, res) => {
+            let str = mainPage(config);
+            res.end(str);
         });
         server.all('*', (req, res) => {
+            console.error(`Config: ${config.urlPrefix}`)
             console.error("Catch All", req.originalUrl);
-            for (let i in global.actions) {
-                console.error("Path: ", i);
-            }
-            res.end(req.originalUrl);
+            // Look in the views directly for items to load.
+            let str = findPage(req.originalUrl, config);
+            res.end(str);
         });
         global.io = io = new Server(http, {path: config.urlPrefix + '/socket.io/'});
+        global.io2 = io2 = new Server(http, {path: '/socket.io/'});
 
-        io.on('connection', function (msocket) {
+        io2.on('connection', (msocket) => {
+            console.log("Connection 2 happen!");
+            io2.emit("ConnectedEdge", "Connected Edge made it");
             AEvent.addHandlers(msocket);
         });
-        if(config.servers) {
-            AEvent.addServers(config.servers);
-        }
-        if(config.post) {
-            config.post();
-        }
-        // Emit an event as the service is now available to interact.
-        let serviceData = {
-            name: config.name,
-            externalURL: config.externalURL,
-            adminURL:config.internalURL,
-            instanceName: config.instanceName
-        };
-        AEvent.emit('service.started', serviceData);
-        AEvent.emit(`${config.name}.started`, serviceData);
-        console.log(`${config.name} Listening on ${config.host}:${config.listenPort}`);
-        http.listen(config.listenPort);
+        io2.on('ailtire.server.started', (msocket) => {
+            console.log("Peer Server Started", msocket);
+        })
+        io.on('connection', function (msocket) {
+            console.log("Connection happen!");
+            io.emit("ConnectedEdge", "Connected Edge made it");
+            AEvent.addHandlers(msocket);
+        });
+
+        console.log("Micro Service Interface:", Object.keys(global.actions).join(",\n"));
+        http.listen(config.listenPort, () => {
+            console.log("Listening on port: " + config.listenPort);
+            // call the post configuration script.
+            if(config.hasOwnProperty('post')) {
+                config.post(config);
+                console.log("Done!");
+            }
+        });
     },
     start: (config) => {
         normalizeConfig(config);

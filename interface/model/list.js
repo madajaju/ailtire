@@ -8,7 +8,7 @@ module.exports = {
 
     fn: function (inputs, env) {
         let classes = processClasses(global.classes);
-        env.res.json(classes);
+        env.res.send(classes);
     }
 };
 function processClasses(classes) {
@@ -19,11 +19,9 @@ function processClasses(classes) {
         if(global._instances && global._instances.hasOwnProperty(cname)) {
             noi = Object.keys(global._instances[cname]).length;
         }
-
         retval[cname] = {
             name: cls.name,
-            description:
-            cls.description,
+            description: cls.description,
             methods: cls.methods,
             attributes: cls.attributes,
             associations: cls.associations,

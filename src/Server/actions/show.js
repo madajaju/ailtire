@@ -19,18 +19,18 @@ module.exports = {
         }
          */
         let cols = {};
-        for(let aname in cls.definition.attributes) {
+        for (let aname in cls.definition.attributes) {
             let attr = cls.definition.attributes[aname];
-            cols[aname] = { name: aname, description: attr.description, type:attr.type };
+            cols[aname] = {name: aname, description: attr.description, type: attr.type};
         }
-        for(let aname in cls.definition.associations) {
+        for (let aname in cls.definition.associations) {
             let assoc = cls.definition.associations[aname];
             let acls = AClass.getClass(assoc.type);
             cols[aname] = {
                 name: aname,
                 description: assoc.description,
-                type:assoc.type,
-                cardinality:assoc.cardinality,
+                type: assoc.type,
+                cardinality: assoc.cardinality,
                 package: acls.definition.package.shortname,
                 owner: assoc.owner,
                 composite: assoc.composite
@@ -38,42 +38,46 @@ module.exports = {
         }
         let obj = cls.find(env.req.query.id);
         if (obj) {
-            let item = { id: obj.id, package: cls.definition.package.shortname, type: cls.definition.name};
-            for(let aname in cls.definition.attributes) {
+            let item = {
+                _id: obj.id,
+                _name: obj.name || obj.id,
+                _package: cls.definition.package.shortname,
+                _type: cls.definition.name
+            };
+            for (let aname in cls.definition.attributes) {
                 item[aname] = {name: obj[aname]};
             }
-            for(let aname in cls.definition.associations) {
+            for (let aname in cls.definition.associations) {
                 let assoc = cls.definition.associations[aname];
-                if(assoc.cardinality === 1) {
-                    if(obj[aname]) {
+                if (assoc.cardinality === 1) {
+                    if (obj[aname]) {
                         // item[aname] = obj[aname].name;
                         item[aname] = {
-                            id: obj[aname].id,
-                            name: obj[aname].name,
-                            type: obj[aname].definition.name,
-                            link: `${assoc.type}?id=${obj[aname].id}`
+                            _id: obj[aname].id,
+                            _name: obj[aname].name || obj[aname].id,
+                            _type: obj[aname].definition.name,
+                            _link: `${assoc.type}?id=${obj[aname].id}`
                         };
-                        for(let aaname in obj[aname].definition.attributes) {
+                        for (let aaname in obj[aname].definition.attributes) {
                             item[aname][aaname] = obj[aname][aaname];
                         }
                     }
-                }
-                else {
+                } else {
                     let aitems = [];
-                    for(let i in obj[aname]) {
+                    for (let i in obj[aname]) {
                         let mitem = {
-                            id: obj[aname][i].id,
-                            name: obj[aname][i].name,
-                            type: obj[aname][i].definition.name,
-                            link: `${assoc.type}?id=${obj[aname][i].id}`
+                            _id: obj[aname][i].id,
+                            _name: obj[aname][i].name || obj[aname][i].id,
+                            _type: obj[aname][i].definition.name,
+                            _link: `${assoc.type}?id=${obj[aname][i].id}`
                         };
                         for (let aaname in obj[aname][i].definition.attributes) {
                             mitem[aaname] = obj[aname][i][aaname];
                         }
                         for (let aaname in obj[aname][i].definition.associations) {
                             let aassoc = obj[aname][i].definition.associations[aaname];
-                            if(aassoc.cardinality === 1) {
-                                if(obj[aname][i][aaname]) {
+                            if (aassoc.cardinality === 1) {
+                                if (obj[aname][i][aaname]) {
                                     mitem[aaname] = obj[aname][i][aaname].name;
                                 }
                             }
@@ -83,9 +87,9 @@ module.exports = {
                     item[aname] = {count: aitems.length, values: aitems};
                 }
             }
-            env.res.json({status:'success', total:1, record:item, columns:cols});
+            env.res.json({status: 'success', total: 1, record: item, columns: cols});
         } else {
-            env.res.json({status:'success', total:0, record:[], columns:cols});
+            env.res.json({status: 'success', total: 0, record: [], columns: cols});
         }
     }
 };
