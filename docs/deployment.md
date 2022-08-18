@@ -30,8 +30,14 @@ deploy
      ...
    build.js - Build script for containers
    deploy.js - Deployment defintion of the stack defined in the docker-compose.yaml file.
+   services.js - Servies in the stack definition.
    docker-compose.yaml - Definition of the stack of micro-services, networks, and storage.
 ```
+There are two ways a stack can be defined, a services.js file or a docker-compose.yaml file.
+Stacks manage the services and networks in the stacks. In order to connect multiple stacks together specific environment
+variables are passed down from the managing stack and children services and stacks. Examples of these stacks can be 
+found in the docker-compose.yaml file. If using the services.js file there is no need to declare this environment 
+variables.
 
 ### docker-compose.yaml
 
@@ -54,21 +60,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
       replicas: 1
-      labels:
-        - traefik.tags=${AILTIRE_APPNAME}_myapp_family
-        - traefik.enable=true
-        - traefik.docker.network=${AILTIRE_APPNAME}_myapp_family
-        - traefik.http.services.mypackage.loadbalancer.server.port=3000
-        - traefik.http.routers.mypackage_http.rule=PathPrefix(`/mypackage`)
-        - traefik.http.routers.mypackage_http.service=mypackage
-        - traefik.http.routers.mypackage_http.entrypoints=http
     environment:
       - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
       - AILTIRE_PARENT=${AILTIRE_STACKNAME}
       - AILTIRE_PARENTHOST=${AILTIRE_PARENTHOST}
       - AILTIRE_APPNAME=${AILTIRE_APPNAME}
-      - AILTIRE_PARENT_NETWORK=${AILTIRE_APPNAME}_myapp_family
-      - EDGEMERE_ADMIN_URL=portal:3000
     networks:
       - children
   mservice:
@@ -79,21 +75,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
       replicas: 1
-      labels:
-        - traefik.tags=${AILTIRE_APPNAME}_myapp_family
-        - traefik.enable=true
-        - traefik.docker.network=${AILTIRE_APPNAME}_myapp_family
-        - traefik.http.services.mservice1.loadbalancer.server.port=3000
-        - traefik.http.routers.mservice1_http.rule=PathPrefix(`/mservice1`)
-        - traefik.http.routers.mservice1_http.service=mservice1
-        - traefik.http.routers.mservice1_http.entrypoints=http
     environment:
       - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
       - AILTIRE_PARENT=${AILTIRE_STACKNAME}
       - AILTIRE_PARENTHOST=${AILTIRE_PARENTHOST}
       - AILTIRE_APPNAME=${AILTIRE_APPNAME}
-      - AILTIRE_PARENT_NETWORK=${AILTIRE_APPNAME}_myapp_family
-      - EDGEMERE_ADMIN_URL=portal:3000
     networks:
       - children
   mservice2:
@@ -104,20 +90,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
       replicas: 1
-      labels:
-        - traefik.tags=${AILTIRE_APPNAME}_myapp_family
-        - traefik.enable=true
-        - traefik.docker.network=${AILTIRE_APPNAME}_myapp_family
-        - traefik.http.services.mservice2.loadbalancer.server.port=3000
-        - traefik.http.routers.mservice2_http.rule=PathPrefix(`/mservice2`)
-        - traefik.http.routers.mservice2_http.service=mservice1
-        - traefik.http.routers.mservice2_http.entrypoints=http
     environment:
       - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
       - AILTIRE_PARENT=${AILTIRE_STACKNAME}
       - AILTIRE_PARENTHOST=${AILTIRE_PARENTHOST}
       - AILTIRE_APPNAME=${AILTIRE_APPNAME}
-      - AILTIRE_PARENT_NETWORK=${AILTIRE_APPNAME}_myapp_family
     networks:
       - children
 networks:
@@ -132,6 +109,58 @@ networks:
 In this file you can see there are two major sections. services and networks. This is the base for the stack. Any
 additional docker-compose attributes can be added see
 [Docker-compose file format](https://docs.docker.com/compose/compose-file/) for more information.
+
+### services.js
+A simplified mechanism to define the service architecture is to define the stack in the services.js file.
+The following is an example of the services.js file
+```javascript
+module.exports = {
+    services: {
+        childStack: {
+            type: "stack",
+            image: "childStack",
+            volumes: {
+                docker: { source: "/var/run/docker.sock", target: "/var/run/docker.sock" }
+            },
+            interface: {
+                "/cs": { path: '/', port: 3000, protocol:"http"},
+                "/cs/socket.io": { path: '/socket.io', port: 3000, protocol:"http"},
+            },
+            policies: { },
+            environment: { },
+        },
+        service1: {
+            type: "stack",
+            image: 'service1',
+            volumes: {
+                docker: { source: "/var/run/docker.sock", target: "/var/run/docker.sock" }
+            },
+            interface: {
+                "/s1": { path: '/', port: 3000, protocol:"http"},
+                "/s1/socket.io": { path: '/socket.io', port: 3000, protocol:"http"},
+            },
+            policies: { },
+            environment: { },
+        },
+    },
+    policies: {
+
+    },
+    interface: {
+        ports: {
+            80: 3000,
+            443: 3000,
+        }
+    },
+    data: {
+
+    },
+    networks: {
+
+    }
+}
+```
+
 
 ### MircoService definition
 
@@ -148,35 +177,6 @@ The environment variables all start with the prefix AILTIRE_.
 * AILTIRE_APPNAME - The name of the application that is running this stack.
 * AILTIRE_STACKNAME - The name of the stack currently running.
 * AILTIRE_PARENT_NETWORK - The name of the parent network. Used for micro-segmentation meshes.
-
-#### Labels
-
-Labels are used to help define a routing paths for use with a network service meshes and routing name
-[traefik](https://traefik.io/). These labels follow the standard
-[traefik docker-compose](https://doc.traefik.io/traefik/providers/docker/#docker-swarm-mode) pattern for defining
-routing paths for services in a docker stack. The following labels are used for each microservice definition.
-
-```yaml
-labels:
-  - traefik.tags=${AILTIRE_APPNAME}_myapp_family
-  - traefik.enable=true
-  - traefik.docker.network=${AILTIRE_APPNAME}_myapp_family
-  - traefik.http.services.mservice2.loadbalancer.server.port=3000
-  - traefik.http.routers.mservice2_http.rule=PathPrefix(`/mservice2`)
-  - traefik.http.routers.mservice2_http.service=mservice2
-  - traefik.http.routers.mservice2_http.entrypoints=http
-```
-
-Here is a description of each label for the microservice.
-
-* tags - Contains the network to manage. This limits the service discovery to only the microservices in the stack.
-* enable - true. Enables service discovery and traffic management for this service.
-* docker.network - network to scan for service discovery. Currently a work around for problems with tags.
-* http.services.mservice2.loadbalancer.server.port - Contains the port that the service is running on.
-* http.routers.mservice2_http.rule - This is the routing rule for the mservice. This means that accessing the service
-  REST or web interface can be acchieved through http://localhost/mservice2
-* http.routers.mservice2_http.service - Route /mservice2 to this service in docker.
-* http.routers.mservice2_http.entrypoints - use the http protocol to access this service.
 
 ### Stack Definition (Application and Package)
 
@@ -199,104 +199,12 @@ stack mypackage.
 You can see that we have a frontend service that acts as an api-gateway for access to the services in the stack.
 Every call to the stack goes through the api-gateway and routed to appropriate service on the back end. The 
 following services are used for an application stack.
-* frontend - This uses the traefik service to manage the api-gateway and route http request to the appropriate service.
+* frontend - This uses the "ailtire_service" service to manage the api-gateway and route http request to the appropriate 
+  service in the stack.
 * doc - This serves up the documentation for the application using jekyll.
 * web - This is the entry point for the web interface for the application simulation and rapid prototype.
 * pubsub - This is the pubsub bus for websocket communication and event driven interface. Redis is currently used.
-* admin - This service allow for the management of package stacks and services in the application stack.
-
-The infrastructure that supports this aggregated service stack can be found in the application stack. The following
-is the docker-compose definition of the application stack for myapp.
-```yaml
-services:
-  admin:
-    image: myapp:latest
-    stop_grace_period: 1m
-    stop_signal: SIGINT
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - AILTIRE_STACKNAME=${AILTIRE_APPNAME}
-      - AILTIRE_PARENT=${AILTIRE_APPNAME}
-      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
-    networks:
-      children:
-        aliases:
-          - admin
-    deploy:
-      labels:
-        - traefik.tags=_family
-        - traefik.enable=true
-        - traefik.docker.network=${AILTIRE_APPNAME}_family
-        - traefik.http.services.admin.loadbalancer.server.port=3000
-        - traefik.http.routers.admin.rule=PathPrefix(`/admin`)
-        - traefik.http.routers.admin.service=admin
-        - traefik.http.routers.admin.entrypoints=http
-  mypackage:
-    image: myapp-mypackage:latest
-    stop_grace_period: 1m
-    stop_signal: SIGINT
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    deploy:
-      replicas: 1
-    environment:
-      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
-      - AILTIRE_PARENT=${AILTIRE_APPNAME}
-      - AILTIRE_PARENTHOST=admin
-      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
-    networks:
-      - children
-  pubsub:
-    image: redis
-    networks:
-      children:
-        aliases:
-          - redis
-      sibling:
-        aliases:
-          - redis
-    deploy:
-      labels:
-        - traefik.tags=_family
-        - traefik.enable=true
-        - traefik.docker.network=${AILTIRE_APPNAME}_family
-        - traefik.http.services.pubsub.loadbalancer.server.port=80
-        - traefik.http.routers.pubsub_http.rule=PathPrefix(`/pubsub`)
-        - traefik.http.routers.pubsub_http.service=pubsub
-        - traefik.http.routers.pubsub_http.entrypoints=http
-  frontend:
-    image: traefik:latest
-    command:
-      - --api=true
-      - --api.dashboard=true
-      - --api.insecure=true
-      - --api.debug=true
-      - --log.level=DEBUG
-      - --providers.docker=true
-      - --providers.docker.swarmMode=true
-      - --providers.docker.network=children
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.http.address=:80
-      - --entrypoints.https.address=:443
-      - --providers.docker.constraints=Label(`traefik.tags`,`_family`)
-    ports:
-      - '80:80'
-      - '8080:8080'
-      - '443:443'
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - children
-networks:
-  children:
-    driver: overlay
-    attachable: true
-    name: ${AILTIRE_APPNAME}_family
-  sibling:
-    driver: overlay
-```
-
+* admin - This is part of the frontend service that allows for the management of package stacks and services in the application stack.
 
 #### Environment Variables
 
@@ -307,36 +215,6 @@ The environment variables all start with the prefix AILTIRE_.
 * AILTIRE_APPNAME - The name of the application that is running this stack.
 * AILTIRE_STACKNAME - The name of the stack currently running.
 * AILTIRE_PARENT_NETWORK - The name of the parent network. Used for micro-segmentation meshes.
-
-#### Labels
-
-Labels are used to help define a routing paths for use with a network service meshes and routing name
-[traefik](https://traefik.io/). These labels follow the standard
-[traefik docker-compose](https://doc.traefik.io/traefik/providers/docker/#docker-swarm-mode) pattern for defining
-routing paths for services in a docker stack. The following labels are used for each microservice definition.
-
-```yaml
-labels:
-  - traefik.tags=${AILTIRE_APPNAME}_myapp_family
-  - traefik.enable=true
-  - traefik.docker.network=${AILTIRE_APPNAME}_myapp_family
-  - traefik.http.services.mypackage.loadbalancer.server.port=3000
-  - traefik.http.routers.mypackage_http.rule=PathPrefix(`/mypackage`)
-  - traefik.http.routers.mypackage_http.service=mypackage
-  - traefik.http.routers.mypackage_http.entrypoints=http
-```
-
-Here is a description of each label for the microservice.
-
-* tags - Contains the network to manage. This limits the service discovery to only the microservices in the stack.
-* enable - true. Enables service discovery and traffic management for this service.
-* docker.network - network to scan for service discovery. Currently a work around for problems with tags.
-* http.services.mypackage.loadbalancer.server.port - Contains the port that the service is running on.
-* http.routers.mypackage_http.rule - This is the routing rule for the mservice. This means that accessing the service
-  REST or web interface can be acchieved through http://localhost/mypackage
-* http.routers.mypackage_http.service - Route /mypackage to this service in docker.
-* http.routers.mypackage_http.entrypoints - use the http protocol to access this service.
-
 
 ## See Also
 * [ailtire app build](cli-app-build)

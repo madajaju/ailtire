@@ -230,6 +230,7 @@ const findAction = (args, localBin) => {
 const bent = require('bent');
 const program = require('commander');
 const YAML = require('yamljs');
+const fs = require('fs');
 global.ailtire = { config: require('${__dirname.replace(/\\/g, '\\\\')}/../../.ailtire.js') };
 program.description('${action.description}')`;
         for (let iname in action.inputs) {

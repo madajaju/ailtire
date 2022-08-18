@@ -12,7 +12,7 @@ module.exports = {
         buildBaseImages(dir);
     },
     buildService: (pkg, opts) => {
-        return buildService(pkg, opts);
+        return build(pkg, opts);
     },
     serviceStartFile: (pkg, opts) => {
         return buildStartFile(pkg,opts);
@@ -117,7 +117,7 @@ function buildStartFile(pkg,opts) {
 
     return {composeFile: composeFile };
 }
-function buildService(pkg, opts) {
+function build(pkg, opts) {
     // Build process will build an docker image that will start the stack if there is one.
     // let apath = path.resolve(pkg.deploy.dir + '/deploy.js');
     // if(fs.existsSync(apath)) {
@@ -176,7 +176,7 @@ function buildPackage(pkg, opts) {
                 }
             }
         }
-        buildService(pkg, opts);
+        build(pkg, opts);
     }
 
     // Iterate over the subsystems and build the docker images

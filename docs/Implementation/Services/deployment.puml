@@ -72,7 +72,6 @@ package "myapp" #lavender {
     collections "myapp_mypackage:latest" as mypackagelatestimage
     collections "myapp_mypackage2:latest" as mypackagelatestimage2
     artifact "redis" as redisimage
-    artifact "traefik:latest" as traefiklatestimage
     artifact "myapp_web" as myapp_webimage
     artifact "myapp_doc" as myapp_docimage
 
@@ -95,7 +94,6 @@ mypackageService2 .... mypackagelatestimage2
 pubsubService .... redisimage
 webService .... myapp_webimage
 docService .... myapp_docimage
-frontendService .... traefiklatestimage
 
 mypackagelatestimage --> mypackageStack
 mypackagelatestimage2 --> mypackageStack2

@@ -42,6 +42,7 @@ package "myapp" #lavender {
     node "frontend" as frontendService {
         card "/web" as webmap
         card "/docs" as docsmap
+        card "/admin" as adminmap
         card "mypackage" as mypackagemap
 
     }
@@ -54,7 +55,6 @@ package "myapp" #lavender {
     collections "myapp:latest" as myapplatestimage
     collections "myapp_mypackage:latest" as mypackagelatestimage
     artifact "redis" as redisimage
-    artifact "traefik:latest" as traefiklatestimage
     artifact "myapp_web" as myapp_webimage
     artifact "myapp_doc" as myapp_docimage
 
@@ -76,8 +76,8 @@ mypackageService .... mypackagelatestimage
 pubsubService .... redisimage
 webService .... myapp_webimage
 docService .... myapp_docimage
-frontendService .... traefiklatestimage
-
+frontendService .. adminService
+adminmap --> adminService
 mypackagelatestimage --> mypackageStack
 mypackageStacksnet --[#black]-- ailtire_appname_family
 
