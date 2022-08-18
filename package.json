@@ -1,11 +1,12 @@
 {
   "name": "ailtire",
-  "version": "0.4.2",
+  "version": "0.4.4",
   "description": "UML Architecture by coding and simulating system architectures.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "build": "node build.js",
+    "docs": "java -jar docs/plantuml.jar docs/*.puml docs/**/*.puml",
     "startTest": "node test.js",
     "test": "node ./node_modules/mocha/bin/mocha test/**/*.test.js"
   },

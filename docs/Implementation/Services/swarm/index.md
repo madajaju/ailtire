@@ -72,7 +72,7 @@ status of the service, name of the service, and the last line from the message l
 management portal for the service.
 
 
-![Primary Scenario](./PrimaryScenario.svg)
+![Primary Scenario](./PrimaryScenario.png)
 
 #Implementation
 

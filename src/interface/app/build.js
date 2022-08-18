@@ -1,6 +1,6 @@
 const path = require('path');
 const sLoader = require('../../Server/Loader');
-const Build = require('../../Services/Build');
+const Build = require('../../Services/build');
 
 module.exports = {
     friendlyName: 'build',
