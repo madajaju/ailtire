@@ -5,7 +5,6 @@ const fs = require('fs');
 
 module.exports = {
     pkg: (pkg, opts) => {
-        console.log("Build pkg:", opts);
         buildPackage(pkg, opts);
     },
     services: (dir) => {
@@ -32,10 +31,10 @@ function buildBaseImages(dir) {
     let bpath = path.resolve(ndir + '/build.js');
     if(isFile(bpath)) {
         let tbuild = require(bpath);
-        tbuild.rootdir = bpath;
         for(let name in tbuild) {
             let service = tbuild[name];
             service.name = name;
+            service.rootdir = ndir;
             buildImage(service);
         }
     }
@@ -48,10 +47,10 @@ function buildBaseImages(dir) {
         try {
             if (isFile(npath)) {
                 let build = require(npath);
-                build.rootdir = dirname;
                 for (let name in build) {
                     let service = build[name];
                     service.name = name;
+                    service.rootdir = dirname;
                     buildImage(service);
                 }
             }
@@ -193,9 +192,13 @@ function buildImage(build) {
     for(let name in build.env) {
         env[name] = build.env[name];
     }
+
     console.log("Building", build.name);
+    let dirname = path.resolve(`${build.rootdir}/${build.dir}`);
+
+    console.log("Building from directory", dirname);
     let proc = spawn('docker', ['build', '-t', build.tag, '-f', build.file, '.'], {
-        cwd: build.rootdir,
+        cwd: dirname,
         stdio: [process.stdin, process.stdout, process.stderr],
         env: process.env
     });
