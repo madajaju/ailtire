@@ -13,7 +13,6 @@ import {
     AEventHUD,
     ASelectedHUD,
 } from './index.js';
-import {SChannel} from '../sabr/index.js';
 import {Graph3D} from '../Graph3D.js';
 
 export default class AMainWindow {
@@ -56,7 +55,6 @@ export default class AMainWindow {
         model: AModel.handle,
         stack: AStack.handle,
         environment: AEnvironment.handle,
-        channel: SChannel.handle,
         component: AComponent.handle,
         image: AImage.handle,
     }
@@ -257,7 +255,6 @@ export default class AMainWindow {
                     },
                     {id: 'deployments', text: 'Deployment View', group: true, expanded: true, nodes: []},
                     {id: 'process', text: 'Process View', group: true, expanded: true, nodes: []},
-                    {id: 'pulsar', text: 'Pulsar Topics', group: true, expanded: true, nodes: []},
                 ],
                 onExpand: (event) => {
                     if (event.object.id === 'logical') {
