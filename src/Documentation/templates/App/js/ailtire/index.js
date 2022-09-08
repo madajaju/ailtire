@@ -18,10 +18,15 @@ import AVolume from './AVolume.js';
 import AInterface from './AInterface.js';
 import AEnvironment from './AEnvironment.js';
 import A3DGraph from './A3DGraph.js';
+import AComponent from "./AComponent.js";
+import AEventHUD from "./HUD/AEventHUD.js";
+import ASelectedHUD from "./HUD/ASelectedHUD.js";
+import AMainWindow from "./AMainWindow.js";
 
 // without default
 export {
     AAction,
+    AComponent,
     AModel,
     APackage,
     AScenario,
@@ -41,4 +46,7 @@ export {
     AEnvironment,
     AObject,
     A3DGraph,
+    AEventHUD,
+    ASelectedHUD,
+    AMainWindow
 }

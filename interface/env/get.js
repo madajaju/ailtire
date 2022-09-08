@@ -14,9 +14,21 @@ module.exports = {
         for(let pname in pkgs) {
             let pkg = pkgs[pname];
             if(pkg.deploy.envs.hasOwnProperty(envname)) {
-                stacks[pkg.deploy.name] = pkg.deploy.envs[envname];
-                stacks[pkg.deploy.name].id = `${envname}.${pkg.shortname}.${pkg.deploy.name}`;
-
+                let stack = pkg.deploy.envs[envname];
+                stacks[pkg.deploy.name] =  {
+                    name: stack.tag,
+                    id: `${envname}.${pkg.deploy.name}`,
+                    services: {},
+                    data: stack.design.data,
+                    networks: stack.design.networks,
+                    interface: stack.design.interface
+                };
+                for(let sname in stack.design.services) {
+                    let service = stack.design.services[sname];
+                    let id = `${envname}.${pkg.deploy.name}.${sname}`;
+                    stacks[pkg.deploy.name].services[id] = service;
+                }
+                
             }
         }
         env.res.json({name: envname, id: envname, stacks: stacks, services: services});

@@ -1,4 +1,4 @@
-import {AUsecase, AModel, AText, AInterface, AHandler} from './index.js';
+import {AUsecase, AModel, AText, AInterface, AHandler,A3DGraph, ASelectedHUD} from './index.js';
 
 export default class APackage {
     constructor(config) {
@@ -29,7 +29,7 @@ export default class APackage {
         let width = node.name.length * fontSize / 2;
         let height = APackage.default.height;
         let depth = APackage.default.depth;
-        let radius = Math.max(Math.sqrt(width * width + height * height), Math.sqrt(height * height + depth * depth), Math.sqrt(width * width + depth * depth));
+        let radius = Math.max(Math.sqrt(width * width + height * height), Math.sqrt(height * height + depth * depth), Math.sqrt(width * width + depth * depth))/2;
         return {w: width, h: height, d: depth, r: radius};
     }
 
@@ -85,8 +85,8 @@ export default class APackage {
             }
         }
         box.aid = node.id;
-        node.expandLink = `package/get?id=${node.id}`;
-        node.expandView = APackage.viewDeep3D;
+        node.expandLink = node.expandLink || `package/get?id=${node.id}`;
+        node.expandView = node.expandView || APackage.handle;
         node.getDetail = APackage.getDetail;
         node.box = node.box || size.r;
         return box;
@@ -118,7 +118,7 @@ export default class APackage {
             fz: 0,
             box: 1, // Make it so items can get really close to the parent package.
             view: APackage.view3D,
-            expandView: APackage.viewDeep3D,
+            expandView: APackage.handle,
             expandLink: `package/get?id=${pkg.shortname}`,
             getDetail: APackage.getDetail,
             opacity: 0.5,
@@ -354,6 +354,10 @@ export default class APackage {
         APackage.viewDeep3D(result, 'new');
         APackage.showDetail(result);
     }
+    static handleList(result) {
+        APackage.viewDeep3D(result, 'new');
+        APackage.showListDetail(result);
+    }
 
     static calculateGroupBox(items, fn) {
         let asize = {
@@ -423,6 +427,57 @@ export default class APackage {
         });
     }
     static showDetail(result) {
+        let records = [];
+        let cols = [
+            {field: 'name', size: "20%", resizeable: true, label: "Name", sortable: true},
+            {field: 'value', size: "80%", resizeable: true, label: "Value", sortable: true},
+        ];
+        w2ui['objlist'].columns = cols;
+        let i = 0;
+        records.push({recid: i++, name: 'name', value: result.name, detail: result.name});
+        records.push({recid: i++, name: 'Abbv Name', value: result.shortname, detail: result.shortname});
+        records.push({recid: i++, name: 'Description', value: result.description, detail: result.description});
+        records.push({recid: i++, name: 'Color', value: result.color, detail: result.color});
+        records.push({recid: i++, name: 'Prefix', value: result.prefix, detail: result.prefix});
+        let classdetails = getDetails(result.classes);
+        records.push({recid: i++, name: 'Classes', value: classdetails.length, detail: classdetails.join('|')});
+        let spkgs = getDetails(result.subpackages);
+        records.push({recid: i++, name: 'Sub Packages', value: spkgs.length, detail: spkgs.join('|')});
+        let interfaces = getDetails(result.interface);
+        records.push({recid: i++, name: 'Interfaces', value: interfaces.length, detail: interfaces.join('|')});
+        let handlers = getDetails(result.handlers);
+        records.push({recid: i++, name: 'Handlers', value: handlers.length, detail: handlers.join('|')});
+        let usecases = getDetails(result.usecases);
+        records.push({recid: i++, name: 'Use Cases', value: usecases.length, detail: usecases.join('|')});
+
+        w2ui['objlist'].records = records;
+        // Clear the detail list
+        w2ui['objdetail'].clear();
+
+        w2ui['objlist'].onClick = function (event) {
+            let record = this.get(event.recid);
+            w2ui['objdetail'].header = `${record.name} Details`;
+            w2ui['objdetail'].show.columnHeaders = true;
+            w2ui['objdetail'].clear();
+            let drecords = [];
+            let k = 0;
+            let values = record.detail.split('|');
+            for (let i in values) {
+                let [name, value] = values[i].split('^');
+                if (!value) {
+                    value = name;
+                    name = record.name;
+                }
+                k++;
+                drecords.push({recid: k, name: name, value: value});
+            }
+            w2ui['objdetail'].add(drecords);
+            window.graph.selectNodeByID(event.recid);
+        }
+        ASelectedHUD.update('Package', records);
+        w2ui['objlist'].refresh();
+    }
+    static showListDetail(result) {
         let records = [];
         let cols = [
             {field: 'name', size: "20%", resizeable: true, label: "Name", sortable: true},
