@@ -1,4 +1,4 @@
-import {AAction, AAttribute, AStateNet, AText, AObject} from './index.js';
+import {AAction, AAttribute, AStateNet, AText, AObject,ASelectedHUD} from './index.js';
 
 export default class AModel {
     static scolor = {
@@ -57,7 +57,7 @@ export default class AModel {
         let width = Math.max(node.name.length * AModel.default.fontSize / 2, AModel.default.width);
         let height = AModel.default.height;
         let depth = AModel.default.depth;
-        let radius = Math.max(Math.sqrt(width * width + height * height), Math.sqrt(height * height + depth * depth), Math.sqrt(width * width + depth * depth));
+        let radius = Math.max(Math.sqrt(width * width + height * height), Math.sqrt(height * height + depth * depth), Math.sqrt(width * width + depth * depth))/2;
         return {w: width, h: height, d: depth, r: radius};
     }
 
@@ -75,9 +75,9 @@ export default class AModel {
         let h = size.h;
         let d = size.d;
         if (node.cube) {
-            w = node.cube.w;
-            h = node.cube.h;
-            d = node.cube.d;
+            w = node.cube.x;
+            h = node.cube.y;
+            d = node.cube.z;
         }
         let opacity = node.opacity || 1;
 
@@ -127,7 +127,7 @@ export default class AModel {
         retval.add(label)
         node.box = node.box || size.r;
         node.expandLink = `model/get?id=${node.id}`;
-        node.expandView = AModel.viewDeep3D;
+        node.expandView = AModel.handle;
         node.getDetail = AModel.getDetail;
         return retval;
     }
@@ -137,12 +137,12 @@ export default class AModel {
         let size = AModel.calculateDeepBox(cls);
 
         const theta = Math.PI / 2;
-        let model3d = {w: size.w, h: size.h, d: size.d};
+        let model3d = {x: size.w, y: size.h, z: size.d};
         let bbox = {
             parent: cls.id,
-            x: {min: -model3d.w / 2 + 20, max: model3d.w / 2 - 20},
-            y: {min: -model3d.h / 2 + 20, max: model3d.h / 2 - 20},
-            z: {min: -model3d.d / 2 + 20, max: model3d.d / 2 - 20},
+            x: {min: -model3d.x / 2 + 20, max: model3d.x / 2 - 20},
+            y: {min: -model3d.y / 2 + 20, max: model3d.y / 2 - 20},
+            z: {min: -model3d.z / 2 + 20, max: model3d.z / 2 - 20},
         }
 
         data.nodes[cls.id] = {
@@ -154,21 +154,13 @@ export default class AModel {
             fx: 0,
             fy: 0,
             fz: 0,
-            box: 1, // Prevents contention with the collide algo.
+            box: 0.1, // Prevents contention with the collide force.
             view: AModel.view3D,
-            expandView: AModel.viewDeep3D,
+            expandView: AModel.handle,
             expandLink: `model/get?id=${cls.id}`
         };
 
-        let prevID = cls.id;
-        let col = 0;
-        let row = 0;
-        let arbox = {
-            parent: prevID,
-            x: {min: bbox.x.min + 70, max: bbox.x.min + 70},
-            y: {min: bbox.y.max + 80, max: bbox.y.max + 80},
-            z: {min: bbox.z.max - 60, max: bbox.z.max - 60},
-        }
+        let anodes = [];
         for (let aname in cls._associations) {
             let assoc = cls._associations[aname];
             let clsid = assoc.type;
@@ -177,13 +169,13 @@ export default class AModel {
                     id: clsid,
                     name: clsid,
                     view: AModel.view3D,
-                    expandView: AModel.viewDeep3D,
+                    expandView: AModel.handle,
                     expandLink: `model/get?id=${clsid}`,
                     rbox: {
                         parent: cls.id,
-                        x: {min: bbox.x.min - 200, max: bbox.x.min - 200},
-                        y: {min: bbox.y.min + 20, max: bbox.y.max - 20},
-                        z: {min: bbox.z.min + 40, max: bbox.z.max - 40}
+                        fx: -size.w/2 - 20,
+                        y: {min: -size.h/2, max: size.h/2},
+                        z: {min: -size.d/2, max: size.d/2}
                     },
                     rotate: {y: -theta}
                 };
@@ -193,32 +185,11 @@ export default class AModel {
                 name: `${aname} : ${assoc.type}`,
                 view: AAttribute.view3D,
                 color: 'magenta',
-                rbox: arbox,
                 rotate: {x: -theta}
             };
+            anodes.push(data.nodes[`Assoc${clsid}`]);
             if (clsid !== cls.id) {
-                data.links.push({target: clsid, source: `Assoc${clsid}`, width: 3.0, value: 0.0, color: 'magenta'});
-            }
-            prevID = `Assoc${clsid}`;
-            row++;
-            if (row <= size.attributes.box.rows) {
-                arbox = {
-                    parent: prevID, x: {min: 0, max: 0}, // Col
-                    y: {min: 0, max: 0}, z: {min: -80, max: -80}, // Row
-                }
-
-            } else {
-                row = 0;
-                col++;
-                arbox = {
-                    parent: cls.id,
-                    x: {
-                        min: bbox.x.min + 70 + (col * size.attributes.stats.w.max),
-                        max: bbox.x.min + 70 + (col * size.attributes.stats.w.max)
-                    },
-                    y: {min: bbox.y.max + 80, max: bbox.y.max + 80},
-                    z: {min: bbox.z.max - 60, max: bbox.z.max - 60},
-                }
+                data.links.push({target: clsid, source: `Assoc${clsid}`, width: 3.0, value: 10, color: '#ff00ff'});
             }
         }
 
@@ -226,715 +197,681 @@ export default class AModel {
             let attr = cls._attributes[aname];
             let clsid = cls.id + aname
             data.nodes[clsid] = {
-                id: clsid, name: `${aname} : ${attr.type}`, view: AAttribute.view3D, rbox: arbox, rotate: {x: -theta}
+                id: clsid, name: `${aname} : ${attr.type}`, view: AAttribute.view3D, rotate: {x: -theta}, box: 1,
             };
-            prevID = clsid;
-            row++;
-            if (row < size.attributes.box.rows) {
-                arbox = {
-                    parent: prevID, x: {min: 0, max: 0}, // Col
-                    y: {min: 0, max: 0}, z: {min: -80, max: -80}, // Row
-                }
-
-            } else {
-                row = 0;
-                col++;
-                arbox = {
-                    parent: cls.id,
-                    x: {min: bbox.x.min + 70 + (col * 120), max: bbox.x.min + 70 + (col * 120)},
-                    y: {min: bbox.y.max + 80, max: bbox.y.max + 80},
-                    z: {min: bbox.z.max - 60, max: bbox.z.max - 60},
-                }
-            }
+            anodes.push(data.nodes[clsid]);
         }
 
-        prevID = cls.id;
-        col = 0;
-        row = 0;
-        arbox = {
-            parent: prevID,
-            x: {min: bbox.x.max + 40, max: bbox.x.max + 40},
-            y: {min: bbox.y.max - 40, max: bbox.y.max - 40},
-            z: {min: bbox.z.max - 60, max: bbox.z.max - 60},
-        }
+        layoutRowColumn(data.nodes[cls.id], anodes, size.attributes, "top");
+
+        let mnodes = [];
         for (let mname in cls.methods) {
             data.nodes[`${cls.id}-${mname}`] = {
                 id: `${cls.id}-${mname}`,
                 name: mname,
                 view: AAction.view3D,
-                rbox: arbox,
+                box: 1,
                 rotate: {x: -theta, z: -theta, y: theta}
             };
-            prevID = `${cls.id}-${mname}`;
-            row++;
-            if (row < size.methods.box.rows) {
-                arbox = {
-                    parent: prevID, x: {min: 0, max: 0}, // Col
-                    y: {min: -100, max: -100}, // Row
-                    z: {min: 0, max: 0},
-                }
+            mnodes.push(data.nodes[`${cls.id}-${mname}`]);
+        }
+            layoutRowColumn(data.nodes[cls.id], mnodes, size.methods, "right");
+
+            // These nodes must be added first. Before the state net.
+            if (mode === 'add') {
+                window.graph.addData(data.nodes, data.links);
             } else {
-                row = 0;
-                col++;
-                arbox = {
-                    parent: cls.id,
-                    x: {min: bbox.x.max + 40, max: bbox.x.max + 40},
-                    y: {min: bbox.y.max - 40, max: bbox.y.max - 40},
-                    z: {min: bbox.z.max - 60 - (col * 150), max: bbox.z.max - 60 - (col * 150)},
-                }
+                window.graph.setData(data.nodes, data.links);
             }
-        }
-        if (mode === 'add') {
-            window.graph.addData(data.nodes, data.links);
-        } else {
-            window.graph.setData(data.nodes, data.links);
-        }
-        // State Net it if exists.
-        if (cls.statenet) {
-            let mode = {
-                id: cls.id, ibox: {
-                    parent: cls.id,
-                    x: {min: bbox.x.max - 5, max: bbox.x.max - 5},
-                    y: {min: bbox.y.min - 40, max: bbox.y.min - 40},
-                    z: {min: bbox.z.min + 5, max: bbox.z.max - 5}
-                }, rbox: {
-                    parent: cls.id,
-                    x: {min: bbox.x.min + 10, max: bbox.x.max - 10},
-                    y: {min: bbox.y.min - 40, max: bbox.y.min - 40},
-                    z: {min: bbox.z.min + 5, max: bbox.z.max - 5}
-                }, rotate: {x: theta}, mode: 'add'
-            };
-            AStateNet.viewDeep3D(cls.statenet, mode);
-        }
-        window.graph.graph.cameraPosition({x: 0, y: 0, z: size.d * 2}, // new position
-            {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
-            3000  // ms transition duration.
-        );
-        window.graph.showLinks();
-
-        window.graph.toolbar.setToolBar([
-            {
-                type: 'button', id: 'fit', text: 'Show All', img: 'w2ui-icon-zoom',
-                onClick: (event) => {
-                    window.graph.graph.zoomToFit(1000);
-                }
-            },
-            {
-                type: 'button', id: 'states', text: 'States', img: 'w2ui-icon-search', onClick: (event) => {
-                    window.graph.graph.cameraPosition({x: 0, y: 0, z: size.d * 2}, // new position
-                        {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
-                        1000);
-                    setTimeout(() => {
-                        window.graph.graph.cameraPosition({x: 0, y: -size.h * 2, z: 0}, // new position
-                            {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
-                            1000);
-                    }, 500);
-                    setTimeout(() => {
-                        window.graph.graph.zoomToFit(1000)
-                    }, 1500);
-                }
-            }, {
-                type: 'button', id: 'attributes', text: 'Attributes', img: 'w2ui-icon-search', onClick: (event) => {
-                    window.graph.graph.cameraPosition({x: 0, y: 0, z: size.d * 2}, // new position
-                        {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
-                        1000);
-                    setTimeout(() => {
-                        window.graph.graph.cameraPosition({x: 0, y: size.h * 2, z: 0}, // new position
-                            {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
-                            1000);
-                    }, 500);
-                    setTimeout(() => {
-                        window.graph.graph.zoomToFit(1000)
-                    }, 1500);
-                }
-            }, {
-                type: 'button', id: 'methods', text: 'Method', img: 'w2ui-icon-search', onClick: (event) => {
-                    window.graph.graph.cameraPosition({x: 0, y: 0, z: size.d * 2}, // new position
-                        {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
-                        1000);
-                    setTimeout(() => {
-                        window.graph.graph.cameraPosition({x: size.w * 2, y: 0, z: 0}, // new position
-                            {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
-                            1000);
-                    }, 500);
-                    setTimeout(() => {
-                        window.graph.graph.zoomToFit(1000)
-                    }, 1500);
-                }
-            }, {
-                type: 'button',
-                id: 'associations',
-                text: 'Associations',
-                img: 'w2ui-icon-search',
-                onClick: (event) => {
-                    window.graph.graph.cameraPosition({x: 0, y: 0, z: size.d * 2}, // new position
-                        {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
-                        1000);
-                    setTimeout(() => {
-                        window.graph.graph.cameraPosition({x: -size.w * 2, y: size.h * 1.25, z: 0}, // new position
-                            {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
-                            1000);
-                    }, 500);
-                    setTimeout(() => {
-                        window.graph.graph.zoomToFit(1000)
-                    }, 1500);
-                }
+            // State Net it if exists.
+            if (cls.statenet) {
+                let mode = {
+                    id: cls.id, ibox: {
+                        parent: cls.id,
+                        fx: bbox.x.max - 5,
+                        fy: bbox.y.min - 20,
+                        fz: bbox.z.max - 5,
+                    },
+                    rbox: {
+                        parent: cls.id,
+                        x: {min: bbox.x.min + 10, max: bbox.x.max - 10},
+                        fy: bbox.y.min - 40,
+                        z: {min: bbox.z.min + 5, max: bbox.z.max - 5}
+                    }, rotate: {x: theta}, mode: 'add'
+                };
+                AStateNet.handle(cls.statenet, mode);
             }
-        ]);
-    }
 
-    static objectList(result) {
-        let myForm = AObject.viewList(result);
-        // Preload the detail with all of the model information.
-        AModel.createDetail(result);
+            window.graph.graph.cameraPosition({x: 0, y: 0, z: size.d * 2}, // new position
+                {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
+                3000  // ms transition duration.
+            );
+            window.graph.showLinks();
 
-        AModel.processObjectsForGraph(result, 'new');
-    }
-
-    static expandObject(link) {
-        $.ajax({
-            url: link, success: AModel.getDetail
-        });
-    }
-
-    static viewEdit(result) {
-        let form = AModel.createEdit(result);
-        form.clear();
-        if (result.record) {
-            form.record = {};
-            for (let name in result.record) {
-                let field = result.record[name];
-                if (field.hasOwnProperty('id')) {
-                    // This is for association cardinality 1.
-                    form.record[name] = result.record[name];
-                } else if (field.hasOwnProperty('name')) {
-                    // This is for attributes.
-                    form.record[name] = result.record[name].name;
-                } else if (result.record[name].values) {
-                    // This is for associations.
-                    form.record[name] = result.record[name].values;
-                } else {
-                    // Catch everything else
-                    form.record[name] = field;
-                }
-            }
-        }
-        // form.refresh();
-        return form;
-    }
-
-    static viewDetail(model, records) {
-        let myForm = AModel.createDetail(model);
-        $('#objdetail').w2render(myForm.name);
-        myForm.clear();
-        myForm.model = model.name;
-        myForm.oid = model.id;
-        myForm.add(records);
-        myForm.refresh();
-    }
-
-    static createEdit(model) {
-        let modelName = model.name || 'Model';
-        if (!w2ui[model.name + 'Edit']) {
-            let fields = [];
-            for (let cname in model.columns) {
-                let col = model.columns[cname];
-                if (col.cardinality) {
-                    // this should be getting the list from the server side.
-                    if (col.cardinality === 1) {
-                        fields.push({
-                            field: cname.toLowerCase(), type: 'enum', options: {
-                                openOnFocus: true,
-                                max: 1,
-                                url: `${col.type.toLowerCase()}/list?mode=json`,
-                                renderItem: (item) => {
-                                    if (item.name.name) {
-                                        return item.name.name;
-                                    } else {
-                                        return item.name;
-                                    }
-                                },
-                                renderDrop: (item) => {
-                                    if (item.name.name) {
-                                        return item.name.name;
-                                    } else {
-                                        return item.name;
-                                    }
-                                },
-                                onNew: (event) => {
-                                    console.log("++ New Item to be added:", event);
-                                    $.extend(event.item, event.item);
-                                },
-                                compare: function (item, search) {
-                                    let re1 = new RegExp(search, 'i');
-                                    if (re1.test(item.id)) {
-                                        return true;
-                                    } else {
-                                        return re1.test(item.name.name);
-                                    }
-                                },
-                            }, html: {text: col.name, attr: 'style="width:375px"'}
-                        });
-                    } else {
-                        fields.push({
-                            field: cname.toLowerCase(), type: 'enum', options: {
-                                url: `${col.type.toLowerCase()}/list?mode=json`, renderItem: (item) => {
-                                    if (item.name.name) {
-                                        return item.name.name;
-                                    } else {
-                                        return item.name;
-                                    }
-                                }, renderDrop: (item) => {
-                                    if (item.name.name) {
-                                        return item.name.name;
-                                    } else {
-                                        return item.name;
-                                    }
-                                }, onNew: (event) => {
-                                    $.extend(event.item, {name: {name: event.item.text}});
-                                    // Add the item on the server side.
-                                }, compare: function (item, search) {
-                                    let re1 = new RegExp(search, 'i');
-                                    if (re1.test(item.id)) {
-                                        return true;
-                                    } else {
-                                        return re1.test(item.name.name);
-                                    }
-                                }, openOnFocus: true,
-                            }, html: {text: col.name, attr: 'style="width:375px"'}
-                        });
+            window.graph.toolbar.setToolBar([
+                {
+                    type: 'button', id: 'fit', text: 'Show All', img: 'w2ui-icon-zoom',
+                    onClick: (event) => {
+                        window.graph.graph.zoomToFit(1000);
                     }
-                } else {
-                    if (!col.multiline) {
-                        let limit = col.limit || 100;
-                        fields.push({
-                            field: cname.toLowerCase(),
-                            limit: limit,
-                            type: 'text',
-                            required: true,
-                            html: {text: col.name, attr: `size="${limit}" style="width:375px"`}
-                        });
+                },
+                {
+                    type: 'button', id: 'states', text: 'States', img: 'w2ui-icon-search', onClick: (event) => {
+                        window.graph.graph.cameraPosition({x: 0, y: 0, z: size.d * 2}, // new position
+                            {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
+                            1000);
+                        setTimeout(() => {
+                            window.graph.graph.cameraPosition({x: 0, y: -size.h * 2, z: 0}, // new position
+                                {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
+                                1000);
+                        }, 500);
+                        setTimeout(() => {
+                            window.graph.graph.zoomToFit(1000)
+                        }, 1500);
+                    }
+                }, {
+                    type: 'button', id: 'attributes', text: 'Attributes', img: 'w2ui-icon-search', onClick: (event) => {
+                        window.graph.graph.cameraPosition({x: 0, y: 0, z: size.d * 2}, // new position
+                            {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
+                            1000);
+                        setTimeout(() => {
+                            window.graph.graph.cameraPosition({x: 0, y: size.h * 2, z: 0}, // new position
+                                {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
+                                1000);
+                        }, 500);
+                        setTimeout(() => {
+                            window.graph.graph.zoomToFit(1000)
+                        }, 1500);
+                    }
+                }, {
+                    type: 'button', id: 'methods', text: 'Method', img: 'w2ui-icon-search', onClick: (event) => {
+                        window.graph.graph.cameraPosition({x: 0, y: 0, z: size.d * 2}, // new position
+                            {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
+                            1000);
+                        setTimeout(() => {
+                            window.graph.graph.cameraPosition({x: size.w * 2, y: 0, z: 0}, // new position
+                                {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
+                                1000);
+                        }, 500);
+                        setTimeout(() => {
+                            window.graph.graph.zoomToFit(1000)
+                        }, 1500);
+                    }
+                }, {
+                    type: 'button',
+                    id: 'associations',
+                    text: 'Associations',
+                    img: 'w2ui-icon-search',
+                    onClick: (event) => {
+                        window.graph.graph.cameraPosition({x: 0, y: 0, z: size.d * 2}, // new position
+                            {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
+                            1000);
+                        setTimeout(() => {
+                            window.graph.graph.cameraPosition({x: -size.w * 2, y: size.h * 1.25, z: 0}, // new position
+                                {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
+                                1000);
+                        }, 500);
+                        setTimeout(() => {
+                            window.graph.graph.zoomToFit(1000)
+                        }, 1500);
+                    }
+                }
+            ]);
+        }
+
+        static objectList(result) {
+            let myForm = AObject.viewList(result);
+            // Preload the detail with all of the model information.
+            AModel.createDetail(result);
+
+            AModel.processObjectsForGraph(result, 'new');
+        }
+
+        static expandObject(link) {
+            $.ajax({
+                url: link, success: AModel.getDetail
+            });
+        }
+
+        static viewEdit(result) {
+            let form = AModel.createEdit(result);
+            form.clear();
+            if (result.record) {
+                form.record = {};
+                for (let name in result.record) {
+                    let field = result.record[name];
+                    if (field.hasOwnProperty('id')) {
+                        // This is for association cardinality 1.
+                        form.record[name] = result.record[name];
+                    } else if (field.hasOwnProperty('name')) {
+                        // This is for attributes.
+                        form.record[name] = result.record[name].name;
+                    } else if (result.record[name].values) {
+                        // This is for associations.
+                        form.record[name] = result.record[name].values;
                     } else {
-                        let limit = col.limit || 100;
-                        fields.push({
-                            field: cname.toLowerCase(),
-                            type: 'textarea',
-                            required: true,
-                            html: {text: col.name, attr: `size="${limit}" style="width:375px; height:150px"`}
-                        });
+                        // Catch everything else
+                        form.record[name] = field;
                     }
                 }
             }
-            $().w2form({
-                name: model.name + 'Edit',
-                modelType: model.name,
-                style: 'border: 0px; background-color: transparent;',
-                fields: fields,
-                actions: {
-                    Save: function () {
-                        this.validate();
-                        // Create the model.
-                        let url = `${this.modelType}/create`;
-                        $.ajax({
-                            url: url, data: this.record, success: function (results) {
-                                console.log(results);
-                                // $(w2ui.editModelDialog.box).hide();
-                                w2popup.close();
-                            }, failure: function (results) {
-                                console.error(results);
-                            }
-                        });
-                    }, Reset: function () {
-                        this.clear();
-                    }, custom: {
-                        text: "Cancel", style: 'background: pink;', onClick(event) {
-                            w2popup.close();
+            // form.refresh();
+            return form;
+        }
+
+        static viewDetail(model, records) {
+            let myForm = AModel.createDetail(model);
+            $('#objdetail').w2render(myForm.name);
+            myForm.clear();
+            myForm.model = model.name;
+            myForm.oid = model.id;
+            myForm.add(records);
+            myForm.refresh();
+        }
+
+        static createEdit(model) {
+            let modelName = model.name || 'Model';
+            if (!w2ui[model.name + 'Edit']) {
+                let fields = [];
+                for (let cname in model.columns) {
+                    let col = model.columns[cname];
+                    if (col.cardinality) {
+                        // this should be getting the list from the server side.
+                        if (col.cardinality === 1) {
+                            fields.push({
+                                field: cname.toLowerCase(), type: 'enum', options: {
+                                    openOnFocus: true,
+                                    max: 1,
+                                    url: `${col.type.toLowerCase()}/list?mode=json`,
+                                    renderItem: (item) => {
+                                        if (item.name.name) {
+                                            return item.name.name;
+                                        } else {
+                                            return item.name;
+                                        }
+                                    },
+                                    renderDrop: (item) => {
+                                        if (item.name.name) {
+                                            return item.name.name;
+                                        } else {
+                                            return item.name;
+                                        }
+                                    },
+                                    onNew: (event) => {
+                                        console.log("++ New Item to be added:", event);
+                                        $.extend(event.item, event.item);
+                                    },
+                                    compare: function (item, search) {
+                                        let re1 = new RegExp(search, 'i');
+                                        if (re1.test(item.id)) {
+                                            return true;
+                                        } else {
+                                            return re1.test(item.name.name);
+                                        }
+                                    },
+                                }, html: {text: col.name, attr: 'style="width:375px"'}
+                            });
+                        } else {
+                            fields.push({
+                                field: cname.toLowerCase(), type: 'enum', options: {
+                                    url: `${col.type.toLowerCase()}/list?mode=json`, renderItem: (item) => {
+                                        if (item.name.name) {
+                                            return item.name.name;
+                                        } else {
+                                            return item.name;
+                                        }
+                                    }, renderDrop: (item) => {
+                                        if (item.name.name) {
+                                            return item.name.name;
+                                        } else {
+                                            return item.name;
+                                        }
+                                    }, onNew: (event) => {
+                                        $.extend(event.item, {name: {name: event.item.text}});
+                                        // Add the item on the server side.
+                                    }, compare: function (item, search) {
+                                        let re1 = new RegExp(search, 'i');
+                                        if (re1.test(item.id)) {
+                                            return true;
+                                        } else {
+                                            return re1.test(item.name.name);
+                                        }
+                                    }, openOnFocus: true,
+                                }, html: {text: col.name, attr: 'style="width:375px"'}
+                            });
+                        }
+                    } else {
+                        if (!col.multiline) {
+                            let limit = col.limit || 100;
+                            fields.push({
+                                field: cname.toLowerCase(),
+                                limit: limit,
+                                type: 'text',
+                                required: true,
+                                html: {text: col.name, attr: `size="${limit}" style="width:375px"`}
+                            });
+                        } else {
+                            let limit = col.limit || 100;
+                            fields.push({
+                                field: cname.toLowerCase(),
+                                type: 'textarea',
+                                required: true,
+                                html: {text: col.name, attr: `size="${limit}" style="width:375px; height:150px"`}
+                            });
                         }
                     }
                 }
-            });
-        }
-        return w2ui[model.name + 'Edit'];
-    }
-
-    static createInfo(results) {
-        if (!results.columns) {
-            results.columns = []
-        }
-        let i = 0;
-        let cols = [
-            {field: 'name', size: "20%", resizeable: true, label: "Name", sortable: true},
-            {field: 'value', size: "80%", resizeable: true, label: "Value", sortable: true},
-        ];
-        let retForm = w2ui['objlist'];
-        retForm.modelName = results.name;
-        retForm.columns = cols;
-        w2ui['objdetail'].clear();
-        retForm.onClick = function (event) {
-            // this.showDetail(event);
-            let record = this.get(event.recid);
-            w2ui['objdetail'].header = `${record.name} Details`;
-            w2ui['objdetail'].show.columnHeaders = true;
-            w2ui['objdetail'].clear();
-            let drecords = [];
-            let k = 0;
-            let values = record.detail.split('|');
-            for (let i in values) {
-
-                let [name, value] = values[i].split('^');
-                if (!value) {
-                    value = name;
-                    name = record.name;
-                }
-                k++;
-                drecords.push({recid: k, name: name, value: value});
+                $().w2form({
+                    name: model.name + 'Edit',
+                    modelType: model.name,
+                    style: 'border: 0px; background-color: transparent;',
+                    fields: fields,
+                    actions: {
+                        Save: function () {
+                            this.validate();
+                            // Create the model.
+                            let url = `${this.modelType}/create`;
+                            $.ajax({
+                                url: url, data: this.record, success: function (results) {
+                                    console.log(results);
+                                    // $(w2ui.editModelDialog.box).hide();
+                                    w2popup.close();
+                                }, failure: function (results) {
+                                    console.error(results);
+                                }
+                            });
+                        }, Reset: function () {
+                            this.clear();
+                        }, custom: {
+                            text: "Cancel", style: 'background: pink;', onClick(event) {
+                                w2popup.close();
+                            }
+                        }
+                    }
+                });
             }
-            w2ui['objdetail'].add(drecords);
-            window.graph.selectNodeByID(event.recid);
-        };
+            return w2ui[model.name + 'Edit'];
+        }
 
-        retForm.refresh();
-        return retForm
-    }
+        static createInfo(results) {
+            if (!results.columns) {
+                results.columns = []
+            }
+            let i = 0;
+            let cols = [
+                {field: 'name', size: "20%", resizeable: true, label: "Name", sortable: true},
+                {field: 'value', size: "80%", resizeable: true, label: "Value", sortable: true},
+            ];
+            let retForm = w2ui['objlist'];
+            retForm.modelName = results.name;
+            retForm.columns = cols;
+            w2ui['objdetail'].clear();
+            retForm.onClick = function (event) {
+                // this.showDetail(event);
+                let record = this.get(event.recid);
+                w2ui['objdetail'].header = `${record.name} Details`;
+                w2ui['objdetail'].show.columnHeaders = true;
+                w2ui['objdetail'].clear();
+                let drecords = [];
+                let k = 0;
+                let values = record.detail.split('|');
+                for (let i in values) {
 
-    static createDetail(results) {
-        let modelName = results.name + 'Detail';
-        if (w2ui[modelName]) {
+                    let [name, value] = values[i].split('^');
+                    if (!value) {
+                        value = name;
+                        name = record.name;
+                    }
+                    k++;
+                    drecords.push({recid: k, name: name, value: value});
+                }
+                w2ui['objdetail'].add(drecords);
+                window.graph.selectNodeByID(event.recid);
+            };
+
+            retForm.refresh();
+            return retForm
+        }
+
+        static createDetail(results) {
+            let modelName = results.name + 'Detail';
+            if (w2ui[modelName]) {
+                return w2ui[modelName];
+            }
+
+            // Find out the class methods that are object method and put them here.
+            // Add any of the methods in the results as actions in the toolbar.
+            let toolbar = {
+                items: [], tooltip: 'top', onClick: (event) => {
+                    console.log(event.item.link);
+                    console.log(event.item.inputs);
+                    // Pass the object selected in the list from the detail grid into the methodForm
+                    let parentForm = w2ui[event.item.parentFormName];
+                    event.item.model = parentForm.model;
+                    event.item.oid = parentForm.oid;
+                    let launchMethod = AModel.viewMethodForm(event.item);
+                    AModel.popup(launchMethod);
+                }
+            };
+            for (let fname in results.methods) {
+                let method = results.methods[fname];
+                toolbar.items.push({
+                    type: 'button',
+                    id: fname,
+                    tooltip: method.description,
+                    text: method.name,
+                    inputs: method.inputs,
+                    link: method.link,
+                    parentFormName: modelName
+                });
+            }
+
+            $().w2grid({
+                name: modelName,
+                header: results.name + ' Details',
+                toolbar: toolbar,
+                show: {header: true, toolbar: true, columnHeaders: false},
+                columns: [{
+                    field: 'name',
+                    text: 'Name',
+                    size: '100px',
+                    style: 'background-color: #efefef; border-bottom: 1px solid white; padding-right: 5px;',
+                    attr: "align=right"
+                }, {
+                    field: 'value', text: 'Value', size: '100%', render: function (record) {
+                        return '<div>' + record.value + '</div>';
+                    }
+                }]
+            });
             return w2ui[modelName];
         }
 
-        // Find out the class methods that are object method and put them here.
-        // Add any of the methods in the results as actions in the toolbar.
-        let toolbar = {
-            items: [], tooltip: 'top', onClick: (event) => {
-                console.log(event.item.link);
-                console.log(event.item.inputs);
-                // Pass the object selected in the list from the detail grid into the methodForm
-                let parentForm = w2ui[event.item.parentFormName];
-                event.item.model = parentForm.model;
-                event.item.oid = parentForm.oid;
-                let launchMethod = AModel.viewMethodForm(event.item);
-                AModel.popup(launchMethod);
-            }
+        static viewMethodForm(method) {
+            let form = AModel.createMethodForm(method);
+            form.clear();
+            form.oid = method.oid;
+            form.model = method.model;
+            form.record[method.model.toLowerCase()] = method.oid;
+            form[method.model.toLowerCase()] = method.oid;
+            form.refresh();
+            return form;
         };
-        for (let fname in results.methods) {
-            let method = results.methods[fname];
-            toolbar.items.push({
-                type: 'button',
-                id: fname,
-                tooltip: method.description,
-                text: method.name,
-                inputs: method.inputs,
-                link: method.link,
-                parentFormName: modelName
+
+        static showList(panel, parent) {
+            $.ajax({
+                url: 'model/list', success: function (results) {
+                    let modelList = [];
+                    let mnames = Object.keys(results).sort();
+                    for (let i in mnames) {
+                        let mname = mnames[i];
+                        let model = results[mname];
+                        let mItem = {
+                            id: mname.toLowerCase(),
+                            text: model.name,
+                            img: 'icon-page',
+                            link: `${mname}/list`,
+                            count: model.count,
+                            view: 'model'
+                        };
+                        modelList.push(mItem);
+                    }
+                    w2ui[panel].add(parent, modelList);
+                }
             });
         }
 
-        $().w2grid({
-            name: modelName,
-            header: results.name + ' Details',
-            toolbar: toolbar,
-            show: {header: true, toolbar: true, columnHeaders: false},
-            columns: [{
-                field: 'name',
-                text: 'Name',
-                size: '100px',
-                style: 'background-color: #efefef; border-bottom: 1px solid white; padding-right: 5px;',
-                attr: "align=right"
-            }, {
-                field: 'value', text: 'Value', size: '100%', render: function (record) {
-                    return '<div>' + record.value + '</div>';
-                }
-            }]
-        });
-        return w2ui[modelName];
-    }
-
-    static viewMethodForm(method) {
-        let form = AModel.createMethodForm(method);
-        form.clear();
-        form.oid = method.oid;
-        form.model = method.model;
-        form.record[method.model.toLowerCase()] = method.oid;
-        form[method.model.toLowerCase()] = method.oid;
-        form.refresh();
-        return form;
-    };
-
-    static showList(panel, parent) {
-        $.ajax({
-            url: 'model/list', success: function (results) {
-                let modelList = [];
-                let mnames = Object.keys(results).sort();
-                for (let i in mnames) {
-                    let mname = mnames[i];
-                    let model = results[mname];
-                    let mItem = {
-                        id: mname.toLowerCase(),
-                        text: model.name,
-                        img: 'icon-page',
-                        link: `${mname}/list`,
-                        count: model.count,
-                        view: 'model'
-                    };
-                    modelList.push(mItem);
-                }
-                w2ui[panel].add(parent, modelList);
-            }
-        });
-    }
-
-    static createMethodForm(result) {
-        let formName = `${result.link.replace(/\//g, '')}LaunchForm`;
-        if (!w2ui[formName]) {
-            let fields = [];
-            for (let cname in result.inputs) {
-                let col = result.inputs[cname];
-                if (col.type === 'ref') {
-                    // this should be getting the list from the server side.
-                    if (col.cardinality && col.cardinality === 1) {
-                        fields.push({
-                            field: cname.toLowerCase(), type: 'enum', options: {
-                                openOnFocus: true,
-                                max: 1,
-                                url: `${col.model.toLowerCase()}/list?mode=json`,
-                                renderItem: (item) => {
-                                    if (item.name.name) {
-                                        return item.name.name;
-                                    } else {
-                                        return item.name;
-                                    }
-                                },
-                                renderDrop: (item) => {
-                                    if (item.name.name) {
-                                        return item.name.name;
-                                    } else {
-                                        return item.name;
-                                    }
-                                },
-                                onNew: (event) => {
-                                    console.log("++ New Item to be added:", event);
-                                    $.extend(event.item, event.item);
-                                },
-                                compare: function (item, search) {
-                                    let re1 = new RegExp(search, 'i');
-                                    if (re1.test(item.id)) {
-                                        return true;
-                                    } else {
-                                        return re1.test(item.name.name);
-                                    }
-                                },
-                            }, html: {text: col.name, attr: 'style="width:375px"'}
-                        });
+        static createMethodForm(result) {
+            let formName = `${result.link.replace(/\//g, '')}LaunchForm`;
+            if (!w2ui[formName]) {
+                let fields = [];
+                for (let cname in result.inputs) {
+                    let col = result.inputs[cname];
+                    if (col.type === 'ref') {
+                        // this should be getting the list from the server side.
+                        if (col.cardinality && col.cardinality === 1) {
+                            fields.push({
+                                field: cname.toLowerCase(), type: 'enum', options: {
+                                    openOnFocus: true,
+                                    max: 1,
+                                    url: `${col.model.toLowerCase()}/list?mode=json`,
+                                    renderItem: (item) => {
+                                        if (item.name.name) {
+                                            return item.name.name;
+                                        } else {
+                                            return item.name;
+                                        }
+                                    },
+                                    renderDrop: (item) => {
+                                        if (item.name.name) {
+                                            return item.name.name;
+                                        } else {
+                                            return item.name;
+                                        }
+                                    },
+                                    onNew: (event) => {
+                                        console.log("++ New Item to be added:", event);
+                                        $.extend(event.item, event.item);
+                                    },
+                                    compare: function (item, search) {
+                                        let re1 = new RegExp(search, 'i');
+                                        if (re1.test(item.id)) {
+                                            return true;
+                                        } else {
+                                            return re1.test(item.name.name);
+                                        }
+                                    },
+                                }, html: {text: col.name, attr: 'style="width:375px"'}
+                            });
+                        } else {
+                            fields.push({
+                                field: cname.toLowerCase(), type: 'enum', options: {
+                                    url: `${col.model.toLowerCase()}/list?mode=json`, renderItem: (item) => {
+                                        if (item.name.name) {
+                                            return item.name.name;
+                                        } else {
+                                            return item.name;
+                                        }
+                                    }, renderDrop: (item) => {
+                                        if (item.name.name) {
+                                            return item.name.name;
+                                        } else {
+                                            return item.name;
+                                        }
+                                    }, onNew: (event) => {
+                                        $.extend(event.item, {name: {name: event.item.text}});
+                                        // Add the item on the server side.
+                                    }, compare: function (item, search) {
+                                        let re1 = new RegExp(search, 'i');
+                                        if (re1.test(item.id)) {
+                                            return true;
+                                        } else {
+                                            return re1.test(item.name.name);
+                                        }
+                                    }, openOnFocus: true,
+                                }, html: {text: col.name, attr: 'style="width:375px"'}
+                            });
+                        }
                     } else {
                         fields.push({
-                            field: cname.toLowerCase(), type: 'enum', options: {
-                                url: `${col.model.toLowerCase()}/list?mode=json`, renderItem: (item) => {
-                                    if (item.name.name) {
-                                        return item.name.name;
-                                    } else {
-                                        return item.name;
-                                    }
-                                }, renderDrop: (item) => {
-                                    if (item.name.name) {
-                                        return item.name.name;
-                                    } else {
-                                        return item.name;
-                                    }
-                                }, onNew: (event) => {
-                                    $.extend(event.item, {name: {name: event.item.text}});
-                                    // Add the item on the server side.
-                                }, compare: function (item, search) {
-                                    let re1 = new RegExp(search, 'i');
-                                    if (re1.test(item.id)) {
-                                        return true;
-                                    } else {
-                                        return re1.test(item.name.name);
-                                    }
-                                }, openOnFocus: true,
-                            }, html: {text: col.name, attr: 'style="width:375px"'}
+                            field: cname, type: col.type
                         });
                     }
-                } else {
-                    fields.push({
-                        field: cname, type: col.type
-                    });
                 }
-            }
-            $().w2form({
-                name: formName, style: 'border: 0px; background-color: transparent;', fields: fields, actions: {
-                    Save: function () {
-                        let data = {};
-                        this.validate();
-                        for (let fname in this.fields) {
-                            let field = this.fields[fname];
-                            if (field.type === 'enum') {
-                                let values = [];
-                                for (let i in this.record[field.field]) {
-                                    values.push(this.record[field.field][i].text);
+                $().w2form({
+                    name: formName, style: 'border: 0px; background-color: transparent;', fields: fields, actions: {
+                        Save: function () {
+                            let data = {};
+                            this.validate();
+                            for (let fname in this.fields) {
+                                let field = this.fields[fname];
+                                if (field.type === 'enum') {
+                                    let values = [];
+                                    for (let i in this.record[field.field]) {
+                                        values.push(this.record[field.field][i].text);
+                                    }
+                                    data[field.field] = values.join(',');
+                                } else if (field.type === 'file') {
+                                    let scontent = Base64.atob(this.record[field.field][0].content);
+                                    data[field.field] = scontent;
+                                } else {
+                                    data[field.field] = this.record[field.field];
                                 }
-                                data[field.field] = values.join(',');
-                            } else if (field.type === 'file') {
-                                let scontent = Base64.atob(this.record[field.field][0].content);
-                                data[field.field] = scontent;
-                            } else {
-                                data[field.field] = this.record[field.field];
+                            }
+                            let url = result.link;
+                            // This is an object method and requires the object oid from the selected in the ListGrid.
+                            data[result.model.toLowerCase()] = result.oid;
+                            $.ajax({
+                                url: url, data: data, success: (results) => {
+                                    w2popup.close();
+                                }, failure: (results) => {
+                                    console.error(results);
+                                    w2popup.close();
+                                }
+                            });
+                        }, Reset: () => {
+                            this.clear();
+                        }, custom: {
+                            text: "Cancel", style: 'background: pink;', onClick(event) {
+                                w2popup.close();
                             }
                         }
-                        let url = result.link;
-                        // This is an object method and requires the object oid from the selected in the ListGrid.
-                        data[result.model.toLowerCase()] = result.oid;
-                        $.ajax({
-                            url: url, data: data, success: (results) => {
-                                w2popup.close();
-                            }, failure: (results) => {
-                                console.error(results);
-                                w2popup.close();
-                            }
-                        });
-                    }, Reset: () => {
-                        this.clear();
-                    }, custom: {
-                        text: "Cancel", style: 'background: pink;', onClick(event) {
-                            w2popup.close();
-                        }
+                    }
+                });
+
+            }
+            return w2ui[formName];
+        }
+
+        static editDocumentation(results) {
+            let text = results.document || "Enter Details Here";
+            let setURL = AMainWindow.selectedObject.link.replace('get', 'set');
+            let fields = [{field: 'summary', type: 'textarea'}, {field: 'documentation', type: 'textarea'},];
+            let editForm = getEditForm(fields, setURL);
+            w2popup.open({
+                height: 850,
+                width: 850,
+                title: 'Edit Documentation',
+                body: '<div id="editModelDocDialog" style="width: 100%; height: 100%;"></div>',
+                showMax: true,
+                onToggle: function (event) {
+                    $(w2ui.editModelDialog.box).hide();
+                    event.onComplete = function () {
+                        $(w2ui.editModelDocDialog.box).show();
+                        w2ui.editModelDocDialog.resize();
+                    }
+                },
+                onOpen: function (event) {
+                    event.onComplete = function () {
+                        // specifying an onOpen handler instead is equivalent to specifying an onBeforeOpen handler, which would make this code execute too early and hence not deliver.
+                        $('#editModelDialog').w2render(myForm.name);
                     }
                 }
             });
-
         }
-        return w2ui[formName];
-    }
 
-    static editDocumentation(results) {
-        let text = results.document || "Enter Details Here";
-        let setURL = selectedObject.link.replace('get', 'set');
-        let fields = [{field: 'summary', type: 'textarea'}, {field: 'documentation', type: 'textarea'},];
-        let editForm = getEditForm(fields, setURL);
-        w2popup.open({
-            height: 850,
-            width: 850,
-            title: 'Edit Documentation',
-            body: '<div id="editModelDocDialog" style="width: 100%; height: 100%;"></div>',
-            showMax: true,
-            onToggle: function (event) {
-                $(w2ui.editModelDialog.box).hide();
-                event.onComplete = function () {
-                    $(w2ui.editModelDocDialog.box).show();
-                    w2ui.editModelDocDialog.resize();
-                }
-            },
-            onOpen: function (event) {
-                event.onComplete = function () {
-                    // specifying an onOpen handler instead is equivalent to specifying an onBeforeOpen handler, which would make this code execute too early and hence not deliver.
-                    $('#editModelDialog').w2render(myForm.name);
-                }
+        static editDocs(results, setURL) {
+            let text = results.document || "Enter Details Here";
+            let record = {
+                summary: results.description, documentation: text
             }
-        });
-    }
-
-    static editDocs(results, setURL) {
-        let text = results.document || "Enter Details Here";
-        let record = {
-            summary: results.description, documentation: text
+            let editForm = getEditForm(record, setURL);
+            w2popup.open({
+                height: 850,
+                width: 850,
+                title: 'Edit Documentation',
+                body: '<div id="editModelDocDialog" style="width: 100%; height: 100%;"></div>',
+                showMax: true,
+                onToggle: function (event) {
+                    $(w2ui.editModelDialog.box).hide();
+                    event.onComplete = function () {
+                        $(w2ui.editModelDialog.box).show();
+                        w2ui.editModelDialog.resize();
+                    }
+                },
+                onOpen: function (event) {
+                    event.onComplete = function () {
+                        // specifying an onOpen handler instead is equivalent to specifying an onBeforeOpen handler, which would make this code execute too early and hence not deliver.
+                        $('#editModelDocDialog').w2render(editForm.name);
+                        editForm.editors = {documentation: null, summary: null}
+                        ClassicEditor.create(document.querySelector('#documentation'), {})
+                            .then(editor => {
+                                editForm.editors.documentation = editor;
+                            });
+                        ClassicEditor.create(document.querySelector('#summary'), {})
+                            .then(editor => {
+                                editForm.editors.summary = editor;
+                            });
+                    }
+                }
+            })
         }
-        let editForm = getEditForm(record, setURL);
-        w2popup.open({
-            height: 850,
-            width: 850,
-            title: 'Edit Documentation',
-            body: '<div id="editModelDocDialog" style="width: 100%; height: 100%;"></div>',
-            showMax: true,
-            onToggle: function (event) {
-                $(w2ui.editModelDialog.box).hide();
-                event.onComplete = function () {
-                    $(w2ui.editModelDialog.box).show();
-                    w2ui.editModelDialog.resize();
-                }
-            },
-            onOpen: function (event) {
-                event.onComplete = function () {
-                    // specifying an onOpen handler instead is equivalent to specifying an onBeforeOpen handler, which would make this code execute too early and hence not deliver.
-                    $('#editModelDocDialog').w2render(editForm.name);
-                    editForm.editors = {documentation: null, summary: null}
-                    ClassicEditor.create(document.querySelector('#documentation'), {})
-                        .then(editor => {
-                            editForm.editors.documentation = editor;
-                        });
-                    ClassicEditor.create(document.querySelector('#summary'), {})
-                        .then(editor => {
-                            editForm.editors.summary = editor;
-                        });
-                }
-            }
-        })
-    }
 
-    static handle(result) {
-        AModel.viewDeep3D(result, 'new');
-        AModel.showDetail(result);
-    }
-
-    static calculateGroupBox(items, fn) {
-        let asize = {
-            stats: {
-                w: {sum: 0, max: 0},
-                h: {sum: 0, max: 0},
-                d: {sum: 0, max: 0},
-                r: {sum: 0, max: 0},
-                area: 0,
-                num: 0,
-            }, set: [],
-            box: {w: 0, h: 0, d: 0, rows: 0, cols: 0},
-        };
-
-        for (let aname in items) {
-            let size = fn({name: items[aname].name});
-            asize.set.push(size);
-            asize.stats.w.sum += size.w;
-            asize.stats.w.max = Math.max(size.w, asize.stats.w.max);
-            asize.stats.d.sum += size.d;
-            asize.stats.d.max = Math.max(size.d, asize.stats.d.max);
-            asize.stats.h.sum += size.h;
-            asize.stats.h.max = Math.max(size.h, asize.stats.h.max);
-            asize.stats.r.sum += size.r;
-            asize.stats.r.max = Math.max(size.w, asize.stats.r.max);
-            asize.stats.area += size.w * size.h;
-            asize.stats.num++;
+        static handle(result) {
+            AModel.viewDeep3D(result, 'new');
+            AModel.showDetail(result);
         }
-        asize.box.rows = Math.round(Math.sqrt(asize.stats.num) + 0.5);
-        asize.box.cols = Math.round((asize.stats.num / asize.box.rows) + 0.5);
-        asize.box.w = Math.max(Math.sqrt(asize.stats.area), asize.stats.r.max * asize.box.cols);
-        asize.box.h = Math.max(Math.sqrt(asize.stats.area), asize.stats.r.max * asize.box.rows);
-        return asize;
-    }
 
-    static getDetail(node) {
-        $.ajax({
-            url: node.expandLink,
-            success: (results) => {
-                AModel.showDetail(results);
+        static calculateGroupBox(items, fn) {
+            let asize = {
+                stats: {
+                    w: {sum: 0, max: 0},
+                    h: {sum: 0, max: 0},
+                    d: {sum: 0, max: 0},
+                    r: {sum: 0, max: 0},
+                    area: 0,
+                    num: 0,
+                }, set: [],
+                box: {w: 0, h: 0, d: 0, rows: 0, cols: 0},
+            };
+
+            for (let aname in items) {
+                let size = fn({name: items[aname].name});
+                asize.set.push(size);
+                asize.stats.w.sum += size.w;
+                asize.stats.w.max = Math.max(size.w, asize.stats.w.max);
+                asize.stats.d.sum += size.d;
+                asize.stats.d.max = Math.max(size.d, asize.stats.d.max);
+                asize.stats.h.sum += size.h;
+                asize.stats.h.max = Math.max(size.h, asize.stats.h.max);
+                asize.stats.r.sum += size.r;
+                asize.stats.r.max = Math.max(size.w, asize.stats.r.max);
+                asize.stats.area += size.w * size.h;
+                asize.stats.num++;
             }
-        });
-    }
+            asize.box.rows = Math.round(Math.sqrt(asize.stats.num) + 0.5);
+            asize.box.cols = Math.round((asize.stats.num / asize.box.rows) + 0.5);
+            asize.box.w = Math.max(Math.sqrt(asize.stats.area), asize.stats.r.max * asize.box.cols);
+            asize.box.h = Math.max(Math.sqrt(asize.stats.area), asize.stats.r.max * asize.box.rows);
+            return asize;
+        }
 
-    static showDetail(results) {
-        let myForm = AModel.createInfo(results);
-        myForm.results = results;
-        let records = [];
-        let i = 0;
-        records.push({recid: i++, name: 'name', value: results.name, detail: results.name});
-        records.push({recid: i++, name: 'Description', value: results.description, detail: results.description});
-        records.push({recid: i++, name: 'Package', value: results.package, detail: results.package});
+        static getDetail(node) {
+            $.ajax({
+                url: node.expandLink,
+                success: (results) => {
+                    AModel.showDetail(results);
+                }
+            });
+        }
 
-        let attDetails = getAttributeDetails(results._attributes);
-        records.push({recid: i++, name: 'Attributes', value: attDetails.length, detail: attDetails.join('|')});
+        static showDetail(results) {
+            let myForm = AModel.createInfo(results);
+            myForm.results = results;
+            let records = [];
+            let i = 0;
+            records.push({recid: i++, name: 'name', value: results.name, detail: results.name});
+            records.push({recid: i++, name: 'Description', value: results.description, detail: results.description});
+            records.push({recid: i++, name: 'Package', value: results.package, detail: results.package});
+
+            let attDetails = getAttributeDetails(results._attributes);
+            records.push({recid: i++, name: 'Attributes', value: attDetails.length, detail: attDetails.join('|')});
         let assocDetails = getAssocDetails(results._associations);
         records.push({recid: i++, name: 'Associations', value: assocDetails.length, detail: assocDetails.join('|')});
         let methodDetails = getMethodDetails(results.methods);
         records.push({recid: i++, name: 'Methods', value: methodDetails.length, detail: methodDetails.join('|')});
 
         myForm.records = records;
+        ASelectedHUD.update('Model', records);
         myForm.refresh();
         return myForm;
     }
@@ -1037,4 +974,83 @@ function getEditForm(record, setURL) {
     w2ui['editModelDoc'].record = record;
     w2ui['editModelDoc'].saveURL = setURL;
     return w2ui['editModelDoc'];
+}
+
+function layoutRowColumn(parentNode, nodes, size, direction) {
+    let prevNode = parentNode;
+    let row = 0;
+    let col = 0;
+    let bbox = {
+        x: {min: -parentNode.cube.x / 2, max: parentNode.cube.x / 2},
+        y: {min: -parentNode.cube.y / 2, max: parentNode.cube.y / 2},
+        z: {min: -parentNode.cube.z / 2, max: parentNode.cube.z / 2},
+    }
+
+
+    for (let i in nodes) {
+        let node = nodes[i];
+        // Make sure I have the right number of rows.
+        if (row >= size.box.rows) {
+            row = 0;
+            col++;
+        }
+        if (direction === 'top') {
+            let offset = {
+                w: Math.max(parentNode.cube.x/(size.box.cols+1), size.stats.w.max)*1.10,
+                h: Math.max(parentNode.cube.z/(size.box.rows+1), size.stats.h.max)*1.10
+            }
+            node.rbox = {
+                parent: prevNode.id,
+                fx: bbox.x.min + offset.w/2 + (col * offset.w),
+                fy: bbox.y.max,
+                fz: bbox.z.max - offset.h/2 - (row * offset.h),
+            }
+        } else if (direction === 'bottom') {
+            let offset = {
+                w: Math.max(parentNode.cube.x/(size.box.cols+1), size.stats.w.max)*1.10,
+                h: Math.max(parentNode.cube.z/(size.box.rows+1), size.stats.h.max)*1.10
+            }
+            node.rbox = {
+                parent: prevNode.id,
+                fx: bbox.x.min + offset.w/2 + (col * offset.w),
+                fy: bbox.y.min - 30,
+                fz: bbox.z.max - offset.h/2 - (row * offset.h),
+            }
+        } else if (direction === 'right') {
+            let offset = {
+                w: parentNode.cube.z/(size.box.cols+1),
+                h: parentNode.cube.y/(size.box.rows+1),
+            }
+            node.rbox = {
+                parent: prevNode.id,
+                fx: bbox.x.max,
+                fy: bbox.y.max - offset.h/2 - (row * offset.h),
+                fz: bbox.z.max - offset.w/2 - (col * offset.w),
+            }
+        } else if (direction === 'back') {
+            let offset = {
+                w: Math.max(parentNode.cube.x/(size.box.cols+1), size.stats.w.max)*1.10,
+                h: Math.max(parentNode.cube.y/(size.box.rows+1), size.stats.h.max)*1.10
+            }
+            node.rbox = {
+                parent: prevNode.id,
+                fx:  bbox.x.max - offset.w/2 - (col * offset.w),
+                fz:  bbox.z.min,
+                fy: bbox.y.max - offset.h/2 - (row * offset.h),
+            }
+        } else if (direction === 'front') {
+            let offset = {
+                w: Math.max(parentNode.cube.x/(size.box.cols+1), size.stats.w.max)*1.10,
+                h: Math.max(parentNode.cube.y/(size.box.rows+1), size.stats.h.max)*1.10
+            }
+            node.rbox = {
+                parent: prevNode.id,
+                fx: bbox.x.min + offset.w/2 + (col * offset.w),
+                fz:  bbox.z.max,
+                fy: bbox.y.min + offset.h/2 + (row * offset.h),
+            }
+        }
+        row++;
+    }
+    return;
 }

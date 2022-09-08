@@ -57,7 +57,7 @@ export default class AStateNet {
         group.aid = node.id;
         node.box = 1;
         node.expandLink = `statenet/get?id=${node.id}`;
-        node.expandView = AStateNet.viewDeep3D;
+        node.expandView = AStateNet.handle;
         node.getDetail = AStateNet.getDetail;
 
         return group;
@@ -93,9 +93,9 @@ export default class AStateNet {
                 for(let ename in state.events) {
                     let tevent = state.events[ename];
                     for(let tstate in tevent) {
-                       data.links.push({target: opts.id+tstate, source: opts.id+sname, width: 3.0, value: 0.01, name: ename, arrow: 5, relpos: 1, curve: 0.1, color: 'green' });
-                       data.links.push({source: opts.id+sname, target: `${opts.id}-${ename}`, width: 3.0, value: 0.0, color:"green" });
-                       data.links.push({target: opts.id+tstate, source: `${opts.id}-${ename}`, width: 3.0, value: 0.0, color:"green"});
+                       data.links.push({target: opts.id+tstate, source: opts.id+sname, width: 3.0, value: 10, name: ename, relpos: 1, color: '#00ff00' });
+                       data.links.push({source: opts.id+sname, target: `${opts.id}-${ename}`, width: 1.0, value: 30, color:"#cccccc" });
+                       data.links.push({target: opts.id+tstate, source: `${opts.id}-${ename}`, width: 1.0, value: 30, color:"#cccccc"});
                     }
                 }
             }
@@ -106,6 +106,9 @@ export default class AStateNet {
             window.graph.setData(data.nodes, data.links);
         }
         window.graph.showLinks();
+    }
+    static handle(results) {
+
     }
 }
 

@@ -1,4 +1,4 @@
-import { AText } from './index.js';
+import { AText, A3DGraph, ASelectedHUD} from './index.js';
 
 export default class AInterface {
     constructor(config) {
@@ -85,7 +85,7 @@ export default class AInterface {
         group.aid = node.id;
         node.box = size.r;
         node.expandLink = `interface/get?id=${node.id}`;
-        node.expandView = AInterface.viewDeep3D;
+        node.expandView = AInterface.handle;
         node.getDetail = AInterface.getDetail;
 
         return group;
@@ -99,9 +99,12 @@ export default class AInterface {
         });
     }
     static showDetail(result) {
-
+        ASelectedHUD.update('Interface', []);
     }
     static viewDeep3D(obj) {
+
+    }
+    static handle(results) {
 
     }
 }

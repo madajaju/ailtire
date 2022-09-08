@@ -7,7 +7,7 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
-        let environments = processDeployment(global.packages);
+        let environments = global.deploy.envs;
         env.res.json(environments);
     }
 };

@@ -22,7 +22,7 @@ const circularReplacer = () => {
             if(typeof value[k] === "object" && value != null) {
                 if(deepSeen.get(value[k])) {
                     retval[k] = "Circular";
-                } else {
+                } else if(value[k]) { // Check for null
                     deepSeen.set(value[k], k);
                     retval[k] = checkDeep(k,value[k], deepSeen);
                 }
@@ -225,7 +225,7 @@ module.exports = {
 
         io2.on('connection', (msocket) => {
             console.log("Connection 2 happen!");
-            io2.emit("ConnectedEdge", "Connected Edge made it");
+            // io2.emit("ConnectedEdge", "Connected Edge made it");
             AEvent.addHandlers(msocket);
         });
         io2.on('ailtire.server.started', (msocket) => {
@@ -233,7 +233,7 @@ module.exports = {
         })
         io.on('connection', function (msocket) {
             console.log("Connection happen!");
-            io.emit("ConnectedEdge", "Connected Edge made it");
+            //io.emit("ConnectedEdge", "Connected Edge made it");
             AEvent.addHandlers(msocket);
         });
 

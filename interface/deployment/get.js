@@ -6,23 +6,37 @@ module.exports = {
     inputs: {},
 
     fn: function (inputs, env) {
-        let [envname, sname] = inputs.id.split(/\./);
+        let [envname, stname, sname] = inputs.id.split(/\./);
         let environ = global.deploy.envs[envname];
         if(!environ) {
             console.error("Could not find the environment!", envname);
             res.json("Could not find the environment");
         }
-        let service = environ[sname];
-        if(!service) {
-            console.error("Could not find the service:", sname);
+        let stack = environ[stname];
+        if(!stack) {
+            console.error("Could not find the stack:", stname);
             return;
         }
-        let retval = normalize_old(inputs.id, sname, service.definition);
-        if(service.design) {
-            retval = normalize(inputs.id, sname, service.design);
+        if(sname === undefined) {
+            let retval = normalize_old(inputs.id, stname, stack.definition);
+            if (stack.design) {
+                retval = normalize(inputs.id, stname, stack.design);
+            }
+            env.res.json(retval);
+            return retval;
+        } else {
+            // find the service in the definition or in the design
+            let retval = undefined;
+            if(stack.definition && stack.definition.services && stack.definition.services.hasOwnProperty(sname)) {
+               retval = stack.definition.services[sname];
+            } else if(stack.design && stack.design.services && stack.design.services.hasOwnProperty(sname)) {
+                retval = stack.design.services[sname];
+                retval.name = inputs.id;
+            }
+            env.res.json(retval);
+            return retval;
         }
-        env.res.json(retval);
-        return retval;
+        
     }
 };
 
@@ -44,10 +58,9 @@ function normalize(id, name, design) {
         }
     }
     retval.services = design.services;
-    let [env,lname] = id.split(/\./);
     for(let sname in design.services) {
         retval.services[sname] = design.services[sname];
-        retval.services[sname].id = `${env}.${sname}`;
+        retval.services[sname].id = `${id}.${sname}`;
     }
     retval.networks = design.networks;
     retval.volumes = design.volumes;

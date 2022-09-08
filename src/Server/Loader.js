@@ -32,6 +32,7 @@ module.exports = {
 const analyzeApp = app => {
     for (let i in global.packages) {
         checkPackage(global.packages[i]);
+        checkDeployment(global.deploy, global.ailtire.implementation.images);
         analyzeClasses(global.classes);
     }
 }
@@ -202,6 +203,12 @@ const loadDeploy = (pkg, prefix, dir) => {
     };
     // Get the build file
     let apath = path.resolve(dir + '/build.js');
+    if (!global.ailtire.implementation) {
+        global.ailtire.implementation = {};
+    }
+    if (!global.ailtire.implementation.images) {
+        global.ailtire.implementation.images = {};
+    }
     if (isFile(apath)) {
         let normalizedBuild = {};
         let build = require(dir + '/' + 'build.js');
@@ -218,6 +225,13 @@ const loadDeploy = (pkg, prefix, dir) => {
             } else {
                 normalizedBuild[iname] = image;
             }
+            global.ailtire.implementation.images[image.tag] = {
+                image: image,
+                context: iname,
+                pkg: pkg.shortname,
+                basedir: dir,
+                name: image.tag
+            };
         }
         pkg.deploy.build = normalizedBuild;
     }
@@ -279,11 +293,11 @@ const loadDeploy = (pkg, prefix, dir) => {
                 file: contexts[env].file,
                 design: design
             };
-            if(!global.hasOwnProperty('deploy')) {
-                global.deploy = {envs:{}};
+            if (!global.hasOwnProperty('deploy')) {
+                global.deploy = {envs: {}};
             }
-            if(!global.deploy.envs.hasOwnProperty(env)) {
-               global.deploy.envs[env] = {};
+            if (!global.deploy.envs.hasOwnProperty(env)) {
+                global.deploy.envs[env] = {};
             }
             global.deploy.envs[env][pkg.deploy.name] = pkg.deploy.envs[env];
         }
@@ -435,6 +449,78 @@ const loadDirectory = (dir, prefix) => {
     return global.packages[packageNameNoSpace];
 };
 
+const checkDeployment = (deployments, images) => {
+    let imageRepo = global.ailtire.implementation.images;
+    // Make sure that every services has a valid image that can be built.
+    for (let i in deployments.envs) {
+        let env = deployments.envs[i];
+        for (let j in env) {
+            let stack = env[j];
+            if (stack.design) {
+                for (let k in stack.design.services) {
+                    let service = stack.design.services[k];
+                    let image = service.image
+                    if (imageRepo.hasOwnProperty(image)) {
+                        if (!imageRepo[image].hasOwnProperty('services')) {
+                            imageRepo[image].services = {};
+                        }
+                        imageRepo[image].services[`${i}.${j}.${k}`] = service;
+                    } else if (service.type != "stack") {
+                        global.ailtire.error.push({
+                            type: 'deploy.image',
+                            object: {type: "Service", id: service.id, name: k},
+                            message: "Image for Service not found!",
+                            data: image,
+                            lookup: 'service/list'
+                        });
+                        console.error("Image (", image, ") not found for Service:", k);
+                    }
+                }
+            }
+        }
+    }
+    // Iterate through all of the images and add their base images.
+    let keys = Object.keys(global.ailtire.implementation.images);
+    for (let i in keys) {
+        let image = global.ailtire.implementation.images[keys[i]];
+        if (image.image && image.image.file) {
+            let apath = path.resolve(`${image.basedir}/${image.image.dir}/${image.image.file}`);
+            try {
+                if (fs.statSync(apath).isFile()) {
+                    let str = fs.readFileSync(apath, 'utf8');
+                    let lines = str.split('\n');
+                    for (let i in lines) {
+                        let line = lines[i];
+                        if (line.includes('FROM')) {
+                            let [from, base] = line.split(/\s/);
+                            if (base) {
+                                if (!global.ailtire.implementation.images.hasOwnProperty(base)) {
+                                    global.ailtire.implementation.images[base] = {
+                                        pkg: 'undefined',
+                                        context: 'external',
+                                        name: base,
+                                        children: {}
+                                    }
+                                }
+                                global.ailtire.implementation.images[base].children[image.name] = image;
+                                image.base = base;
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                global.ailtire.error.push({
+                    type: 'build.image',
+                    object: {type: "Image", id: image.image.tag, name: image.image.tag},
+                    message: "Dockerfile for image is not found! " + apath,
+                    data: image,
+                    lookup: `implementation/image?id=${image.image.tag}`
+                });
+                console.error("Image (", image.image.tag, ") Docker File not found:", apath);
+            }
+        }
+    }
+}
 const checkPackage = (pkg) => {
     // check the package for consistencies
     // Check the Depends
@@ -476,10 +562,10 @@ const checkPackage = (pkg) => {
                     cls.definition.methods = {};
                 }
                 if (!cls.definition.hasOwnProperty('attributes')) {
-                    cls.definition.methods = {};
+                    cls.definition.attributes = {};
                 }
                 if (!cls.definition.hasOwnProperty('associations')) {
-                    cls.definition.methods = {};
+                    cls.definition.associations = {};
                 }
                 while (parentCls) {
                     for (let fname in parentCls.definition.methods) {
@@ -673,12 +759,14 @@ const checkUseCase = (pkg, usecase) => {
             lookup: 'action/list',
         });
     } else {
-        if (!global.actions.hasOwnProperty(actionName)) {
+        /*if (!global.actions.hasOwnProperty(actionName)) {
             console.warn("Action does not exist creating:", actionName, usecase.method);
             let aname = actionName.split(/\//).pop();
             let pathName = actionName.replace(pkg.prefix.toLowerCase(), '');
             apiGenerator.action({name: aname, path: pathName}, pkg.interfaceDir);
         }
+
+         */
     }
     for (let i in usecase.scenarios) {
         let scenario = usecase.scenarios[i];

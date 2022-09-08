@@ -1,4 +1,4 @@
-import { AText } from './index.js';
+import { AText, A3DGraph, ASelectedHUD} from './index.js';
 
 export default class AState {
     constructor(config) {
@@ -18,7 +18,7 @@ export default class AState {
         let height = nameArray.length*AState.default.fontSize*2;
         let width = maxLetters * (AState.default.fontSize/1.5);
         let depth = AState.default.depth;
-        let radius = Math.max(Math.sqrt(width*width + height*height), Math.sqrt(height*height + depth*depth), Math.sqrt(width*width + depth*depth));
+        let radius = Math.max(Math.sqrt(width*width + height*height), Math.sqrt(height*height + depth*depth), Math.sqrt(width*width + depth*depth))/2;
         return {w: width, h: height, d: depth, r: radius};
     }
 
@@ -92,7 +92,7 @@ export default class AState {
         group.aid = node.id;
         node.box = size.r;
         node.expandLink = `state/get?id=${node.id}`;
-        node.expandView = AState.viewDeep3D;
+        node.expandView = AState.handle;
         node.getDetail = AState.getDetail;
         return group;
     }
@@ -105,10 +105,13 @@ export default class AState {
         });
     }
     static showDetail(result) {
-
+        ASelectedHUD.update('State', []);
     }
 
     static viewDeep3D(obj) {
+
+    }
+    static handle(results) {
 
     }
 }

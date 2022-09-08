@@ -1,30 +1,6 @@
-const boundingBox = [
-    {x: 0, y: 0, z: 0},
-    {x: 0, y: 100, z: 0},
-    {x: 0, y: -100, z: 0},
-    {x: 100, y: 0, z: 0},
-    {x: -100, y: 0, z: 0},
-    {x: 0, y: 0, z: 100},
-    {x: 0, y: 0, z: -100},
-    {x: 100, y: 100, z: 0},
-    {x: 100, y: -100, z: 0},
-    {x: 100, y: 0, z: 100},
-    {x: 100, y: 0, z: -100},
-    {x: 100, y: 100, z: 100},
-    {x: 100, y: 100, z: -100},
-    {x: 100, y: -100, z: 100},
-    {x: 100, y: -100, z: -100},
-    {x: -100, y: 100, z: 0},
-    {x: -100, y: -100, z: 0},
-    {x: -100, y: 0, z: 100},
-    {x: -100, y: 0, z: -100},
-    {x: -100, y: 100, z: 100},
-    {x: -100, y: 100, z: -100},
-    {x: -100, y: -100, z: 100},
-    {x: -100, y: -100, z: -100},
-]
+import {AText} from "./ailtire/index.js";
 
-class Graph3D {
+export class Graph3D {
     constructor(gdiv, data, options) {
         this.objects = {};
         this.links = {};
@@ -34,7 +10,7 @@ class Graph3D {
             height: 1000,
             background: "#555500",
             linkColor: "#000000",
-            linkSize: 0.4
+            linkDuplicate: true,
         }
         for (let i in options) {
             this.options[i] = options[i];
@@ -54,15 +30,25 @@ class Graph3D {
         if (options.expandObject) {
             this.expandObject = options.expandObject;
         }
+        if (options.expandDesign) {
+            this.expandDesign = options.expandDesign;
+        }
         this.data = data;
         this.normalizeData();
-        this.graph = ForceGraph3D({controlType:'orbit'})
+        this.graph = ForceGraph3D({controlType: 'orbit'})
         (document.getElementById(this.gdiv))
             .width(this.options.width)
             .height(this.options.height)
             .backgroundColor(this.options.background)
             .nodeVal((node) => {
-                return node.box || 50;
+                return node.box || 20;
+            })
+            .nodeLabel(node => {
+                let label = node.name;
+                if(node.description) {
+                   label = `<div><h1>${node.name}</h1><p>${node.description}</p></div>`;
+                }
+                return label;
             })
             .nodeThreeObject(node => {
                 let retval = null;
@@ -83,12 +69,12 @@ class Graph3D {
                     let defaultID = "#default3D" + type;
                     let material = null;
 
-                retval = document.querySelector(objID);
-                if (!retval) {
-                    retval = document.querySelector(defaultID);
-                }
-                let obj3D = retval.object3D.clone();
-                return obj3D;
+                    retval = document.querySelector(objID);
+                    if (!retval) {
+                        retval = document.querySelector(defaultID);
+                    }
+                    let obj3D = retval.object3D.clone();
+                    return obj3D;
                 }
             })
             .linkCurvature(link => {
@@ -101,7 +87,7 @@ class Graph3D {
                 return 0;
             })
             .linkWidth(link => {
-                let width = link.width || this.options.linkSize;
+                let width = link.width || 2;
                 if (this.selected.links.target.has(link)) {
                     return width * 2;
                 } else if (this.selected.links.source.has(link)) {
@@ -123,10 +109,8 @@ class Graph3D {
             .linkThreeObject(link => {
                 // extend link with text sprite
                 if (link.name) {
-                    const sprite = new SpriteText(`${link.name}`);
-                    sprite.color = 'lightgrey';
-                    sprite.textHeight = 10;
-                    sprite.lcurve = link.curve;
+                    let sprite = AText.view3D({text: link.name, color: "#dddddd", width: 100, size: 10});
+                    sprite.name = link.name;
                     return sprite;
                 }
                 return null;
@@ -134,6 +118,38 @@ class Graph3D {
             })
             .linkPositionUpdate((sprite, {start, end}) => {
                 if (sprite) {
+                    let ax = Math.abs(start.x - end.x);
+                    let ay = Math.abs(start.y - end.y);
+                    let az = Math.abs(start.z - end.z);
+                    if (ay > ax && ay > az) {
+                        sprite.oriented = "YX";
+                        if (az > ax) {
+                            if (sprite.oriented != "YZ") {
+                                sprite.oriented = "YZ";
+                                sprite.setRotationFromEuler(new THREE.Euler(0, 0, 0, "XYZ"));
+                            }
+                        }
+                    } else if (ax > ay && ax > az) {
+                        if (az > ay) {
+                            if (sprite.oriented != "XZ") {
+                                sprite.oriented = "XZ";
+                                sprite.setRotationFromEuler(new THREE.Euler(Math.PI / 2, 0, Math.PI / 2, "XYZ"));
+                            }
+                        } else if (sprite.oriented != "XY") {
+                            sprite.oriented = "XY";
+                            sprite.setRotationFromEuler(new THREE.Euler(0, 0, 0, "XYZ"));
+                        }
+                    } else if (az > ax && az > ay) {
+                        if (ax > ay) {
+                            if (sprite.oriented != "ZX") {
+                                sprite.oriented = "ZX";
+                                sprite.setRotationFromEuler(new THREE.Euler(Math.PI / 2, 0, 0, "XYZ"));
+                            }
+                        } else if (sprite.oriented != "ZY") {
+                            sprite.oriented = "ZY";
+                            sprite.setRotationFromEuler(new THREE.Euler(0, 0, 0, "XYZ"));
+                        }
+                    }
                     if (sprite.lcurve) {
                         const dx = end.x - start.x;
                         const dy = end.y - start.u || 0;
@@ -145,20 +161,18 @@ class Graph3D {
                         const middlePos = Object.assign(...['x', 'y', 'z'].map(c => ({
                             [c]: start[c] + (end[c] - start[c]) / 2 // calc middle point
                         })));
-
                         // Position sprite
                         Object.assign(sprite.position, middlePos);
-                }
+                    }
                 }
             })
             .linkDirectionalParticles(link => {
-                // Number of particles on the link;
                 if (this.selected.links.target.has(link)) {
-                    return 6;
+                    return 5;
                 } else if (this.selected.links.source.has(link)) {
-                    return 6;
+                    return 5;
                 }
-                return 3;
+                return 2;
             })
             .linkDirectionalParticleColor(link => {
                 if (this.selected.links.target.has(link)) {
@@ -172,13 +186,13 @@ class Graph3D {
                 return this.options.linkColor;
             })
             .linkDirectionalParticleWidth(link => {
-                let width = link.width || this.options.linkSize;
+                let width = link.width || 2;
                 if (this.selected.links.target.has(link)) {
-                    return width * 3;
+                    return width * 4;
                 } else if (this.selected.links.source.has(link)) {
-                    return width * 3;
+                    return width * 4;
                 }
-                return width * 1.5;
+                return width * 2;
             })
             .linkColor(link => {
                 if (link.color) {
@@ -187,6 +201,7 @@ class Graph3D {
                     return "gray";
                 }
             })
+            .cooldownTime(5000)
             .linkDirectionalParticleSpeed(0.006)
             .enableNodeDrag(true)
             .graphData(this.ndata)
@@ -196,7 +211,8 @@ class Graph3D {
             .onNodeRightClick(node => {
                 if (this.expandObject) {
                     if (node.expandLink) {
-                        this.expandObject(this.expandLink);
+                        // This is a design element.
+                        this.expandDesign(node);
                     } else {
                         this.expandObject(`${node.group}?id=${node.id}`);
                     }
@@ -205,15 +221,25 @@ class Graph3D {
             .dagLevelDistance(300);
         this.linkForce = this.graph
             .d3Force('link')
-            .distance(link => link.value * 30);
+            .distance(link => link.value * 10);
         this.graph
-            .d3Force('collide', d3.forceCollide().radius((d) => {
-                return d.box || 20;
+            .d3Force('charge', d3.forceManyBody().strength((d) => {
+                return 40;
             }))
-            .d3Force('plane', forceOnPlane());
+            .d3Force('collide', Graph3D.collide()
+                    .radius((d) => {
+                        if (d.box && typeof d.box === 'number') {
+                            return d.box*2;
+                        } else {
+                            return 20;
+                        }
+                    })
+            )
+            .d3Force('plane', Graph3D.forceOnPlane());
 
         this.graph.numDimensions(3);
         window.graph = this;
+        window.graph.graph.onEngineStop(() => window.graph.graph.zoomToFit(400));
     };
 
     addObject(obj) {
@@ -272,35 +298,6 @@ class Graph3D {
             links: [],
             nodes: []
         };
-        this.levels = {};
-        let totalItems = 0;
-        for (let i in this.data.nodes) {
-            let level = this.data.nodes[i].level;
-            let group = this.data.nodes[i].group;
-            if (!this.levels.hasOwnProperty(level)) {
-                this.levels[level] = {};
-            }
-            if (!this.levels[level].hasOwnProperty(group)) {
-                this.levels[level][group] = {x: 0, y: 0, z: 0, items: 0};
-            }
-            this.levels[level][group].items++;
-            totalItems++;
-            this.data.nodes[i].size = 30;
-            this.ndata.nodes.push(this.data.nodes[i]);
-        }
-        let multiplier = Math.floor(totalItems/30) + 1;
-        let j = 0;
-        for (let i in this.levels) {
-            let level = this.levels[i];
-            let numOfGroups = Object.keys(level).length;
-            for (let k in level) {
-                // Check how many groups in the level
-                level[k].x = boundingBox[j].x * multiplier;
-                level[k].y = (boundingBox[j].y + (100 / numOfGroups)) * multiplier;
-                level[k].z = boundingBox[j].z * multiplier;
-            }
-            j++;
-        }
         let linkmap = {};
         // Cleanup links to non-objects
         // If multiple links between objects change the curve.
@@ -309,20 +306,28 @@ class Graph3D {
             let source = this.data.links[i].source;
             let target = this.data.links[i].target;
             let found = true;
-            if (typeof source === 'string' && !this.data.nodes.hasOwnProperty(source)) {
-                console.error("Could not find the Source Node:", source);
-                found = false;
+            if (typeof source === 'string') {
+                if (!this.data.nodes.hasOwnProperty(source)) {
+                    console.error("Could not find the Source Node:", source);
+                    found = false;
+                } else {
+                    source = this.data.nodes[source];
+                }
             }
-            if (typeof target === 'string' && !this.data.nodes.hasOwnProperty(target)) {
-                console.error("Could not find the Target Node:", target);
-                found = false;
+            if (typeof target === 'string') {
+                if (!this.data.nodes.hasOwnProperty(target)) {
+                    console.error("Could not find the Target Node:", target);
+                    found = false;
+                } else {
+                    target = this.data.nodes[target];
+                }
             }
             if (found) {
                 this.ndata.links.push(this.data.links[i]);
-                if (!linkmap.hasOwnProperty(source + target)) {
-                    linkmap[source + target] = [];
+                if (!linkmap.hasOwnProperty(source.id + target.id)) {
+                    linkmap[source.id + target.id] = [];
                 }
-                linkmap[source + target].push(k);
+                linkmap[source.id + target.id].push(k);
                 k++;
             }
         }
@@ -335,8 +340,25 @@ class Graph3D {
                     this.ndata.links[lid].curve = curve;
                     curve += 0.2;
                 }
-    }
+            }
         }
+        // Reset the links array if the links are not duplicated based on the options.
+        if (!this.options.linkDuplicate) {
+            let newLinks = [];
+            for (let i in linkmap) {
+                let link = this.ndata.links[linkmap[i][0]];
+                newLinks.push(link);
+            }
+            this.ndata.links = newLinks;
+        }
+        for (let i in this.data.nodes) {
+            this.ndata.nodes.push(this.data.nodes[i]);
+        }
+        return;
+    };
+
+    setDuplicateLink(flag) {
+        this.options.linkDuplicate = flag;
     };
 
     setData(pNodes, pLinks) {
@@ -356,16 +378,6 @@ class Graph3D {
             this.data.links.push(pLinks[i]);
         }
         this.normalizeData();
-        /*
-        for(let i in this.levels) {
-            const geo = new THREE.SphereGeometry(10);
-            const mat = new THREE.MeshLambertMaterial({color: 0x000000, opacity:1.0, transparent:true});
-            const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.set(this.levels[i].x, this.levels[i].y,this.levels[i].z);
-
-            this.graph.scene().add(mesh);
-        }
-         */
         this.graph.graphData(this.ndata);
     };
 
@@ -376,7 +388,7 @@ class Graph3D {
             // select the element in the list.
             // This should be done with a callback for the select.
             if (this.options.selectCallback) {
-                this.options.selectCallback(node.id);
+                this.options.selectCallback(node);
             }
             this.selectRelNodes(node, "source");
             this.selectRelNodes(node, "target");
@@ -428,9 +440,6 @@ class Graph3D {
         if (direction === "target") {
             bdir = "source";
         }
-        if (!node) {
-            console.log("NODE:", node);
-        }
         // Check if I have already processed this node.
         if (this.selected.nodes.source.hasOwnProperty(node.id)) {
             return;
@@ -446,12 +455,16 @@ class Graph3D {
                 this.selected.links[bdir].add(link);
                 if (this.data.nodes.hasOwnProperty(link[direction].id)) {
                     let nnode = this.data.nodes[link[direction].id];
-                    this.selectRelNodes(nnode, direction);
                     this.selected.nodes[bdir][nnode.id] = nnode;
-                }
+                    this.selectRelNodes(nnode, direction);
                 }
             }
         }
+    }
+
+    getSelectedNode() {
+        return this.selected.nodes.primary;
+    }
 
     setNode(nodeid, opts) {
         let node = this.data.nodes[nodeid];
@@ -462,156 +475,351 @@ class Graph3D {
         }
         this.selectNode(this.data.nodes[nodeid]);
     }
-}
 
-function forceOnPlane() {
-    function constant(_) {
-        return () => _;
-                    }
-
-    function index(d) {
-        return d.index;
-                    }
-
-    var id = index,
-        nodes = [],
-        nmap = {};
-
-    function force(alpha) {
-        for (let i = 0, n = nodes.length, node, k = alpha * 0.1; i < n; ++i) {
-            node = nodes[i];
-            if (node.rbox) {
-                let parent = nodes[nmap[node.rbox.parent]];
-                if(parent) { // the Parent is found then go forward. If not then don't.
-                    if (node.rbox.x) {
-                        if (node.rbox.x.min === node.rbox.x.max) {
-                            let newx = parent.x + node.rbox.x.min;
-                            node.vx = (node.x - newx) / 2 * k;
-                            node.x = newx;
-                        } else {
-                            let newx = node.x + node.vx;
-                            let min = parent.x + node.rbox.x.min;
-                            let max = parent.x + node.rbox.x.max;
-                            let v = node.vx;
-                            if (Math.abs(node.vx) > Math.abs(max - min)) {
-                                v = (max - min) / 4;
-                            }
-                            if (newx < min) {
-                                node.x = min;
-                                node.vx = -v * k;
-                            } else if (newx > max) {
-                                node.x = max;
-                                node.vx = -v * k;
-                            }
-                        }
-                    }
-                    if (node.rbox.y) {
-                        let newy = node.y + node.vy;
-                        let min = parent.y + node.rbox.y.min;
-                        let max = parent.y + node.rbox.y.max;
-                        let v = node.vy;
-                        if (node.rbox.y.min === node.rbox.y.max) {
-                            let newy = parent.y + node.rbox.y.min;
-                            node.vy = (node.y - newy) / 2;
-                            node.y = newy;
-                    } else {
-                            if (Math.abs(node.vy) > Math.abs(max - min)) {
-                                v = (max - min) / 4;
-                            }
-                            if (newy < min) {
-                                node.y = min;
-                                node.vy = -v * k;
-                            } else if (newy > max) {
-                                node.y = max;
-                                node.vy = -v * k;
-                            }
-                        }
-                    }
-                    if (node.rbox.z) {
-                        if (node.rbox.z.min === node.rbox.z.max) {
-                            let newz = parent.z + node.rbox.z.min;
-                            node.vz = (node.z - newz) / 2 * k;
-                            node.z = newz;
-                        } else {
-                            let newz = node.z + node.vz;
-                            let min = parent.z + node.rbox.z.min;
-                            let max = parent.z + node.rbox.z.max;
-                            let v = node.vz;
-                            if (Math.abs(node.vz) > Math.abs(max - min)) {
-                                v = (max - min) / 2;
-                            }
-                            if (newz < min) {
-                                node.z = min;
-                                node.vz = -v * k;
-                            } else if (newz > max) {
-                                node.z = max
-                                node.vz = -v * k;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (node.bbox) {
-                if (node.bbox.x) {
-                    let newx = node.x + node.vx;
-                    if (newx < node.bbox.x.min) {
-                        node.x = node.bbox.x.min;
-                        node.vx = -node.vx * k;
-                    } else if (newx > node.bbox.x.max) {
-                        node.x = node.bbox.x.max;
-                        node.vx = -node.vx * k;
-                    }
-                }
-                if (node.bbox.y) {
-                    let newy = node.y + node.vy;
-                    if (newy < node.bbox.y.min) {
-                        node.y = node.bbox.y.min;
-                        node.vy = -node.vy * k;
-                    } else if (newy > node.bbox.y.max) {
-                        node.y = node.bbox.y.max;
-                        node.vy = -node.vy * k;
-                    }
-                }
-                if (node.bbox.z) {
-                    let newz = node.z + node.vz;
-                    if (newz < node.bbox.z.min) {
-                        node.z = node.bbox.z.min;
-                        node.vz = -node.vz * k;
-                    } else if (newz > node.bbox.z.max) {
-                        node.z = node.bbox.z.max;
-                        node.vz = -node.vz * k;
-                    }
-                }
-                        }
-                    }
-                }
-
-    function initialize() {
-        if (!nodes) return;
-            }
-
-    force.initialize = function (_) {
-        nodes = _;
-        for (let i in nodes) {
-            nmap[nodes[i].id] = i;
+    static forceOnPlane() {
+        function constant(_) {
+            return () => _;
         }
-        initialize();
-    };
 
-    force.strength = function (x) {
-        if (!arguments.length) return strength;
-        strength = x;
+        function index(d) {
+            return d.index;
+        }
+
+        var id = index,
+            nodes = [],
+            nmap = {};
+
+        function force(alpha) {
+            for (let i = 0, n = nodes.length, k = alpha * 0.1; i < n; ++i) {
+                let node = nodes[i];
+                if (node.rbox) {
+                    let parent = nodes[nmap[node.rbox.parent]];
+                   /* console.log("Parent:", parent.x, parent.fx, parent.y, parent.fy, parent.z,parent.fz);
+                    if(parent.fx) { parent.x = parent.fx; parent.vx=0;}
+                    if(parent.fy) { parent.y = parent.fy; parent.vy=0;}
+                    if(parent.fz) { parent.z = parent.fz; parent.vz=0;}*/
+                    if (parent) { // the Parent is found then go forward. If not then don't.
+                        if (node.rbox.fx != undefined) {
+                            node.x = parent.x + node.rbox.fx;
+                            node.fx = node.x;
+                            node.vx = 0;
+                        } else if (node.rbox.x) {
+                            if (node.rbox.x.min === node.rbox.x.max) {
+                                let newx = parent.x + node.rbox.x.min;
+                                node.vx = 0;
+                                node.fx = newx;
+                                node.x = newx;
+                            } else {
+                                // Look ahead to where it is going.
+                                let newx = node.x + node.vx;
+                                // Calculate the min and max values based on the parent location
+                                let min = parent.x + node.rbox.x.min;
+                                let max = parent.x + node.rbox.x.max;
+                                let v = node.vx;
+                                // If the boundary is hit then set the value to the boundary
+                                // and set the velocity to 1/4 of the distance to the middle.
+                                if (newx < min) {
+                                    // Bounce the velocity back to the middle by 1/4.
+                                    let v = Math.abs(max - min) / 2 / 4;
+                                    node.x = min;
+                                    node.vx = v * k;
+                                } else if (newx > max) {
+                                    // Bounce the velocity back to the middle by 1/4.
+                                    let v = Math.abs(max - min) / 2 / 4;
+                                    node.x = max;
+                                    node.vx = -v * k;
+                                }
+                            }
+                        }
+                        if (node.rbox.fy != undefined) {
+                            node.y = parent.y + node.rbox.fy;
+                            node.fy = node.y;
+                            node.vy = 0;
+                        } else if (node.rbox.y) {
+                            if (node.rbox.y.min === node.rbox.y.max) {
+                                let newy = parent.y + node.rbox.y.min;
+                                node.vy = 0;
+                                node.y = newy;
+                                node.fy = newy;
+                            } else {
+                                // Look ahead to where it is going.
+                                let newy = node.y + node.vy;
+                                // Calculate the min and max values based on the parent location
+                                let min = parent.y + node.rbox.y.min;
+                                let max = parent.y + node.rbox.y.max;
+                                let v = node.vy;
+                                // If the boundary is hit then set the value to the boundary
+                                // and set the velocity to 1/4 of the distance to the middle.
+                                if (newy < min) {
+                                    // Bounce the velocity back to the middle by 1/4.
+                                    let v = Math.abs(max - min) / 2 / 4;
+                                    node.y = min;
+                                    node.vy = v * k;
+                                } else if (newy > max) {
+                                    // Bounce the velocity back to the middle by 1/4.
+                                    let v = Math.abs(max - min) / 2 / 4;
+                                    node.y = max;
+                                    node.vy = -v * k;
+                                }
+                            }
+                        }
+                        if (node.rbox.fz != undefined) {
+                            node.z = parent.z + node.rbox.fz;
+                            node.fz = node.z;
+                            node.vz = 0;
+                        } else if (node.rbox.z) {
+                            if (node.rbox.z.min === node.rbox.z.max) {
+                                let newz = parent.z + node.rbox.z.min;
+                                node.vz = 0;
+                                node.z = newz;
+                                node.fz = newz;
+                            } else {
+                                let newz = node.z + node.vz;
+                                // Calculate the min and max values based on the parent location
+                                let min = parent.z + node.rbox.z.min;
+                                let max = parent.z + node.rbox.z.max;
+                                let v = node.vz;
+                                // If the boundary is hit then set the value to the boundary
+                                // and set the velocity to 1/4 of the distance to the middle.
+                                if (newz < min) {
+                                    // Bounce the velocity back to the middle by 1/4.
+                                    let v = Math.abs(max - min) / 2 / 4;
+                                    node.z = min;
+                                    node.vz = v * k;
+                                } else if (newz > max) {
+                                    // Bounce the velocity back to the middle by 1/4.
+                                    let v = Math.abs(max - min) / 2 / 4;
+                                    node.z = max;
+                                    node.vz = -v * k;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (node.bbox) {
+                    if (node.bbox.x) {
+                        let newx = node.x + node.vx;
+                        if (newx < node.bbox.x.min) {
+                            node.x = node.bbox.x.min;
+                            node.vx = -node.vx * k;
+                        } else if (newx > node.bbox.x.max) {
+                            node.x = node.bbox.x.max;
+                            node.vx = -node.vx * k;
+                        }
+                    }
+                    if (node.bbox.y) {
+                        let newy = node.y + node.vy;
+                        if (newy < node.bbox.y.min) {
+                            node.y = node.bbox.y.min;
+                            node.vy = -node.vy * k;
+                        } else if (newy > node.bbox.y.max) {
+                            node.y = node.bbox.y.max;
+                            node.vy = -node.vy * k;
+                        }
+                    }
+                    if (node.bbox.z) {
+                        let newz = node.z + node.vz;
+                        if (newz < node.bbox.z.min) {
+                            node.z = node.bbox.z.min;
+                            node.vz = -node.vz * k;
+                        } else if (newz > node.bbox.z.max) {
+                            node.z = node.bbox.z.max;
+                            node.vz = -node.vz * k;
+                        }
+                    }
+                }
+            }
+        }
+
+        function initialize() {
+            if (!nodes) return;
+        }
+
+        force.initialize = function (_) {
+            nodes = _;
+            for (let i in nodes) {
+                nmap[nodes[i].id] = i;
+            }
+            initialize();
+        };
+
+        force.strength = function (x) {
+            if (!arguments.length) return strength;
+            strength = x;
+            return force;
+        };
+
+        force.id = function (_) {
+            return arguments.length ? ((id = _), force) : id;
+        };
+
+        force.nodes = function (_) {
+            return arguments.length ? ((nodes = _), force) : nodes;
+        };
+
         return force;
-    };
+    }
 
-    force.id = function (_) {
-        return arguments.length ? ((id = _), force) : id;
-    };
+    static collide(radius) {
+        let nodes,
+            groups,
+            nDim,
+            radii,
+            random,
+            strength = 1,
+            iterations = 1;
 
-    force.nodes = function (_) {
-        return arguments.length ? ((nodes = _), force) : nodes;
-    };
+        function constant(_) {
+            return () => _;
+        }
 
-    return force;
+        function jiggle(random) {
+            return (random() - 0.5) * 1e-6;
+        }
+
+        function x$2(d) {
+            return d.x + d.vx;
+        }
+
+        function y$2(d) {
+            return d.y + d.vy;
+        }
+
+        function z$2(d) {
+            return d.z + d.vz;
+        }
+
+        if (typeof radius !== "function") radius = constant(radius == null ? 1 : +radius);
+
+        function force() {
+            let i, n = nodes.length,
+                tree,
+                node,
+                xi,
+                yi,
+                zi,
+                ri,
+                ri2;
+
+            for (var k = 0; k < iterations; ++k) {
+                for (let g in groups) {
+                    let group = groups[g];
+                    radii = group.radii;
+                    tree = d3.octree(group.nodes, x$2, y$2, z$2).visitAfter(prepare);
+
+                    for (i = 0; i < group.nodes.length; ++i) {
+                        node = group.nodes[i];
+                        ri = radii[node.index];
+                        ri2 = ri * ri;
+                        xi = node.x + node.vx;
+                        yi = node.y + node.vy;
+                        zi = node.z + node.vz;
+                        tree.visit(apply);
+                    }
+                }
+            }
+
+            function apply(treeNode, arg1, arg2, arg3, arg4, arg5, arg6) {
+                var args = [arg1, arg2, arg3, arg4, arg5, arg6];
+                var x0 = args[0],
+                    y0 = args[1],
+                    z0 = args[2],
+                    x1 = args[nDim],
+                    y1 = args[nDim + 1],
+                    z1 = args[nDim + 2];
+
+                var data = treeNode.data, rj = treeNode.r, r = ri + rj;
+                if (data) {
+                    if (data.index > node.index) {
+                        // x,y,z is the distance between the two nodes.
+                        let x = xi - data.x - data.vx;
+                        let y = yi - data.y - data.vy;
+                        let z = zi - data.z - data.vz;
+                        let l = x * x + y * y + z * z;
+                        // Distance between the two nodes.
+                        if (l < r * r) {
+                            if (x === 0) x = jiggle(random), l += x * x;
+                            if (y === 0) y = jiggle(random), l += y * y;
+                            if (z === 0) z = jiggle(random), l += z * z;
+                            l = (r - (l = Math.sqrt(l))) / l * strength;
+
+                            node.vx += (x *= l) * (r = (rj *= rj) / (ri2 + rj));
+                            node.vy += (y *= l) * r;
+                            node.vz += (z *= l) * r;
+
+                            data.vx -= x * (r = 1 - r);
+                            data.vy -= y * r;
+                            data.vz -= z * r;
+
+                        }
+                    }
+                    return;
+                }
+                return x0 > xi + r || x1 < xi - r
+                    || (nDim > 1 && (y0 > yi + r || y1 < yi - r))
+                    || (nDim > 2 && (z0 > zi + r || z1 < zi - r));
+            }
+        }
+
+        function prepare(treeNode) {
+            if (treeNode.data) return treeNode.r = radii[treeNode.data.index];
+            for (var i = treeNode.r = 0; i < Math.pow(2, nDim); ++i) {
+                if (treeNode[i] && treeNode[i].r > treeNode.r) {
+                    treeNode.r = treeNode[i].r;
+                }
+            }
+        }
+
+        function initialize() {
+            if (!nodes) return;
+            groups = {};
+            // Segment the nodes into groups and calcuate the radius for all.
+            for(let i in nodes) {
+                let node = nodes[i] ;
+                if(node.universe) {
+                    if(!groups.hasOwnProperty(node.universe)) {
+                        groups[node.universe] = {radii: [], nodes: []};
+                    }
+                    groups[node.universe].nodes.push(node);
+                } else {
+                    if(!groups.hasOwnProperty("NONE")) {
+                        groups.NONE = {radii: [], nodes:[]};
+                    }
+                    groups.NONE.nodes.push(node);
+                }
+            }
+
+            for(let g in groups) {
+                let group = groups[g];
+                let n = group.nodes.length;
+                for (let i = 0; i < group.nodes.length; ++i) {
+                    let node = group.nodes[i]
+                    group.radii[node.index] = +radius(node, i, group.nodes);
+                }
+            }
+        }
+
+        force.initialize = function (_nodes, ...args) {
+            nodes = _nodes;
+            random = args.find(arg => typeof arg === 'function') || Math.random;
+            nDim = args.find(arg => [1, 2, 3].includes(arg)) || 2;
+            initialize();
+        };
+
+        force.iterations = function (_) {
+            return arguments.length ? (iterations = +_, force) : iterations;
+        };
+
+        force.strength = function (_) {
+            return arguments.length ? (strength = +_, force) : strength;
+        };
+
+        force.radius = function (_) {
+            return arguments.length ? (radius = typeof _ === "function" ? _ : constant(+_), initialize(), force) : radius;
+        };
+
+        return force;
+    }
+
 }
