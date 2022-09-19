@@ -92,8 +92,19 @@ export default class AUsecase {
         const retval = new THREE.Mesh(geometry, material);
         retval.position.set(node.x, node.y, node.z);
         let label = AText.view3D({text: nameArray.join('\n'), color: "#ffffff", width: width, size: fontSize});
-        label.position.set(0, 0, size.d);
-        retval.add(label)
+        label.position.set(0, 0, size.d+1);
+        retval.add(label);
+        if (node.rotate) {
+            if (node.rotate.x) {
+                retval.applyMatrix4(new THREE.Matrix4().makeRotationX(node.rotate.x));
+            }
+            if (node.rotate.y) {
+                retval.applyMatrix4(new THREE.Matrix4().makeRotationY(node.rotate.y));
+            }
+            if (node.rotate.z) {
+                retval.applyMatrix4(new THREE.Matrix4().makeRotationZ(node.rotate.z));
+            }
+        }
         retval.aid = node.id;
         node.box = size.r;
         node.expandLink = node.expandLink || `usecase/get?id=${node.id}`;

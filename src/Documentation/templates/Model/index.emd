@@ -2,7 +2,7 @@
 layout: default
 title: Class <%- model.name %>
 permalink: class-<%= model.name.replace(/\s/, '') %>
-parent: classes
+parent: Classes
 ---
 
 # <%- model.name %>

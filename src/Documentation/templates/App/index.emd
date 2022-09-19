@@ -1,7 +1,8 @@
 ---
-layout: default title: <%= topPackage.name %> Overview
-{# topPackage.name.toLowerCase()-project}
+title: Overview
+nav_order: 1
 ---
+# <%= topPackage.name %>
 
 <%- partial(basedir + '/doc.emd', {obj:topPackage}) %>
 

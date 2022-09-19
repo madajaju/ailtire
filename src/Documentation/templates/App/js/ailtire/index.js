@@ -9,6 +9,7 @@ import AAttribute from './AAttribute.js';
 import AText from './AText.js';
 import AState from './AState.js';
 import AStateNet from './AStateNet.js';
+import AStateCondition from './AStateCondition.js';
 import AStack from './AStack.js';
 import AService from './AService.js';
 import ANetwork from './ANetwork.js';
@@ -35,6 +36,7 @@ export {
     AText,
     AState,
     AStateNet,
+    AStateCondition,
     AAttribute,
     AStack,
     AService,
