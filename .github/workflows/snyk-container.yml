@@ -23,12 +23,12 @@ on:
     - cron: '23 13 * * 4'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   snyk:
     permissions:
-      contents: read # for actions/checkout to fetch code
+      contents: write # for actions/checkout to fetch code
       security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
     runs-on: ubuntu-latest
     steps:
