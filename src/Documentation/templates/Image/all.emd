@@ -1,0 +1,18 @@
+---
+layout: default
+title: Images
+permalink: images
+has_children: true
+nav_order: 7
+---
+# Images
+
+The architecture utilizes a micro-service design pattern for the deployment architecture. The following is a list of 
+the container images for the deployment of the solution.
+
+<% for(let iname in global.ailtire.implementation.images) {
+    let image = global.ailtire.implementation.images[iname];
+    let nospacename = iname.replace(/:/,'--');
+%>
+* [<%= iname %>](image-<%= nospacename %>)
+<% } %>

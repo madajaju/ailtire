@@ -1,0 +1,18 @@
+---
+title: Environment <%= environ.name %>
+permalink: environment-<%= environ.name %>
+parent: Environments
+---
+
+# Environment <%= environ.name %>
+The environment consists of a set of service stacks that can be launched independently or through a seriies of 
+parent stack and child stack relationships.
+
+## Stacks
+<% for(sname in environ.stacks) {
+    let stack = environ.stacks[sname];
+    let pkg = global.packages[stack.pkg];
+-%>
+* [<%= sname %>](environment-<%= pkg.prefix.replace(/\//g, '-') %>-<%= environ.name %>)
+<% } -%>
+    
