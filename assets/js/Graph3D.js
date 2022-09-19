@@ -45,8 +45,8 @@ export class Graph3D {
             })
             .nodeLabel(node => {
                 let label = node.name;
-                if(node.description) {
-                   label = `<div><h1>${node.name}</h1><p>${node.description}</p></div>`;
+                if (node.description) {
+                    label = `<div><h1>${node.name}</h1><p>${node.description}</p></div>`;
                 }
                 return label;
             })
@@ -227,13 +227,13 @@ export class Graph3D {
                 return 40;
             }))
             .d3Force('collide', Graph3D.collide()
-                    .radius((d) => {
-                        if (d.box && typeof d.box === 'number') {
-                            return d.box*2;
-                        } else {
-                            return 20;
-                        }
-                    })
+                .radius((d) => {
+                    if (d.box && typeof d.box === 'number') {
+                        return d.box * 2;
+                    } else {
+                        return 20;
+                    }
+                })
             )
             .d3Force('plane', Graph3D.forceOnPlane());
 
@@ -492,13 +492,26 @@ export class Graph3D {
         function force(alpha) {
             for (let i = 0, n = nodes.length, k = alpha * 0.1; i < n; ++i) {
                 let node = nodes[i];
+                if(node.fx) { node.x = node.fx; node.vx = 0; }
+                if(node.fy) { node.y = node.fy; node.vy = 0; }
+                if(node.fz) { node.z = node.fz; node.vz = 0; }
                 if (node.rbox) {
                     let parent = nodes[nmap[node.rbox.parent]];
-                   /* console.log("Parent:", parent.x, parent.fx, parent.y, parent.fy, parent.z,parent.fz);
-                    if(parent.fx) { parent.x = parent.fx; parent.vx=0;}
-                    if(parent.fy) { parent.y = parent.fy; parent.vy=0;}
-                    if(parent.fz) { parent.z = parent.fz; parent.vz=0;}*/
                     if (parent) { // the Parent is found then go forward. If not then don't.
+                        // IF fx is defined on the parent then force it to the fx to lock the position.
+                        if (parent.fx != undefined) {
+                            parent.x = parent.fx;
+                            parent.vx = 0;
+                        }
+                        if (parent.fy != undefined) {
+                            parent.y = parent.fy;
+                            parent.vy = 0;
+                        }
+                        if (parent.fz != undefined) {
+                            parent.z = parent.fz;
+                            parent.vz = 0;
+                        }
+
                         if (node.rbox.fx != undefined) {
                             node.x = parent.x + node.rbox.fx;
                             node.fx = node.x;
@@ -775,22 +788,22 @@ export class Graph3D {
             if (!nodes) return;
             groups = {};
             // Segment the nodes into groups and calcuate the radius for all.
-            for(let i in nodes) {
-                let node = nodes[i] ;
-                if(node.universe) {
-                    if(!groups.hasOwnProperty(node.universe)) {
+            for (let i in nodes) {
+                let node = nodes[i];
+                if (node.universe) {
+                    if (!groups.hasOwnProperty(node.universe)) {
                         groups[node.universe] = {radii: [], nodes: []};
                     }
                     groups[node.universe].nodes.push(node);
                 } else {
-                    if(!groups.hasOwnProperty("NONE")) {
-                        groups.NONE = {radii: [], nodes:[]};
+                    if (!groups.hasOwnProperty("NONE")) {
+                        groups.NONE = {radii: [], nodes: []};
                     }
                     groups.NONE.nodes.push(node);
                 }
             }
 
-            for(let g in groups) {
+            for (let g in groups) {
                 let group = groups[g];
                 let n = group.nodes.length;
                 for (let i = 0; i < group.nodes.length; ++i) {
