@@ -2,10 +2,11 @@
 layout: default
 title: Environment <%= environ.name %>
 permalink: environment-<%= pkg.prefix.replace(/\//g, '-') %>-<%= environ.name %>
-nav_exclude: true
+parent: environment-<%= environ.name %>
+grand_parent: Environments
 ---
 
-### <%= environ.name %>
+### <%= pkg.name %> <%= environ.name %>
 <%= environ.description %>
 
 #### Deployment

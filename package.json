@@ -1,6 +1,6 @@
 {
   "name": "ailtire",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "UML Architecture by coding and simulating system architectures.",
   "main": "index.js",
   "scripts": {

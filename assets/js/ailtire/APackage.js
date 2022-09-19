@@ -155,7 +155,7 @@ export default class APackage {
                 if (hand.action) {
                     let aname = hand.action.replace('/' + pkg.shortname, pkg.prefix);
                     // window.graph.addLink({source:hname, target: aname, color: 'magenta'});
-                    data.links.push({source: hname, target: aname, color: 'rgba(255,255,0,1)', value: 0.1, width: 5});
+                    data.links.push({source: hname, target: aname, color: '#ffffbb', value: 0.1, width: 5});
                 }
             }
         }
@@ -170,6 +170,7 @@ export default class APackage {
                 description: uc.description,
                 fontSize: 15,
                 view: AUsecase.view3D,
+                rotate: {x: theta},
             }
             data.nodes[uname] = node;
             ucnodes.push(node);
@@ -177,13 +178,13 @@ export default class APackage {
                 data.links.push({
                     source: uname,
                     target: pkg.prefix + '/' + uc.method,
-                    color: 'rgba(255,255,0,1)',
+                    color: '#ffffbb',
                     value: 0.1,
                     width: 5
                 });
             }
         }
-        layoutRowColumn(data.nodes[pkg.shortname], ucnodes, size.usecases, "front");
+        layoutRowColumn(data.nodes[pkg.shortname], ucnodes, size.usecases, "bottom");
 
         let cnodes = [];
         for (let cname in pkg.classes) {
@@ -209,28 +210,15 @@ export default class APackage {
                 id: pname,
                 name: spkg.name,
                 description: spkg.description,
-                rotate: {x: theta},
-                rbox: {
-                    parent: pkg.shortname, x: bbox.x, z: bbox.z,
-                    y: {min: bbox.y.min - 50, max: bbox.y.min - 50}
-                },
+                rotate: {y: -theta},
                 color: spkg.color,
                 view: APackage.view3D,
             }
             data.nodes[pname] = node;
             spnodes.push(node);
-            for (let i in spkg.depends) {
-                data.links.push({
-                    source: pname,
-                    target: spkg.depends[i],
-                    color: 'rgba(255,255,0,1)',
-                    value: 1.0,
-                    width: 3
-                });
-            }
         }
 
-        layoutRowColumn(data.nodes[pkg.shortname], spnodes, size.subpackages, "bottom");
+        layoutRowColumn(data.nodes[pkg.shortname], spnodes, size.subpackages, "left");
 
         for (let pname in pkg.depends) {
             let spkg = pkg.depends[pname];
@@ -239,15 +227,17 @@ export default class APackage {
                 name: spkg.name,
                 description: spkg.description,
                 rbox: {
-                    parent: pkg.shortname, y: bbox.y, z: bbox.z,
-                    x: {min: bbox.x.min - 80, max: bbox.x.min - 80}
+                    parent: pkg.shortname,
+                    y: {min: bbox.y.max, max: bbox.y.max*2},
+                    z: bbox.z,
+                    fx: bbox.x.min - 150,
                 },
                 color: spkg.color,
                 rotate: {y: -theta},
                 view: APackage.view3D,
             }
             data.nodes[pname] = node;
-            data.links.push({source: pkg.shortname, target: pname, value: 0.1, color: 'rgba(255,255,255,1)', width: 5});
+            data.links.push({ source: pkg.shortname, target: pname, color: '#ffffbb', value: 1.0, width: 2 });
         }
         if (mode === 'add') {
             window.graph.addData(data.nodes, data.links);
@@ -324,7 +314,7 @@ export default class APackage {
                 onClick: (event) => {
                     let distance = Math.sqrt((size.w / 2) ** 2 + (size.h / 2) ** 2) * 2;
                     window.graph.graph.cameraPosition(
-                        {x: 0, y: 0, z: distance}, // new position
+                        {x: 0, y: -distance, z: 0}, // new position
                         {x: 0, y: 0, z: 0}, // lookAt ({ x, y, z })
                         1000
                     );
@@ -403,9 +393,9 @@ export default class APackage {
 
         /* X is always the width, Y is height with X, Y is width with Z, Z is always h */
         let fontWidth = pkg.name.length * APackage.default.fontSize / 2;
-        const wnum = Math.max(ibox.box.w, ubox.box.w, cbox.box.w, pbox.box.w, 100, fontWidth);
-        const hnum = Math.max(hbox.box.w, ubox.box.h, cbox.box.h, dbox.box.w, 100);
-        const dnum = Math.max(ibox.box.h, hbox.box.h, pbox.box.h, dbox.box.h, 100);
+        const wnum = Math.max(ibox.box.w, ubox.box.w, cbox.box.w, 100, fontWidth);
+        const hnum = Math.max(hbox.box.w, ubox.box.h, cbox.box.h, dbox.box.h, pbox.box.h, 100);
+        const dnum = Math.max(ibox.box.h, hbox.box.h, pbox.box.w, dbox.box.w, 100);
 
         const radius = Math.max(Math.sqrt(wnum ** 2 + hnum ** 2), Math.sqrt(hnum ** 2 + dnum ** 2), Math.sqrt(wnum ** 2 + dnum ** 2));
         return {
@@ -591,6 +581,17 @@ function layoutRowColumn(parentNode, nodes, size, direction) {
                 fx: bbox.x.max,
                 fy: bbox.y.max - offset.h/2 - (row * offset.h),
                 fz: bbox.z.max - offset.w/2 - (col * offset.w),
+            }
+        } else if (direction === 'left') {
+            let offset = {
+                w: Math.max(parentNode.cube.z / (size.box.cols + 1), size.stats.w.max) * 1.10,
+                h: Math.max(parentNode.cube.y / (size.box.rows + 1), size.stats.h.max) * 1.10
+            }
+            node.rbox = {
+                parent: prevNode.id,
+                fx: bbox.x.min - size.stats.d.max,
+                fy: bbox.y.max - offset.h / 2 - (row * offset.h),
+                fz: bbox.z.max - offset.w / 2 - (col * offset.w),
             }
         } else if (direction === 'back') {
             let offset = {

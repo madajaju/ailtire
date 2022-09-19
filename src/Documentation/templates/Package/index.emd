@@ -1,13 +1,14 @@
 <% let packageNoSpaces = package.name.replace(/ /g, ''); -%>
 ---
-layout: default
-title: <%= package.name %>
+title: Package <%= package.name %>
 permalink: package-<%= package.prefix.replace(/\//g, '-') %>
 <% if(parent) { -%>
-parent: <%= parent.name %>
+parent: Package <%= parent.name %>
+<% } else { -%>
+nav_order: 4
 <% } -%>
 <% if(grand_parent) { -%>
-grand_parent: <%= grand_parent.name %>
+grand_parent: Package <%= grand_parent.name %>
 <% } -%>
 <% if(package.subpackages) { -%>
 has_children: true

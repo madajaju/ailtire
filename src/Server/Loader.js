@@ -291,7 +291,8 @@ const loadDeploy = (pkg, prefix, dir) => {
                 tag: `${pkg.deploy.name}:${env}`,
                 definition: compose,
                 file: contexts[env].file,
-                design: design
+                design: design,
+                pkg: pkg.name.replace(/\s/g,''),
             };
             if (!global.hasOwnProperty('deploy')) {
                 global.deploy = {envs: {}};

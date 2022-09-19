@@ -18,6 +18,16 @@ module.exports = {
     model: (model, output) => {
         modelGenerator(model, output, '');
     },
+    images: (images, output) => {
+        for(let iname in images) {
+            imageGenerator(images[iname], output, '');
+        }
+    },
+    environments: (environments, output) => {
+        for(let ename in environments) {
+            environmentGenerator({name: ename, stacks:environments[ename]}, output, '');
+        }
+    },
     package: (package, output) => {
         packageGenerator(package, output, '');
     },
@@ -82,8 +92,23 @@ const appGenerator = (app, output) => {
     };
     addDocs(app, files, output, "./");
     Generator.process(files, output);
+    
+    for(let iname in global.ailtire.implementation.images) {
+        imageGenerator(global.ailtire.implementation.images[iname], parent);
+    }
 };
 const indexGenerator = (name, output) => {
+    let services = {};
+    for(let ename in global.deploy.envs) {
+        let environ = global.deploy.envs[ename];
+        for(let sname in environ) {
+            let service = environ[sname];
+            if(!services.hasOwnProperty(sname)) {
+                services[sname] = {};
+            }
+            services[sname][ename] = service;
+        }
+    }
     let files = {
         context: {
             basedir: output,
@@ -94,6 +119,8 @@ const indexGenerator = (name, output) => {
             topPackage: global.topPackage,
             packageName: global.topPackage.name,
             shortname: '',
+            environments: global.deploy.envs,
+            services: services,
             version: global.ailtire.config.version
         },
         targets: {
@@ -102,8 +129,11 @@ const indexGenerator = (name, output) => {
             './plantuml.jar': {copy: '/templates/App/plantuml.jar'},
             './usecases.puml': {template: '/templates/Package/UseCases.puml'},
             './subpackage.puml': {template: '/templates/Package/SubPackage.puml'},
-            './usecases.md': {template: '/templates/App/UseCases.emd'},
-            './classes.md': {template: '/templates/App/classes.emd'},
+            './usecases.md': {template: '/templates/UseCase/all.emd'},
+            './classes.md': {template: '/templates/Model/all.emd'},
+            './images.md': {template: '/templates/Image/all.emd'},
+            './environments.md': {template: '/templates/Environment/all.emd'},
+//             './services.md': {template: '/templates/Service/all.emd'},
             './_config.yml': {template: '/templates/App/_config.yml'},
         },
     };
@@ -127,6 +157,27 @@ const modelGenerator = (model, output, urlPath) => {
         }
     };
     addDocs(model, files, output + urlPath, urlPath);
+    Generator.process(files, output + urlPath);
+};
+const imageGenerator = (image, output, urlPath) => {
+    let package = global.topPackage;
+    try {
+        package = APackage.getPackage(image.pkg);
+    } 
+    catch(e) {
+        
+    }
+    
+    let files = {
+        context: {
+            image: image,
+            package: package,
+            imagenospace: image.name.replace(/:/g, '--').toLowerCase(),
+        },
+        targets: {
+            './images/:imagenospace:/index.md': {template: '/templates/Image/index.emd'},
+        }
+    };
     Generator.process(files, output + urlPath);
 };
 const packageGenerator = (package, output, urlPath, parent, grand_parent) => {
@@ -331,7 +382,21 @@ const actorsGenerator = (actors, output) => {
     addDocsByDir(actors, files, inputdir, output, "./actors");
     Generator.process(files, output);
 };
+const environmentGenerator = (env, output, urlPath) => {
 
+    let files = {
+        context: {
+            environ: env,
+            envName: env.name,
+            pageDir: urlPath
+        },
+        targets: {
+            'environments/:envName:/index.md': {template: '/templates/Environment/index.emd'},
+        },
+    };
+    // Get the doc from the package and add them to the targets list
+    Generator.process(files, output + urlPath);
+};
 const environGenerator = (pkg, env, output, urlPath) => {
 
     let deploy = {

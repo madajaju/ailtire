@@ -1,4 +1,4 @@
-import {AText, APackage, AModel, AAction, AObject,A3DGraph, ASelectedHUD} from "./index.js";
+import {AMainWindow, AText, APackage, AModel, AAction, AObject,A3DGraph, ASelectedHUD} from "./index.js";
 
 const scolor = {
     started: "#00ffff",
@@ -367,6 +367,7 @@ export default class AScenario {
     static handle(result) {
         AScenario.viewDeep3D(result, 'new');
         AScenario.showDetail(result);
+        AMainWindow.currentView = "scenario"
 
         // Scenario List for simulation.
         let records = [];

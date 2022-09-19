@@ -36,6 +36,8 @@ module.exports = {
         mdGenerator.index(config.prefix, apath + '/docs');
         mdGenerator.package(global.topPackage, apath + '/docs');
         mdGenerator.actors(global.actors, apath + '/docs');
+        mdGenerator.images(global.ailtire.implementation.images, apath + '/docs');
+        mdGenerator.environments(global.deploy.envs, apath + '/docs');
         console.log("Built the Documentation");
     },
     doc: (config) => {
