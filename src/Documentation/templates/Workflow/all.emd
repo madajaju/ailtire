@@ -1,0 +1,15 @@
+---
+layout: default
+title: Workflows
+permalink: workflows
+has_children: true
+nav_order: 9
+---
+# Workflows
+
+<% 
+for(let wname in workflows) { 
+-%>
+* [<%= wname %>](workflow-<%= wname %>)
+<%}%>
+    
