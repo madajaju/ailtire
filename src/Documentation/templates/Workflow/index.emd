@@ -1,0 +1,23 @@
+---
+title: <%= workflow.name %>
+permalink: workflow-<%= workflow.name.replace(/\s/g, '') %>
+parent: Workflows
+---
+# <%= workflow.name %>
+
+<%= workflow.description %>
+
+![Workflow Diagram](./<%= workflow.name.replace(/\s/g,'') %>.png)
+
+## Activities
+
+<% for(let aname in workflow.activities) {
+    let activity = workflow.activities[aname];
+    if(activity.type) {
+-%>
+* [<%- aname %>](<%- activity.type %>-<%- aname.replace(/\s/g,'')%>) - <%- activity.description %>
+<% 
+    } else { -%>
+* <%- aname %> - <%- activity.description %>
+<% }
+} -%>

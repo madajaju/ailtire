@@ -33,8 +33,9 @@ const analyzeApp = app => {
     for (let i in global.packages) {
         checkPackage(global.packages[i]);
         checkDeployment(global.deploy, global.ailtire.implementation.images);
-        analyzeClasses(global.classes);
     }
+    analyzeClasses(global.classes);
+    checkWorkflows(global.workflows);
 }
 const analyzeClasses = classes => {
     // go through each association and set the dependant map on the type of the association.
@@ -129,7 +130,6 @@ let reservedDirs = {
     },
     models: (pkg, prefix, dir) => {
         // This stores the pkg classes.
-
         // Process the Model Include Files
         processModelIncludefile(prefix, dir);
         pkg.classes = {};
@@ -159,6 +159,9 @@ let reservedDirs = {
             loadClassMethods(myClass, modelDir);
         }
     },
+    workflows: (pkg, prefix, dir) => {
+        loadWorkflows(pkg, prefix, dir);
+    },
     usecases: (pkg, prefix, dir) => {
         pkg.usecases = {};
         let usecases = getDirectories(dir);
@@ -173,6 +176,29 @@ let reservedDirs = {
             global.usecases[myUC.name.replace(/\s/g, '')] = myUC;
             loadDocs(myUC, ucDir + '/doc');
             loadUCScenarios(myUC, ucDir);
+        }
+    }
+};
+
+const loadWorkflows = (pkg, prefix, dir) => {
+    if (fs.existsSync(dir)) {
+        if (!pkg.hasOwnProperty('workflows')) {
+            pkg.workflows = {};
+        }
+        let files = getFiles(dir);
+        for (let i in files) {
+            let file = files[i];
+            let workflow = require(file);
+            pkg.workflows[workflow.name] = workflow;
+            workflow.pkg = pkg.shortname;
+            if (!global.hasOwnProperty('workflows')) {
+                global.workflows = {};
+            }
+            if (!global.workflows.hasOwnProperty(workflow.name)) {
+                global.workflows[workflow.name] = workflow;
+            } else {
+                console.error("Workflow already defined:", workflow.name);
+            }
         }
     }
 };
@@ -292,7 +318,7 @@ const loadDeploy = (pkg, prefix, dir) => {
                 definition: compose,
                 file: contexts[env].file,
                 design: design,
-                pkg: pkg.name.replace(/\s/g,''),
+                pkg: pkg.name.replace(/\s/g, ''),
             };
             if (!global.hasOwnProperty('deploy')) {
                 global.deploy = {envs: {}};
@@ -450,6 +476,45 @@ const loadDirectory = (dir, prefix) => {
     return global.packages[packageNameNoSpace];
 };
 
+const checkWorkflows = (workflows) => {
+    for (wname in workflows) {
+        let workflow = workflows[wname];
+        for (let aname in workflow.activities) {
+            let activity = workflow.activities[aname];
+            // Check if the activity name is a usecase, scenario, or other workflow.
+            let anospace = aname.replace(/\s/g, '');
+            if (aname !== "Init") {
+                if (global.workflows.hasOwnProperty(aname)) {
+                    activity.obj = global.workflows[anospace];
+                    activity.type = "workflow";
+                } else if (global.usecases.hasOwnProperty(anospace)) {
+                    activity.obj = global.usecases[aname];
+                    activity.type = "usecase";
+                } else {
+                    let found = false;
+                    for (let uname in global.usecases) {
+                        let uc = global.usecases[uname];
+                        if (uc.scenarios.hasOwnProperty(anospace)) {
+                            activity.obj = uc.scenarios[anospace];
+                            activity.type = "scenario";
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        console.error(`Activity "${aname}" not found for workflow "${wname}"`);
+                    }
+                }
+            }
+            for(nname in activity.next) {
+                let next = activity.next[nname];
+                if(!workflow.activities.hasOwnProperty(nname)) {
+                    console.error("Activity not found in the workflow:", nname, " for next activity in ", aname);
+                }
+            }
+        }
+    }
+}
 const checkDeployment = (deployments, images) => {
     let imageRepo = global.ailtire.implementation.images;
     // Make sure that every services has a valid image that can be built.
@@ -704,6 +769,7 @@ const checkPackage = (pkg) => {
         }
         global.events[ename].handlers[pkg.prefix] = handler;
     }
+    //
 };
 const checkUseCase = (pkg, usecase) => {
     // Make sure that there is an actor for the actors in a use case.
