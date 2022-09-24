@@ -2,7 +2,7 @@ const path = require('path');
 const api = require('../../Documentation/api');
 module.exports = {
     friendlyName: 'create',
-    description: 'Create an UseCase',
+    description: 'Create an Workflow',
     static: true,
     inputs: {
         name: {
@@ -11,7 +11,7 @@ module.exports = {
             required: true
         },
         package: {
-            description: 'The name of the package',
+            description: 'The name of the package for the workflow',
             type: 'string',
             required: false
         },
@@ -26,8 +26,8 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
-        api.usecase(inputs.package, inputs.name, '.');
-        return `UseCase: ${inputs.name} created`;
+        api.workflow(inputs.package, inputs.name, '.');
+        return `Workflow: ${inputs.name} created`;
     }
 };
 

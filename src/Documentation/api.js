@@ -31,6 +31,9 @@ module.exports = {
     method: (pkg, model, name, output) => {
         methodGenerator(pkg, model, name, output);
     },
+    workflow: (pkg, workflow, output) => {
+        workflowGenerator(pkg, workflow, output);
+    }
 };
 /* Locking for action to have the following
 action = {
@@ -50,6 +53,7 @@ const appGenerator = (app, output) => {
             'api/index.js': {template: '/templates/App/apiIndex.js'},
             'api/interface': {folder: true},
             'api/handlers': {folder: true},
+            'api/workflows': {folder: true},
             'test': {folder: true},
             'views': {folder: true},
             'actors': {folder: true},
@@ -137,6 +141,7 @@ const packageGenerator = (pkg, output) => {
                     targets: {
                         ':nameNoSpace:/index.js': {template: '/templates/Package/index.js'},
                         ':nameNoSpace:/handlers': {folder: true},
+                        ':nameNoSpace:/workflows': {folder: true},
                         ':nameNoSpace:/interface': {folder: true},
                         ':nameNoSpace:/models': {folder: true},
                         ':nameNoSpace:/deploy': {folder: true},
@@ -194,6 +199,26 @@ const usecaseGenerator = (pkg, name, output) => {
     }
     return {name: name, dir: ucDir};
 };
+const workflowGenerator = (pkg, name, output) => {
+    let pkgObj = packageGenerator({name: pkg}, output);
+    let nameNoSpace = name.replace(/\s/g, '');
+    let ucFile = pkgObj.dir + `/workflows/${nameNoSpace}.js`;
+    if(!existsDir(ucFile)) {
+        let files = {
+            context: {
+                name: name,
+                nameNoSpace: nameNoSpace,
+                package: pkgObj
+            },
+            targets: {
+                './workflows/:nameNoSpace:.js': {template: '/templates/Workflows/workflow.ejs'},
+            }
+        };
+        Generator.process(files, '.');
+    }
+    return {name: name, dir: pkgObj.dir + '/workflows'};
+};
+
 const scenarioGenerator = (pkg, usecase, name, output) => {
     let targetDir = output;
     let workingDir = process.cwd();

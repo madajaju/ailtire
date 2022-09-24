@@ -40,6 +40,11 @@ module.exports = {
             actorGenerator(actors[i], output + '/actors')
         }
     },
+    workflows: (workflows, output) => {
+        for(let i in workflows) {
+            workflowGenerator(workflows[i], output + '/workflows')
+        }
+    },
     app: (app, output) => {
         appGenerator(app, output);
     }
@@ -121,7 +126,8 @@ const indexGenerator = (name, output) => {
             shortname: '',
             environments: global.deploy.envs,
             services: services,
-            version: global.ailtire.config.version
+            version: global.ailtire.config.version,
+            workflows: global.workflows
         },
         targets: {
             './index.md': {template: '/templates/App/index.emd'},
@@ -133,11 +139,25 @@ const indexGenerator = (name, output) => {
             './classes.md': {template: '/templates/Model/all.emd'},
             './images.md': {template: '/templates/Image/all.emd'},
             './environments.md': {template: '/templates/Environment/all.emd'},
+            './workflows.md': {template: '/templates/Workflow/all.emd'},
 //             './services.md': {template: '/templates/Service/all.emd'},
             './_config.yml': {template: '/templates/App/_config.yml'},
         },
     };
     addDocs(global.topPackage, files, output, '');
+    Generator.process(files, output);
+};
+const workflowGenerator = (workflow, output) => {
+    let files = {
+        context: {
+            workflow: workflow,
+            workFlowName: workflow.name.replace(/\s/g,'')
+        },
+        targets: {
+            './:workFlowName:.md': {template: '/templates/Workflow/index.emd'},
+            './:workFlowName:.puml': {template: '/templates/Workflow/workflow.puml'},
+        },
+    };
     Generator.process(files, output);
 };
 const modelGenerator = (model, output, urlPath) => {

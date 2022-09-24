@@ -26,7 +26,7 @@ module.exports = {
 
     fn: function (inputs, env) {
         // Find the scenario from the usecase.
-        let ucname = inputs.id;
+        let ucname = inputs.id.replace(/\s/g,'');
         if(global.usecases.hasOwnProperty(ucname)) {
             let usecase = global.usecases[ucname];
             if(env.res) {
