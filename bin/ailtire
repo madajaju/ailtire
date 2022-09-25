@@ -4,7 +4,7 @@ const program = require('commander');
 require('./lib/subcommander');
 
 program
-    .version('0.6.0')
+    .version('0.6.1')
     .command('actor <cmd> [arguments]', 'Manage an actor')
     .command('app <cmd> [arguments]', 'Manage an applications')
     .command('method <cmd> [arguments]', 'Manage a method')
@@ -12,4 +12,5 @@ program
     .command('package <cmd> [arguments]', 'Manage a package')
     .command('scenario <cmd> [arguments]', 'Manage a scenario')
     .command('usecase <cmd> [arguments]', 'Manage a usecase')
+    .command('workflow <cmd> [arguments]', 'Manage a workflows')
     .parse(process.argv);

@@ -201,6 +201,7 @@ const usecaseGenerator = (pkg, name, output) => {
 };
 const workflowGenerator = (pkg, name, output) => {
     let pkgObj = packageGenerator({name: pkg}, output);
+    console.log(pkgObj);
     let nameNoSpace = name.replace(/\s/g, '');
     let ucFile = pkgObj.dir + `/workflows/${nameNoSpace}.js`;
     if(!existsDir(ucFile)) {
@@ -211,10 +212,10 @@ const workflowGenerator = (pkg, name, output) => {
                 package: pkgObj
             },
             targets: {
-                './workflows/:nameNoSpace:.js': {template: '/templates/Workflows/workflow.ejs'},
+                './workflows/:nameNoSpace:.js': {template: './templates/Workflow/index.ejs'},
             }
         };
-        Generator.process(files, '.');
+        Generator.process(files, pkgObj.dir);
     }
     return {name: name, dir: pkgObj.dir + '/workflows'};
 };
