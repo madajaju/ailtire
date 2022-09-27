@@ -11,7 +11,7 @@ module.exports = {
         buildBaseImages(dir);
     },
     buildService: (pkg, opts) => {
-        return build(pkg, opts);
+        return buildEngine(pkg, opts);
     },
     serviceStartFile: (pkg, opts) => {
         return buildStartFile(pkg,opts);
@@ -29,16 +29,23 @@ function buildBaseImages(dir) {
     // read the directory and get the
     let ndir = path.resolve(dir);
     let bpath = path.resolve(ndir + '/build.js');
-    if(isFile(bpath)) {
-        let tbuild = require(bpath);
-        for(let name in tbuild) {
-            let service = tbuild[name];
-            service.name = name;
-            service.rootdir = ndir;
-            buildImage(service);
+    try {
+        if (isFile(bpath)) {
+            let tbuild = require(bpath);
+            if(tbuild.tag !== undefined) {
+                for (let name in tbuild) {
+                    let service = tbuild[name];
+                    service.name = name;
+                    service.rootdir = ndir;
+                    buildImage(service);
+                }
+            }
         }
     }
-    // Look for other directories.
+    catch(e) {
+        console.error("No build.js found search directories");
+    }
+    // Look in sub-directories
     let dirs = getDirectories(ndir);
     for(let i in dirs) {
         let dirname = dirs[i];
@@ -51,7 +58,9 @@ function buildBaseImages(dir) {
                     let service = build[name];
                     service.name = name;
                     service.rootdir = dirname;
-                    buildImage(service);
+                    if(service.name !== undefined) {
+                        buildImage(service);
+                    }
                 }
             }
         }
@@ -116,8 +125,8 @@ function buildStartFile(pkg,opts) {
 
     return {composeFile: composeFile };
 }
-function build(pkg, opts) {
-    // Build process will build an docker image that will start the stack if there is one.
+function buildEngine(pkg, opts) {
+    // Build process will buildEngine an docker image that will start the stack if there is one.
     // let apath = path.resolve(pkg.deploy.dir + '/deploy.js');
     // if(fs.existsSync(apath)) {
     // let deploy = require(apath);
@@ -175,10 +184,10 @@ function buildPackage(pkg, opts) {
                 }
             }
         }
-        build(pkg, opts);
+        buildEngine(pkg, opts);
     }
 
-    // Iterate over the subsystems and build the docker images
+    // Iterate over the subsystems and buildEngine the docker images
     if(opts.recursive) {
         for (let i in pkg.subpackages) {
             buildPackage(pkg.subpackages[i], opts);
@@ -193,21 +202,22 @@ function buildImage(build) {
         env[name] = build.env[name];
     }
 
-    console.log("Building", build.name);
     let dirname = path.resolve(`${build.rootdir}/${build.dir}`);
 
-    console.log("Building from directory", dirname);
-    let proc = spawn('docker', ['build', '-t', build.tag, '-f', build.file, '.'], {
-        cwd: dirname,
-        stdio: [process.stdin, process.stdout, process.stderr],
-        env: process.env
-    });
-    if(proc.status != 0) {
-        console.error("Error Building Service Container", build.name);
-        console.error(proc.error);
-        if(proc.stdout) {
-            console.error(proc.stdout.toString('utf-8'));
-            console.error(proc.stderr.toString('utf-8'));
+    console.log(`Building ${build.name} from directory ${dirname}`);
+    if(build.tag !== undefined && build.file !== undefined) {
+        let proc = spawn('docker', ['build', '-t', build.tag, '-f', build.file, '.'], {
+            cwd: dirname,
+            stdio: [process.stdin, process.stdout, process.stderr],
+            env: process.env
+        });
+        if (proc.status != 0) {
+            console.error("Error Building Service Container", build.name);
+            console.error(proc.error);
+            if (proc.stdout) {
+                console.error(proc.stdout.toString('utf-8'));
+                console.error(proc.stderr.toString('utf-8'));
+            }
         }
     }
 }

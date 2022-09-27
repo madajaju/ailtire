@@ -1,6 +1,9 @@
 module.exports = {
-    tag: 'ailtire_simple_service:latest',
-    name: 'simple_service',
-    dockerfile: 'Dockerfile',
-    env: { }
+    simple_service: {
+        tag: 'ailtire_simple_service:latest',
+        name: 'simple_service',
+        file: 'Dockerfile',
+        dir: '.',
+        env: {}
+    }
 };

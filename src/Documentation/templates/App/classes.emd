@@ -11,4 +11,4 @@ for(let i in cnames) {
     let cname = cnames[i];
 -%>
 * [<%= cname %>](class-<%= cname %>)
-<% } %>
+<% } -%>

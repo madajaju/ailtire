@@ -16,7 +16,7 @@ micro-services using the container ecosystem.
 ```shell
 ailtire package <command> [args]
 
-ailtire package build --env <environment name> --name <name of the build>
+ailtire package buildEngine --env <environment name> --name <name of the buildEngine>
 ailtire package create --name <package name>
 ailtire package docs
 ailtire package install --env <environment name> --name <name of the installation>
@@ -27,10 +27,10 @@ ailtire package uninstall --env <environment name> --name <name of the installat
 ## Description
 
 Used to manage the packages in the ailtire application using the ailtire framework. Once a package is created it
-can be built using the [ailtire package build](cli-package-build) command. This command will create containers
+can be built using the [ailtire package buildEngine](cli-package-buildEngine) command. This command will create containers
 that can e used to deploy the application using the [ailtire package install](cli-package-install) command.
 
-* [ailtire package build](cli-package-build) - Build the container images for the package based on the deployment
+* [ailtire package buildEngine](cli-package-buildEngine) - Build the container images for the package based on the deployment
   architecture in the [directory structure](directory).
 * [ailtire package create](cli-package-create) - Create an package in the ailtire framework. Create
   the [directory structure](directory) for the package.
@@ -47,7 +47,7 @@ information on the directory structure see [directory structure](directory) for 
 
 ## See Also
 
-* [ailtire package build](cli-package-build)
+* [ailtire package buildEngine](cli-package-buildEngine)
 * [ailtire package create](cli-package-create)
 * [ailtire package get](cli-package-get)
 * [ailtire package install](cli-package-install)

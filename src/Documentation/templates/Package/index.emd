@@ -1,5 +1,6 @@
-<% let packageNoSpaces = package.name.replace(/ /g, ''); -%>
+<% let packageNoSpaces = package.name.replace(/\s/g, ''); -%>
 ---
+layout: default
 title: Package <%= package.name %>
 permalink: package-<%= package.prefix.replace(/\//g, '-') %>
 <% if(parent) { -%>

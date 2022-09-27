@@ -1,6 +1,9 @@
 module.exports = {
-    tag: 'ailtire_sleep:latest',
-    name: 'sleep',
-    dockerfile: 'Dockerfile',
-    env: { }
+    sleep: {
+        tag: 'ailtire_sleep:latest',
+        name: 'sleep',
+        file: 'Dockerfile',
+        dir: '.',
+        env: {}
+    }
 };

@@ -16,10 +16,10 @@ Create a package in the application for a specific package in the application.
 ailtire package install --help 
 # ailtire package install --name <package name>  --env <environment name>
 
-# Install the containers built during the build command.
+# Install the containers built during the buildEngine command.
 ailtire package install --name "My Package"  --env "dev"
 
-# Install the contains build during the build command for all of the subpackages and package
+# Install the contains buildEngine during the buildEngine command for all of the subpackages and package
 ailtire package install --name "My Package"  --env "dev" -recursive
 ````
 

@@ -23,7 +23,7 @@ parent: UseCases
 ## Extended Use Cases
 
 <% for(let ucname in usecase.extended) {
-%>
+-%>
 * [<%= ucname %>](usecase-<%= ucname %>)
 <% }
 } %>
@@ -34,7 +34,7 @@ parent: UseCases
 
 <% for(let i in usecase.extends) {
 let ucname = usecase.extends[i];
-%>
+-%>
 * [<%= ucname %>](usecase-<%= ucname.replace(/\s/g,'') %>)
 <% }
 } %>
@@ -45,7 +45,7 @@ let ucname = usecase.extends[i];
 ## Included Use Cases
 
 <% for(let ucname in usecase.included) {
-%>
+-%>
 * [<%= ucname %>](usecase-<%= ucname %>)
 <% }
 } %>
@@ -55,7 +55,7 @@ let ucname = usecase.extends[i];
 ## Includes Use Cases
 
 <% for(let ucname in usecase.includes) {
-%>
+-%>
 * [<%= ucname %>](usecase-<%= ucname %>)
   <% }
   } %>

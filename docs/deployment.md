@@ -28,7 +28,7 @@ deploy
      ...
    mservice3 - Microservice definition for mservice1
      ...
-   build.js - Build script for containers
+   buildEngine.js - Build script for containers
    deploy.js - Deployment defintion of the stack defined in the docker-compose.yaml file.
    services.js - Servies in the stack definition.
    docker-compose.yaml - Definition of the stack of micro-services, networks, and storage.
@@ -165,7 +165,7 @@ module.exports = {
 ### MircoService definition
 
 Each microservice has the name of the microservice and the image name is the fully qualified name of the microservice
-from the build of the application see [ailtire app build](cli-app-build) command for additional information. There is
+from the buildEngine of the application see [ailtire app buildEngine](cli-app-buildEngine) command for additional information. There is
 additional information in the service like environment variables that are used to manage stacks of stacks and services.
 
 #### Environment Variables
@@ -217,11 +217,11 @@ The environment variables all start with the prefix AILTIRE_.
 * AILTIRE_PARENT_NETWORK - The name of the parent network. Used for micro-segmentation meshes.
 
 ## See Also
-* [ailtire app build](cli-app-build)
+* [ailtire app buildEngine](cli-app-buildEngine)
 * [ailtire app install](cli-app-install)
 * [ailtire app uninstall](cli-app-uninstall)
 * [ailtire app status](cli-app-status)
-* [ailtire package build](cli-package-build)
+* [ailtire package buildEngine](cli-package-buildEngine)
 * [ailtire package install](cli-package-install)
 * [ailtire package uninstall](cli-package-uninstall)
 * [Directory Structure](directory)

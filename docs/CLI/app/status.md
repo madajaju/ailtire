@@ -15,7 +15,7 @@ Get the status of running application in a specific environment.
 
 ```shell
 # Build containers for the ailtire application
-ailtire app status --name <build name>  --env <Environment name>
+ailtire app status --name <buildEngine name>  --env <Environment name>
 ```
 
 ## Description

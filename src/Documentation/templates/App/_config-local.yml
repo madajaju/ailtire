@@ -1,0 +1,21 @@
+remote_theme: just-the-docs/just-the-docs
+title: <%= topPackage.name %> Architecture v<%= version %>
+description: <%= topPackage.description %>
+google_analytics: G-SDCPXLJ9YG
+
+theme: just-the-docs
+host: 0.0.0.0
+baseurl: /docs
+permalink: :path/
+
+plugins:
+  - jekyll-coffeescript
+  - jekyll-default-layout
+  - jekyll-gist
+  - jekyll-github-metadata
+  - jekyll-optional-front-matter
+  - jekyll-paginate
+  - jekyll-readme-index
+  - jekyll-titles-from-headings
+  - jekyll-relative-links
+  - github-pages

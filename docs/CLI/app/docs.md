@@ -21,7 +21,7 @@ ailtire app docs
 
 ## Description
 
-This command will build the docs directory from the architecture defined in the directory structure
+This command will buildEngine the docs directory from the architecture defined in the directory structure
 and in the doc directory for each architectural element.
 
 ## Generated Artifacts

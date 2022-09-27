@@ -97,7 +97,7 @@ const appGenerator = (app, output) => {
     };
     addDocs(app, files, output, "./");
     Generator.process(files, output);
-    
+
     for(let iname in global.ailtire.implementation.images) {
         imageGenerator(global.ailtire.implementation.images[iname], parent);
     }
@@ -142,6 +142,7 @@ const indexGenerator = (name, output) => {
             './workflows.md': {template: '/templates/Workflow/all.emd'},
 //             './services.md': {template: '/templates/Service/all.emd'},
             './_config.yml': {template: '/templates/App/_config.yml'},
+            './_config-local.yml': {template: '/templates/App/_config-local.yml'},
         },
     };
     addDocs(global.topPackage, files, output, '');
@@ -183,11 +184,11 @@ const imageGenerator = (image, output, urlPath) => {
     let package = global.topPackage;
     try {
         package = APackage.getPackage(image.pkg);
-    } 
-    catch(e) {
-        
     }
-    
+    catch(e) {
+
+    }
+
     let files = {
         context: {
             image: image,
@@ -308,7 +309,7 @@ const useCaseGenerator = (usecase, output, urlPath) => {
         },
         targets: {
             ':usecaseNameNoSpace:/index.md': {template: '/templates/UseCase/index.emd'},
-            ':usecaseNameNoSpace:/Activities.puml': {template: '/templates/UseCase/Activities.puml'},
+            ':usecaseNameNoSpace:/activities.puml': {template: '/templates/UseCase/Activities.puml'},
         },
     };
     // Get the doc from the package and add them to the targets list
@@ -395,7 +396,7 @@ const actorsGenerator = (actors, output) => {
         },
         targets: {
             '/index.md': {template: '/templates/Actor/all.emd'},
-            '/Actors.puml': {template: '/templates/Actor/All.puml'},
+            '/actors.puml': {template: '/templates/Actor/All.puml'},
         },
     };
     let inputdir = global.ailtire.config.baseDir + '/actors';
@@ -640,7 +641,7 @@ const actorGenerator = (actor, output) => {
         },
         targets: {
             ':actorNameNoSpace:/index.md': {template: '/templates/Actor/index.emd'},
-            ':actorNameNoSpace:/UseCase.puml': {template: '/templates/Actor/UseCase.puml'},
+            ':actorNameNoSpace:/usecase.puml': {template: '/templates/Actor/UseCase.puml'},
         },
     };
     // Get the doc from the package and add them to the targets list

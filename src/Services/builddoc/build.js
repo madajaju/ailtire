@@ -1,6 +1,9 @@
 module.exports = {
-    tag: 'ailtire_builddoc:md',
-    name: 'builddoc',
-    dockerfile: 'Dockerfile',
-    env: { }
+    builddoc: {
+        tag: 'ailtire_builddoc:md',
+        name: 'builddoc',
+        file: 'Dockerfile',
+        dir: '.',
+        env: {}
+    }
 };

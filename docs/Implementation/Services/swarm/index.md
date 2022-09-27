@@ -68,7 +68,7 @@ A Log is the stdout and stderr of a running Service.
 ## Status
 
 A Status object consists of information about an individual service. It includes the type of service (Service or Stack),
-status of the service, name of the service, and the last line from the message log. This can be used to build a 
+status of the service, name of the service, and the last line from the message log. This can be used to buildEngine a 
 management portal for the service.
 
 

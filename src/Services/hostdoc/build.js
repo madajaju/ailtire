@@ -1,6 +1,9 @@
 module.exports = {
-    tag: 'ailtire_hostodc:latest',
-    name: 'hostdoc',
-    dockerfile: 'Dockerfile',
-    env: { }
+    hostdoc: {
+        tag: 'ailtire_hostdoc:latest',
+        name: 'hostdoc',
+        file: 'Dockerfile',
+        dir: '.',
+        env: {}
+    }
 };

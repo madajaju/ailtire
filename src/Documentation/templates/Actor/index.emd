@@ -34,4 +34,4 @@ TBD
     let description = actor.usecases[uname].description;
 -%>
 * [<%= prefix %> <%= action.replace(/\//g, ' ') %>](action-<%= method %>) - <%= description %>
-<% } %>
+<% } -%>

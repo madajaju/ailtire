@@ -1,7 +1,7 @@
 const path = require('path');
 const sLoader = require('../../Server/Loader');
 const APackage = require('../../Server/APackage');
-const Build = require('../../Services/build');
+const Build = require('../../Services/BuildEngine');
 
 module.exports = {
     friendlyName: 'build',
