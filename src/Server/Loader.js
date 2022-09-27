@@ -872,7 +872,7 @@ const checkUseCase = (pkg, usecase) => {
     for (let i in usecase.includes) {
         let pusecaseName = usecase.includes[i].replace(/\s/g, '');
         if (global.usecases.hasOwnProperty(pusecaseName)) {
-            let pusecase = global.usecases[myUC.name.replace(/\s/g, '')];
+            let pusecase = global.usecases[pusecaseName];
             newIncludes[pusecaseName] = pusecase;
             if (!pusecase.hasOwnProperty('included')) {
                 pusecase.included = {};

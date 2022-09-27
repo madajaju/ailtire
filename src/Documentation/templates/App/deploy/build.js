@@ -2,15 +2,15 @@
 module.exports = {
     web: {
         dir: '..',
-        file: 'web/Dockerfile',
+        file: 'deploy/web/Dockerfile',
         tag: '<%= name %>_web',
         env: {
 
         }
     },
     doc: {
-        dir: '..',
-        file: 'doc/Dockerfile',
+        dir: '../docs',
+        file: '../deploy/doc/Dockerfile',
         tag: '<%= name %>_doc',
         env: {
 

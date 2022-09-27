@@ -6,6 +6,7 @@ const bodyParser = require("body-parser");
 const http = require('http').createServer(server);
 const {Server} = require("socket.io");
 const path = require('path');
+const ping = require('ping');
 const fs = require('fs');
 const ejs = require('ejs');
 const { createProxyMiddleware } = require('http-proxy-middleware');
@@ -66,6 +67,30 @@ function setupExpress() {
         console.log("Update Stack definition:", req.body.composefile);
         res.end("Done");
     });
+    server.use('/ping', (req, res) => {
+        let host = req.query.host;
+        console.log("HOST:", host);
+        ping.sys.probe(host, function(isAlive){
+            var msg = isAlive ? 'host ' + host + ' is alive' : 'host ' + host + ' is dead';
+            res.json(msg);
+        });
+    });
+    server.use('/test', async (req, res) => {
+        let host = req.query.host;
+        let url = `http://${host}`
+        const get = bent('GET', 'json');
+        let response;
+        try {
+            let urlreq = `${url}`;
+            response = await get(urlreq, 'test');
+            console.log("Response:", response);
+            res.end("Made It");
+        } catch (e) {
+            console.error("Could not connect to Parent:", url);
+            console.error("Could not connect to Parent:", response);
+            console.error("Could not connect to Parent:", e);
+        };
+    })
     server.use('/_admin/route/add', (req, res) => {
         let tag = req.query.interface;
         let target = req.query.target;

@@ -15,14 +15,14 @@ Install the containers for all of the microservices and stacks in application de
 
 ```shell
 # Build containers for the ailtire application
-ailtire app install --name <build name>  --env <Environment name>
+ailtire app install --name <buildEngine name>  --env <Environment name>
 ```
 
 ## Description
 
 This command uses docker swarm to deploy stacks as defined in the docker-compose.yaml file for each package and application
 in the deploy directory. All of the images for the application are built using the
-[ailtire app build](ailtire-app-build) command. See [Deployment Strategy](deployment) for more information.
+[ailtire app buildEngine](ailtire-app-buildEngine) command. See [Deployment Strategy](deployment) for more information.
 
 ## Generated Artifacts
 
@@ -37,5 +37,5 @@ See [Deployment Strategy Page](deployment) for more information.
 ## See Also
 
 * [ailtire app](cli-app)
-* [ailtire app build](cli-app)
+* [ailtire app buildEngine](cli-app)
 * [Deployment Strategy](deployment)

@@ -3,7 +3,7 @@ const spawn = require('child_process').spawnSync;
 const api = require('../../Documentation/api');
 const sLoader = require('../../Server/Loader');
 const fs = require('fs');
-const Build = require('../../Services/build');
+const Build = require('../../Services/BuildEngine');
 
 module.exports = {
     friendlyName: 'install',

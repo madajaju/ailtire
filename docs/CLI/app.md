@@ -16,7 +16,7 @@ installing, uninstalling and check the status of the application.
 ```shell
 ailtire app <command> [args]
 
-ailtire app build --env <environment name> --name <name of the build>
+ailtire app buildEngine --env <environment name> --name <name of the buildEngine>
 ailtire app create --name <app name> --path <file path>
 ailtire app docs
 ailtire app install --env <environment name> --name <name of the installation>
@@ -27,11 +27,11 @@ ailtire app uninstall --env <environment name> --name <name of the installation>
 ## Description
 
 Used to manage the application using the ailtire framework. Once an application is created it can be built using the
-[ailtire app build](cli-app-build) command. This command will create containers that can e used to deploy the
+[ailtire app buildEngine](cli-app-buildEngine) command. This command will create containers that can e used to deploy the
 application using the
 [ailtire-app-install](cli-app-install) command.
 
-* [ailtire app build](cli-app-build) - Build the container images for the application based on the deployment
+* [ailtire app buildEngine](cli-app-buildEngine) - Build the container images for the application based on the deployment
   architecture in the [directory structure](directory).
 * [ailtire app create](cli-app-create) - Create an application in the ailtire framework. Create
   the [directory structure](directory) for the application.
@@ -50,7 +50,7 @@ information on the directory structure see [directory structure](directory) for 
 
 ## See Also
 
-* [ailtire app build](cli-app-build)
+* [ailtire app buildEngine](cli-app-buildEngine)
 * [ailtire app create](cli-app-create)
 * [ailtire app docs](cli-app-docs)
 * [ailtire app install](cli-app-docs)

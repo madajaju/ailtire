@@ -64,7 +64,7 @@ strategy. The following is the default deployment strategy.
 ```shell
 api/MyPackage/deploy/gateway # gateway micro-service
 api/MyPackage/deploy/web # web micro-service
-api/MyPackage/deploy/build.js # build definition for each micro-service
+api/MyPackage/deploy/buildEngine.js # buildEngine definition for each micro-service
 api/MyPackage/deploy/deploy.js # deployment for each environment in  your system.
 api/MyPackage/deploy/docker-compose.js # docker compose file for the microservices and network definitions.
 ```

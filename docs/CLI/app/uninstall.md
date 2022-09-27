@@ -15,7 +15,7 @@ Uninstall the containers for all of the microservices and stacks in application 
 
 ```shell
 # Build containers for the ailtire application
-ailtire app uninstall --name <build name>  --env <Environment name>
+ailtire app uninstall --name <buildEngine name>  --env <Environment name>
 ```
 
 ## Description

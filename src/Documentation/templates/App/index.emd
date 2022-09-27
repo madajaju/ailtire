@@ -1,4 +1,5 @@
 ---
+layout: default
 title: Overview
 nav_order: 1
 ---
@@ -21,9 +22,8 @@ goals are? and How they use the system? This list is not an exhaustive list of a
 primary actors.
 
 <% for(let name in actors) { -%>
-
 * [<%= name %>](actor-<%= actors[name].shortname %>) - <%- actors[name].description %>
-  <% } %>
+<% } %>
 
 These actors are found in most organizations and there are several organizational structures that can be employed. The
 key is to identify the people or organization that fits the different actors in the systems. The following is an example
@@ -32,9 +32,8 @@ of a centralized organizational structure of the actors of the system.
 ## UseCases
 
 <% for(let name in topPackage.usecases) { let usecase = topPackage.usecases[name]; -%>
-
 * [<%= usecase.name %>](usecase-<%= name %>) - <%- usecase.description %>
-  <% } %>
+<% } -%>
 
 ![UseCase](./usecases.png)
 
@@ -43,10 +42,9 @@ of a centralized organizational structure of the actors of the system.
 The Data Model for the  <%- topPackage.name %> shows how the different objects and classes of object interact and their
 structure.
 <% for(let name in topPackage.subpackages) { -%>
-
 * [<%= topPackage.subpackages[name].name %>](package-<%= topPackage.subpackages[name].prefix.replace(/\//g, '-') %>) -
 <%- topPackage.subpackages[name].description %>
-  <% } %>
+<% } -%>
 
 ![Logical Diagram](./subpackage.png)
 
@@ -62,9 +60,8 @@ test, and prod. These environments fit into the typical devops pipelines that ex
 deployment environments can be added to fit the needs of the user.
 
 <% for(let ename in package.deploy.envs) { let env = package.deploy.envs[ename]; -%>
-
 * [<%= ename %>](environment-<%= package.prefix.replace(/\//g, '-')%>-<%= ename %>)
-  <% } %>
+<% } -%>
 
 ### Physical Architecture
 
@@ -76,6 +73,5 @@ services based on the workloads, capacity and business rules established for the
 information on the individual stacks and their services.
 
 <% for(let ename in package.deploy.envs) { let env = package.deploy.envs[ename]; -%>
-
 * [<%= ename %>](environment-<%= package.prefix.replace(/\//g, '-')%>-<%= ename %>)
-  <% } %>
+<% } -%>

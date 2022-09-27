@@ -1,13 +1,13 @@
 ---
 layout: default 
-title: ailtire app build 
-permalink: cli-app-build 
+title: ailtire app buildEngine 
+permalink: cli-app-buildEngine 
 parent: ailtire app 
 grand_parent: Command Line Interface
 has_children: false
 ---
 
-# ailtire app build
+# ailtire app buildEngine
 
 Build the containers for all of the microservices in the application definition.
 
@@ -15,15 +15,15 @@ Build the containers for all of the microservices in the application definition.
 
 ```shell
 # Build containers for the ailtire application
-ailtire app build --name <build name>  --env <Environment name>
+ailtire app buildEngine --name <buildEngine name>  --env <Environment name>
 
 ```
 
 ## Description
 
-This command will build all of the container images for the micro-services defined in the deploy
+This command will buildEngine all of the container images for the micro-services defined in the deploy
 directory for the application and all of its packages and sub packages.
-In addition to micro-service container images being built, ailtire will build [stack container images](stack) for
+In addition to micro-service container images being built, ailtire will buildEngine [stack container images](stack) for
 each package in the architecture. See [Deployment Strategy](deployment) for more information.
 
 ## Generated Artifacts
@@ -45,7 +45,7 @@ For example take the following directory structure for the application "myapp":
 ./deploy/mserviceY # mserviceY micro-service
 ...
 ```
-This will generate the following micro-services container images when ailtire app build is called.
+This will generate the following micro-services container images when ailtire app buildEngine is called.
 * myapp-mypackage-mservice1
 * myapp-mypackage-mservice2
 * myapp-mypackage-mservice3

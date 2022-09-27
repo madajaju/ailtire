@@ -1,5 +1,5 @@
 const {execSync} = require("child_process");
-const Build = require('../../src/Services/build');
+const Build = require('../../src/Services/BuildEngine');
 const deploy = require("./deploy/deploy");
 
 describe('Microservice', () => {

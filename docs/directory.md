@@ -20,7 +20,7 @@ The top directory of every ailtire project has the following structure.
         * Dockerfile - image definition for the microservice
         * package.json - package file for the nodejs application
         * server.js - entry point for the nodejs application implementing the microservice.
-      * build.js - Build script for containers
+      * buildEngine.js - Build script for containers
       * deploy.js - Deployment defintion of the stack defined in the docker-compose.yaml file.
       * docker-compose.yaml - Definition of the stack of micro-services, networks, and storage.
     * doc - Contains the additional documernation for the system. Generated documentation will include this system documentation.
