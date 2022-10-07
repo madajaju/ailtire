@@ -4,7 +4,7 @@ const program = require('commander');
 require('./lib/subcommander');
 
 program
-    .version('0.6.2')
+    .version('0.6.3')
     .command('actor <cmd> [arguments]', 'Manage an actor')
     .command('app <cmd> [arguments]', 'Manage an applications')
     .command('method <cmd> [arguments]', 'Manage a method')
