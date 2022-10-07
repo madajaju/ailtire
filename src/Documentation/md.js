@@ -209,7 +209,11 @@ const packageGenerator = (package, output, urlPath, parent, grand_parent) => {
         for (let aname in usecase.actors) {
             aname = aname.replace(/\s/g, '');
             if (!actors.hasOwnProperty(aname)) {
-                actors[aname] = {usecases: {}, name: aname, shortname: global.actors[aname].shortname};
+                if(global.actors[aname]) {
+                    actors[aname] = {usecases: {}, name: aname, shortname: global.actors[aname].shortname};
+                } else {
+                    console.error("Actor: ", aname, " not found! in use case: ", ucname);
+                }
             }
             actors[aname].usecases[ucnameNoSpace] = usecase;
         }

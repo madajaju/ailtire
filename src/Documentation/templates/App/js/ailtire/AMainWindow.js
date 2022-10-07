@@ -83,8 +83,7 @@ export default class AMainWindow {
 
     static setupConfig(pconfig) {
         for (let name in pconfig) {
-            let pc = pconfig[name];
-            AMainWindow.config[name] = pc;
+            AMainWindow.config[name] = pconfig[name];
         }
         let config = {
             layout: {
@@ -303,6 +302,8 @@ export default class AMainWindow {
                                 console.log(text);
                             }
                         })
+                    } else if (event.object.id === 'usecases') {
+                        A3DGraph.usecaseView();
                     } else if (event.object.id === 'deployments') {
                         A3DGraph.deploymentView();
                     } else if (event.object.id === 'implementation') {
