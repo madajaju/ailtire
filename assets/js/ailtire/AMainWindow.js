@@ -70,6 +70,7 @@ export default class AMainWindow {
         AMainWindow.setupEventWatcher(config);
         AMainWindow.showObjectList();
         AMainWindow.showEventList();
+        AMainWindow.objectEditors = pconfig.objectEditors;
     }
 
     static graphOpening() {
@@ -83,7 +84,8 @@ export default class AMainWindow {
 
     static setupConfig(pconfig) {
         for (let name in pconfig) {
-            AMainWindow.config[name] = pconfig[name];
+            let pc = pconfig[name];
+            AMainWindow.config[name] = pc;
         }
         let config = {
             layout: {
@@ -187,6 +189,10 @@ export default class AMainWindow {
                                     ]
                                 },
                                 {type: 'break'},
+                                {
+                                    type: 'button', id: 'visibility', caption: 'Trim', img: 'icon-cut',
+                                },
+
                             ],
                             onClick: function (event) {
                                 let [item, selected] = event.target.split(':');
@@ -194,6 +200,8 @@ export default class AMainWindow {
                                     if (selected) {
                                         window.graph.graph.dagMode(selected);
                                     }
+                                } else if(item === 'visibility') {
+                                    window.graph.showSelectedOnly();
                                 } else if (event.target.includes('Dim-')) {
                                     let [item, selected] = event.target.split('-');
                                     window.graph.graph.numDimensions(selected);
@@ -463,6 +471,7 @@ export default class AMainWindow {
             }
             w2ui['objdetail'].add(drecords);
             window.graph.selectNodeByID(event.recid);
+            AMainWindow.selectedObject = record;
         }
         $('#objdetail').w2grid({
             name: 'objdetail',
@@ -582,13 +591,19 @@ export default class AMainWindow {
                 }
             });
         } else if (event.target === 'editItem') {
-            $.ajax({
-                url: AMainWindow.selectedObject.link + '&doc=true',
-                success: function (results) {
-                    let setURL = AMainWindow.selectedObject.link.replace('get', 'set');
-                    AModel.editDocs(results, setURL);
-                }
-            });
+            if(AMainWindow.selectedObject.link) {
+                $.ajax({
+                    url: AMainWindow.selectedObject.link + '&doc=true',
+                    success: function (results) {
+                        let setURL = AMainWindow.selectedObject.link.replace('get', 'set');
+                        AModel.editDocs(results, setURL);
+                    }
+                });
+            } else {
+                let sobj = AMainWindow.selectedObject.results;
+                AObject.editObject(sobj);
+
+            }
         }
     }
 
@@ -604,7 +619,6 @@ export default class AMainWindow {
             w2popup.close();
         });
     }
-
     static createErrorDialog(results) {
         for (let i in results) {
             results[i].recid = i;
