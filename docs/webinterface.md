@@ -43,26 +43,47 @@ that would be familiar to most architects.
 Each Architectural Element can be visualized in the Graphical Viewer. Just by selecting on the item the 
 Graphical Viewer shows a 3D representation of the element. The elements currently supported are:
 
-* Logical View
-  * Model Class - TBD
-  * Package
 * Use Case View
   * Actor
   * Scenario
   * Use Case
-* Process View
-  * Event
-  * Object Instance
-  * Scenario Simulation
-  * StateNet
+* Logical View
+  * Model Class
+  * Package
+* Implementation View
+  * Library
+  * Container Image
 * Deployment View
   * Container Image
-  * Micro-segmented Network
   * Micro-service
+  * Networks
   * Service Stack
+* Process View
+  * Activities
+  * Business Processes
 
 ### Model Class
-TBD
+Model classes can be found under the containing package. Click on classs definition and a 3D representation of the 
+class will appear. 
+
+![Class 3D View](WebInterface/Class3D.png)
+
+The class is represented by a cube. Each side of the cube represents a different aspect of the class.
+* Top -  contains all of the attributes and associations of the class, 
+* Right - represents the methods defined for the class. 
+* Bottom - represents the state net of the class
+* Left - shows the classes that are part of the associations of the class. 
+* Front - shows the 3D graphical representation of the class.
+* Back - Is currently not used.
+
+![Class 3D Menu](WebInterface/Class3DMenu.png)
+
+The graphical menu provides buttons to quickly view each of the sides of the class cube.
+
+When the class is selected in the left panel the "Top panel - Selected" is populated with details about the class. 
+Selecting any one of the items on the left will populate the "Top Panel - Detail" on the left. In this example the 
+Attributes are selected on the left and the "Top Panel - Detail" contains details about each attribute.
+![Class 3D Details](WebInterface/Class3DDetails.png)
 
 ### Package
 

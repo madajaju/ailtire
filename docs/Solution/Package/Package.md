@@ -64,9 +64,8 @@ strategy. The following is the default deployment strategy.
 ```shell
 api/MyPackage/deploy/gateway # gateway micro-service
 api/MyPackage/deploy/web # web micro-service
-api/MyPackage/deploy/buildEngine.js # buildEngine definition for each micro-service
+api/MyPackage/deploy/build.js # buildEngine definition for each micro-service
 api/MyPackage/deploy/deploy.js # deployment for each environment in  your system.
-api/MyPackage/deploy/docker-compose.js # docker compose file for the microservices and network definitions.
 ```
 The key to the deployment strategy is that you define all of you micro-services, network configurations, and environments
 for the deployment of the micro-services.
@@ -76,8 +75,21 @@ For detailed information on how the deployment strategy works see [Deployment Pa
 
 This contains the additional documentation for the package. See the [Documentation Page](documentation) for more
 information. The documentation is stored in the "doc" directory.
+```shell
+api/MyPackage/doc # documentation for the package.
+```
 
 ### Handlers
+The handlers directory contains files for each event handled by the package. Events typically follow the WebSocket 
+framework but at not limited to WebSocket implementations. Additional event or message bus frameworks can be used 
+through the adaptors in the ailtire system.
+
+```shell
+api/MyPackage/handlers/object.created.js # Object created event
+api/MyPackage/handlers/object.destroyed.js # Object destroyed event
+```
+Each event handled by the package has a file <eventName>.js. Each file contains how the event is handled according 
+to the handle design pattern. See the [interface Websocket](interface#WebSocket) for more information.
 
 ### Interface
 The interface directory contains files for each interface of the package. The interface can be accessed via the CLI,

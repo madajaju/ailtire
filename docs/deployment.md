@@ -8,7 +8,7 @@ has_children: false
 # Deployment
 
 The deployment strategy for the application is defined in the deploy directory in the applications api directory and all
-of the package directories. The Ailtire Framework uses docker-compose file format to describe the design of the
+the package directories. The Ailtire Framework uses docker-compose file format to describe the design of the
 deployment of the application. The actual deployment of the application can use k8s or docker swarm depending on your
 configuration. Currently, The default engine to deploy and manage the application is docker swarm. Additional frameworks
 and tools will be supported in the future.
@@ -28,8 +28,8 @@ deploy
      ...
    mservice3 - Microservice definition for mservice1
      ...
-   buildEngine.js - Build script for containers
-   deploy.js - Deployment defintion of the stack defined in the docker-compose.yaml file.
+   build.js - Build script for containers
+   deploy.js - Deployment defintion of the stack defined in the services.js or docker-compose.yaml file.
    services.js - Servies in the stack definition.
    docker-compose.yaml - Definition of the stack of micro-services, networks, and storage.
 ```
@@ -161,12 +161,65 @@ module.exports = {
 }
 ```
 
+### build.js
+
+The build.js file contains the microservices build definitions. All microservices for the package are contained in 
+the build.js file.
+
+```javascript
+module.exports = {
+  app_pkg1_mservice1: {
+    dir: '..',
+    cmd: 'node mservice1/server.js',
+    file: 'mservice1/Dockerfile',
+    tag: 'app_pkg1_mservice1',
+    env: {},
+    packages: [
+      "pkg1",
+      "pkg2",
+    ]
+  },
+  app_pkg1_mservice2: {
+      ...
+  },
+  app_pkg1_mservice3: {
+    ...
+  },
+}
+```
+
+The build file has several attributes for each build definition. These attributes help build the image container so 
+it can be used as an individual microservice is in a service stack as defined in the deploy.js and services.js files.
+
+* dir - This attribute is used to show where the working directory of the build begins. Basically the build script 
+  will copy everything in the directory defined by the "dir" attribute into the root directory of required. This is 
+  the directory used as the root for the docker build command called by the ailtire build subsystem. The path is 
+  relative to the directory of the build.js file. If the "dir" attribute is not defined the current directory of the 
+  build.js file is assumed.
+* cmd - This is the command that will be run when the container is run. Again this assumes a base directory based on 
+  the "dir" attribute.
+* file - This is the name of the docker file. Again this is realiative to the directory defined in the dir  
+  attribute. 
+* tag - This is the tag to be used to tag the container image. If you are using a private repository or other 
+  repositories please use the --repo commandline directive in the [ailtire app build](cli-app-build) or the [ailtire 
+  package build](cli-package-build) commands. 
+* env - This is a mapping that defines all of the environment variables for the build processes. If environment 
+  variables need to be set for each build of the container this can be on the command line with the --env argument. 
+  See the [ailtire app build](cli-app-build) or the [ailtire
+  package build](cli-package-build) commands.
+* packages - This attribute allows for multiple packages to be included in the microservice definition. This is 
+  really handy when a microservice need models, interfaces, handlers, from more than one package to create all of 
+  the services required for the microservice. This is an array with just a list of each package. The package is 
+  copied directly into the microservice build directory so the microservice has everything needed to handle events, 
+  expose a REST interface, and handle the business logic.
+
+
 
 ### MircoService definition
 
 Each microservice has the name of the microservice and the image name is the fully qualified name of the microservice
-from the buildEngine of the application see [ailtire app buildEngine](cli-app-buildEngine) command for additional information. There is
-additional information in the service like environment variables that are used to manage stacks of stacks and services.
+from the build of the application see [ailtire app build](cli-app-build) command for additional 
+information. There is additional information in the service like environment variables that are used to manage stacks of stacks and services.
 
 #### Environment Variables
 
@@ -178,7 +231,13 @@ The environment variables all start with the prefix AILTIRE_.
 * AILTIRE_STACKNAME - The name of the stack currently running.
 * AILTIRE_PARENT_NETWORK - The name of the parent network. Used for micro-segmentation meshes.
 
-### Stack Definition (Application and Package)
+#### Build Definition
+The build definition is responsible for building the container image for the microservice. Each package in the 
+architecture defines its microservices in the deploy directory. Each deploy directory has a build.js file. The build 
+file allows developers to create microservices based on directory contents, individual package definitions, and 
+combinations of packages. See (build.js)[#build.js] for more information on the format of the build.js file.
+
+#### Stack Definition (Application and Package)
 
 Using the side-car pattern for containers, stacks are treated like a microservice themselves. In fact a single
 container image is created for the whole application that basically can be scheduled as a service in a docker
@@ -199,25 +258,16 @@ stack mypackage.
 You can see that we have a frontend service that acts as an api-gateway for access to the services in the stack.
 Every call to the stack goes through the api-gateway and routed to appropriate service on the back end. The 
 following services are used for an application stack.
-* frontend - This uses the "ailtire_service" service to manage the api-gateway and route http request to the appropriate 
+* admin - This uses the "ailtire_service" service to manage the api-gateway and route http request to the appropriate 
   service in the stack.
 * doc - This serves up the documentation for the application using jekyll.
 * web - This is the entry point for the web interface for the application simulation and rapid prototype.
 * pubsub - This is the pubsub bus for websocket communication and event driven interface. Redis is currently used.
-* admin - This is part of the frontend service that allows for the management of package stacks and services in the application stack.
-
-#### Environment Variables
-
-The environment variables all start with the prefix AILTIRE_.
-
-* AILTIRE_PARENT - Parent stack name of the currently running stack. If this is the app stack this is will be empty
-* AILTIRE_PARENTHOST - The Host that is running the Parent Stack. If this is the app stack this is empty.
-* AILTIRE_APPNAME - The name of the application that is running this stack.
-* AILTIRE_STACKNAME - The name of the stack currently running.
-* AILTIRE_PARENT_NETWORK - The name of the parent network. Used for micro-segmentation meshes.
+* mypackage - This is the package that contains the business logic for the microservice.
+```
 
 ## See Also
-* [ailtire app buildEngine](cli-app-buildEngine)
+* [ailtire app build](cli-app-build)
 * [ailtire app install](cli-app-install)
 * [ailtire app uninstall](cli-app-uninstall)
 * [ailtire app status](cli-app-status)
