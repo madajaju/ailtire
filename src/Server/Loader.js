@@ -22,6 +22,7 @@ module.exports = {
         global.usecases = {};
         global.appBaseDir = dir;
         global.topPackage = processDirectory(dir);
+        _processModelIncludeFiles();
         return global.topPackage;
     },
     checkPackages: () => {
@@ -131,8 +132,8 @@ let reservedDirs = {
     models: (pkg, prefix, dir) => {
         // This stores the pkg classes.
         // Process the Model Include Files
-        processModelIncludefile(prefix, dir);
         pkg.classes = {};
+        pkg.includes = {};
         let models = getDirectories(dir);
         for (let i in models) {
             // let modelDir = models[i].replace(/\\/g,'/');
@@ -975,55 +976,20 @@ const loadActors = (dir, prefix) => {
 // Include file format
 // module.export = {
 //  models: [
-//      '../../cpl/Agent',
-//      '../../../diml/dm/BluePrint',
+//      'Agent',
+//      'BluePrint',
 //  ]
 // }
-const processModelIncludefile = (prefix, dir) => {
+const processModelIncludefile = (pkg, dir) => {
     // First check if there is an includes.js file.
     // If there is then process the includes.js file to import the classes into the global namespace.
     if (fs.existsSync(dir + '/include.js')) {
         let include = require(dir + '/include.js');
 
         for (let i in include.models) {
-            let file = include.models[i];
-
-            let incModelFile = findIncludeFile(dir, file);
-
-            let pkgFile = path.resolve(incModelFile + '../../../../index.js');
-            if (fs.existsSync(incModelFile) && fs.existsSync(pkgFile)) {
-                // Load the package first into the global namespace
-                let pkg = require(pkgFile);
-                let packageNameNoSpace = pkg.name.replace(/\s/g, '');
-                if (!global.packages.hasOwnProperty(packageNameNoSpace)) {
-                    pkg.classes = {};
-                    if (!pkg.prefix) {
-                        if (pkg.shortname) {
-                            prefix = '/' + pkg.shortname;
-                        }
-                        pkg.prefix = prefix.toLowerCase();
-                    }
-                    global.packages[packageNameNoSpace] = new Proxy(pkg, packageProxy);
-                }
-                pkg = global.packages[packageNameNoSpace];
-
-                let myClass = require(incModelFile);
-
-
-                myClass.package = global.packages[packageNameNoSpace];
-                if (global.classes.hasOwnProperty(myClass.definition.name)) {
-                    let myProxy = global.classes[myClass.definition.name];
-                    pkg.classes[myClass.definition.name] = myProxy;
-                    global[myClass.definition.name] = myProxy;
-                    console.error('Class Already defined', myClass.definition.name, "in this model:");
-                } else {
-                    let myProxy = new Proxy(myClass, classProxy);
-                    pkg.classes[myClass.definition.name] = myProxy;
-                    global.classes[myClass.definition.name] = myProxy;
-                    global[myClass.definition.name] = myProxy;
-                }
-                loadDocs(myClass, path.resolve(incModelFile + '/../doc'));
-                loadClassMethods(myClass, path.resolve(incModelFile + '/..'));
+            let model = include.models[i];
+            if(global.classes.hasOwnProperty(model)) {
+                pkg.includes[model] = global.classes[model];
             } else {
                 // let apath = path.resolve(file);
                 if (!global.ailtire.hasOwnProperty('error')) {
@@ -1031,43 +997,22 @@ const processModelIncludefile = (prefix, dir) => {
                 }
                 global.ailtire.error.push({
                     type: 'package.includesFile',
-                    object: {type: "Package", id: pkgFile, name: pkgFile},
+                    object: {type: "Package", id: pkg, name: pkg.name},
                     message: "Model not found in package includes.js file",
-                    data: incModelFile,
+                    data: model,
                     lookup: 'model/list'
                 });
-                console.error("Could not find Model:", file, "in include file for ", dir);
+                console.error("Could not find Model:", model, "in include file for ", dir);
             }
         }
     }
 }
+function _processModelIncludeFiles() {
 
-const findIncludeFile = (dir, file) => {
-    // Look in a relative path
-    let filename = path.resolve(dir + file + '/index.js');
-    if (fs.existsSync(filename)) {
-        return filename;
+    for(let pname in global.packages) {
+        let pkg = global.packages[pname];
+        processModelIncludefile(pkg, path.resolve(`${pkg.dir}/models`));
     }
-    // Look in an absolute path
-    if (fs.existsSync(file + '/index.js')) {
-        return file + '/index.js';
-    }
-    // Look for the top directory up to api directory
-    let dirs = dir.split(/[\/\\]/);
-    while (1) {
-        let topdir = dirs.pop();
-        if (topdir === 'api') {
-            dirs.push('api');
-            let dirname = dirs.join('/');
-            let pNames = file.split(/[\/\\\.]/);
-            let cName = pNames.pop();
-            let filename = path.resolve(dirname + '/' + pNames.join('/') + '/models/' + cName + '/index.js');
-            if (fs.existsSync(filename)) {
-                return filename;
-            }
-            break;
-        }
-    }
-    return null;
-};
+}
+
 
