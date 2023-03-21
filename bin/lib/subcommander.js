@@ -32,9 +32,7 @@ commander._executeSubCommand = function (subcommand, args) {
 
     // In case of globally installed, get the base dir where executable
     //  subcommand file should be located at
-    let baseDir = this._scriptPath;
-
-    baseDir = dirname(baseDir);
+    let baseDir = path.resolve(__dirname + '../..');
 
     // prefer local `./<bin>` to bin in the $PATH
 
