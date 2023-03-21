@@ -196,7 +196,7 @@ function buildPackage(pkg, opts) {
             } catch (e) {
                 console.error("Could not copy the dir:", fromPath, " to ", buildDir, e);
             }
-            let buildFile = path.resolve(`${pkg.deploy.dir}/${build.file}`);
+            let buildFile = path.resolve(`${fromPath}/${build.file}`);
             // Copy all of the contents from the deploy build directory into the top directory.
             let destBuildFile = path.join(buildDir, "Dockerfile");
             try {
@@ -287,7 +287,7 @@ function _copyDirectory(src, dest) {
         }
     }
     if (fs.existsSync(src)) {
-        files = fs.readdirSync(src)
+        let files = fs.readdirSync(src)
         for (let i in files) {
             let file = files[i];
             let srcFile = path.join(src, file);

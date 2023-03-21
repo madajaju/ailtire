@@ -902,11 +902,10 @@ const checkScenario = (pkg, scenario) => {
         let nsAname = aname.replace(/\s/g, '');
         if (!global.actors.hasOwnProperty(nsAname)) {
             apiGenerator.actor({name: aname}, global.appBaseDir + '/actors');
-        }
-        if (!global.actors[nsAname].hasOwnProperty('scenarios')) {
+        } else if (!global.actors[nsAname].hasOwnProperty('scenarios')) {
             global.actors[nsAname].scenarios = {};
+            global.actors[nsAname].scenarios[scenario.name.replace(/\s/g, '')] = scenario;
         }
-        global.actors[nsAname].scenarios[scenario.name.replace(/\s/g, '')] = scenario;
     }
 
     // Make sure each UseCase has a method that matches an interface that exists.
