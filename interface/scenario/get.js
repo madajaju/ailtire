@@ -19,10 +19,11 @@ module.exports = {
     },
 
     exits: {
-        success: {},
-        json: {},
-        notFound: {
-            description: 'No item with the specified ID was found in the database.',
+        json: (retval) => {
+            return retval;
+        },
+        notFound: (inputs) => {
+            return  { error: `No item with the specified ID was found in the database. ${inputs.id}` };
         }
     },
 
@@ -63,13 +64,8 @@ module.exports = {
         // Now get any scenario instances and put them with the scenario.
         let instances = AScenarioInstance.show({id:inputs.id});
         retscenario._instances = instances;
-        if (env.res) {
-            if(retscenario) {
-                env.res.json(retscenario)
-            } else {
-                env.res.json({error:"Scenario:"+ inputs.id+ " not found!"});
-            }
-            return retscenario;
+        if(!retscenario) {
+           throw new Error({type:'notFound'});
         } else {
             return retscenario;
         }

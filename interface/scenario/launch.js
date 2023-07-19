@@ -14,11 +14,6 @@ module.exports = {
     },
 
     exits: {
-        success: {},
-        json: {},
-        notFound: {
-            description: 'No item with the specified ID was found in the database.',
-        }
     },
 
     fn: async function (inputs, env) {

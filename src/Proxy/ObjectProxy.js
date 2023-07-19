@@ -385,6 +385,8 @@ function getHandler(obj, definition, prop) {
         return function (...args) {
             return stateNetHandler.processEvent(this, obj, prop, args);
         }
+    } else if(prop === 'then') {
+        return undefined;
     }
     // Now check for methods that are called.
     else if (definition.methods.hasOwnProperty(prop)) {

@@ -40,15 +40,19 @@ module.exports = {
         for (let aname in cls.definition.associations) {
             let assoc = cls.definition.associations[aname];
             let acls = AClass.getClass(assoc.type);
-            cols[aname] = {
-                name: aname.charAt(0).toUpperCase() + aname.slice(1),
-                description: assoc.description,
-                type: assoc.type,
-                cardinality: assoc.cardinality,
-                package: acls.definition.package.shortname,
-                owner: assoc.owner,
-                composition: assoc.composition
-            };
+            if(acls) {
+                cols[aname] = {
+                    name: aname.charAt(0).toUpperCase() + aname.slice(1),
+                    description: assoc.description,
+                    type: assoc.type,
+                    cardinality: assoc.cardinality,
+                    package: acls.definition.package.shortname,
+                    owner: assoc.owner,
+                    composition: assoc.composition
+                };
+            } else {
+                console.error("ACLS association type is not a class: ", assoc.type )
+            }
         }
         let items = {};
         for (let id in objs) {

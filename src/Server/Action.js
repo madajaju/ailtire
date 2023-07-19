@@ -82,14 +82,14 @@ const addForModels = (server) => {
         act.cls = cls.definition.name;
 
         // Check if Create method exists
-        if(cls.definition.methods.hasOwnProperty('create')) {
+        if (cls.definition.methods.hasOwnProperty('create')) {
             let ninputs = {};
             let oinputs = createAction.inputs;
             let cinputs = cls.definition.methods.create.inputs;
-            for(let oname in oinputs) {
+            for (let oname in oinputs) {
                 ninputs[oname] = oinputs[oname];
             }
-            for(let iname in cinputs) {
+            for (let iname in cinputs) {
                 ninputs[iname] = cinputs[iname];
             }
             let newCreate = {
@@ -104,8 +104,7 @@ const addForModels = (server) => {
             act.obj = cls.definition.name;
             act.pkg = cls.definition.package
             act.cls = cls.definition.name;
-        }
-        else {
+        } else {
             act = setAction(`/${name}/create`, createAction);
             act.obj = cls.definition.name;
             act.pkg = cls.definition.package;
@@ -120,7 +119,7 @@ const addForModels = (server) => {
         act.pkg = cls.definition.package;
         act.cls = cls.definition.name;
         let inputs = {};
-        for(let aname in cls.definition.attributes) {
+        for (let aname in cls.definition.attributes) {
             let attr = cls.definition.attributes[aname];
             inputs[aname] = {
                 type: attr.type,
@@ -187,9 +186,8 @@ const addForModels = (server) => {
 const setAction = (route, action) => {
     route = route.toLowerCase();
     if (!global.actions.hasOwnProperty(route)) {
-        global.actions[route] = action ;
-    }
-    else {
+        global.actions[route] = action;
+    } else {
         console.log('Action', route, 'already exists');
     }
     return global.actions[route];
@@ -219,7 +217,7 @@ const mapToServer = (server, config) => {
         if (i[0] !== '/') {
             i = '/' + i;
         }
-        let normalizedName = i.replace('/' + global.topPackage.shortname,'' );
+        let normalizedName = i.replace('/' + global.topPackage.shortname, '');
 
         server.post('*' + normalizedName, (req, res) => {
             req.url = req.url.replace(config.urlPrefix, '');
@@ -229,7 +227,7 @@ const mapToServer = (server, config) => {
             req.url = req.url.replace(config.urlPrefix, '');
             execute(gaction, req.query, {req: req, res: res});
         });
-        if(!config.hasOwnProperty('urlPrefix')) {
+        if (!config.hasOwnProperty('urlPrefix')) {
             config.urlPrefix = '';
         }
         normalizedName = config.urlPrefix + normalizedName;
@@ -270,13 +268,12 @@ const execute = (action, inputs, env) => {
     // Add the body of the env.req to the inputs.
     // This handles POST REST items.
     // This will overide the inputs from the query if they exist.
-    if(env && env.hasOwnProperty('req') && env.req.hasOwnProperty('body')) {
-        if(env.req.body.data) {
+    if (env && env.hasOwnProperty('req') && env.req.hasOwnProperty('body')) {
+        if (env.req.body.data) {
             for (let i in env.req.body.data) {
                 inputs[i] = env.req.body.data[i];
             }
-        }
-        else {
+        } else {
             for (let i in env.req.body) {
                 inputs[i] = env.req.body[i];
             }
@@ -294,7 +291,7 @@ const execute = (action, inputs, env) => {
                     console.error("Type Mismatch for: ", i, "expecting", input.type, "got", typeof inputs[i]);
                 }
             } else {
-               //  console.error("Required parameter does not exist:", i);
+                //  console.error("Required parameter does not exist:", i);
             }
         }
     }
@@ -313,45 +310,87 @@ const execute = (action, inputs, env) => {
         }
     }
     // run the function
-    try {
-        if(action.fn.constructor.name === 'AsyncFunction') {
-            (async () => { await action.fn(finputs, env); })();
-        } else {
-            action.fn(finputs, env);
+    return _executeFunction(action, finputs, env);
+};
+const _processReturn = (action, retval, env) => {
+    if (action.exits) {
+        // Only send json if retval has something.
+        if(retval) {
+            if (env && env.res) {
+                if (action.exits.hasOwnProperty('json') && typeof action.exits.json === 'function') {
+                    env.res.json(action.exits.json(retval));
+                } else { // default return json in retval.
+                    env.res.json(retval);
+                }
+            }
+        }
+        if (action.exits.hasOwnProperty('success') && typeof action.exits.success === 'function') {
+            return action.exits.success(retval);
+        } else { // default just retval
+            return retval;
         }
     }
-    catch(e) {
-        console.error("Error calling Action:", action.friendlyName);
-        console.error(e);
-    }
+    return retval;
 };
+const _executeFunction = (action, inputs, env) => {
+    // Default is to pass on the inputs.
+    let retval = inputs;
+    try {
+        if (action.fn.constructor.name === 'AsyncFunction') {
+            (async () => {
+                retval = await action.fn(inputs, env);
+                return _processReturn(action, retval, env);
+            })();
+        } else {
+            retval = action.fn(inputs, env);
+            return _processReturn(action, retval, env);
+        }
+    } catch (e) {
+        for (let name in action.exits) {
+            if (name === e.type) {
+                retval = action.exits[name](e.inputs);
+            }
+        }
+
+        if(!retval) {
+            if(name === `notFound`) {
+                retval = { status: 404, message: "Object Not found:" + inputs.toString()};
+            } else {
+                retval = { status: 500, message: e.toString()};
+            }
+        }
+        if (env && env.res) {
+            console.error("Error:", e);
+            console.error("Error Message:", retval.message);
+            env.res.status(retval.status).json({error: retval.message });
+        }
+        console.log("Error:", e, retval);
+        throw new Error(e, retval);
+    }
+}
 const find = (name) => {
     name = name.toLowerCase();
     // If you match the action name directly return.
-    if(global.actions.hasOwnProperty(name)) {
+    if (global.actions.hasOwnProperty(name)) {
         return global.actions[name];
-    }
-    else if(global.actions.hasOwnProperty('/' + name)) {
+    } else if (global.actions.hasOwnProperty('/' + name)) {
         return global.actions['/' + name];
-    }
-    else if(global.actions.hasOwnProperty(name.replace('/', ''))) {
-        return global.actions[name.replace('/','')];
-    }
-    else {
+    } else if (global.actions.hasOwnProperty(name.replace('/', ''))) {
+        return global.actions[name.replace('/', '')];
+    } else {
         let items = name.replace(/[\/\\]/g, '/').replace(/^\//, '').split('/');
         let nName = global.topPackage.shortname + '/' + items.join('/');
-        if(global.actions.hasOwnProperty(nName)) {
+        if (global.actions.hasOwnProperty(nName)) {
             return global.actions[nName];
-        }
-        else if(global.actions.hasOwnProperty('/' + nName)) {
+        } else if (global.actions.hasOwnProperty('/' + nName)) {
             return global.actions['/' + nName];
         } else {
             // Look for automatic actions like create, destroy, etc.
             // First look if the first name is a class. If it is then check the methods on the class.
             // If it is available then return that action.
             let cls = AClass.getClass(items[0]);
-            if(cls) {
-                if(cls.definition.methods.hasOwnProperty(items[1])) {
+            if (cls) {
+                if (cls.definition.methods.hasOwnProperty(items[1])) {
                     let retval = cls.definition.methods[items[1]];
                     retval.pkg = cls.definition.package;
                     retval.obj = cls.definition.name;

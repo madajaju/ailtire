@@ -126,8 +126,8 @@ function normalizeConfig(config) {
     config.host = config.host || 'localhost';
     config.urlPrefix = config.urlPrefix || '/';
     config.name = config.name || 'service';
-    config.externalURL = config.externalURL || `localhost/${config.urlPrefix}`;
-    config.internalURL = config.internalURL || `${config.host}:${config.port}`;
+    config.externalURL = config.externalURL || `${config.host}${config.urlPrefix}`;
+    config.internalURL = config.internalURL || `${config.host}:${config.port}${config.urlPrefix}`;
     config.instanceName = config.instanceName || process.env.AILTIRE_STACKNAME;
 }
 

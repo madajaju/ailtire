@@ -17,11 +17,6 @@ module.exports = {
     },
 
     exits: {
-        success: {},
-        json: {},
-        notFound: {
-            description: 'No item with the specified ID was found in the database.',
-        }
     },
 
     fn: function (inputs, env) {
@@ -40,12 +35,13 @@ module.exports = {
                     }
                 }
                 usecase.id = ucname;
-                env.res.json(usecase);
+                return usecase;
             }
             return usecase;
         }
-       // api.scenario(inputs.package, inputs.usecase, inputs.name, '.');
-        return null;
+        else {
+            throw new Error({type:'notFound"', inputs:inputs});
+        }
     }
 };
 
