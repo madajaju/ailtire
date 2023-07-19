@@ -39,7 +39,13 @@ module.exports = {
         },
     },
 
-    exits: { // This is a place holder for future expansion.
+    exits: { 
+        success: (retval) => {
+            return retval;
+        },
+        json: (retval) => {
+            return {id:retval.id}
+        }
     },
 
     // This is the function that is run when the action is called.

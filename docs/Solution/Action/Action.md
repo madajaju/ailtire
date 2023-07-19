@@ -37,14 +37,30 @@ All actions are created following the template below.
 ```javascript
 module.exports = {
     friendlyName: 'actionname',
-    description: 'Description of the action'
+    description: 'Description of the action',
     static: false, // True is for Class methods. False is for object based.
     inputs: { // These are the parameters of the action.
-        param1: {
-            description: 'Parameter 1 of the action.
-            type: 'object', // string|boolean|number|json|object
+        name: {
+            description: 'Name of the object',
+            type: 'string', // string|boolean|number|json|object
             required: true
         },
+        param1: {
+            description: 'Parameter 1 of the action.'
+            type: 'object', // string|boolean|number|json|object
+            required: false
+        },
+    },
+    exits: {
+        success: (retval) => {
+            return retval;
+        },
+        json: (retval) => {
+            return {id:retval.id}
+        },
+        notFound: (inputs) => {
+            return {message: "Object Not found with name:", inputs.name}
+        }
     },
 
     fn: function (obj, inputs, env) { // Function to run when the action is called.
@@ -52,7 +68,12 @@ module.exports = {
         // Or the class if the action is static.
         // Inputs contains a map of all of the inputs of action.
         // env contains the environmen that the action was performed.
-        return obj;
+        let item = Object.find(inputs.name);
+        
+        if(!item) {
+            throw new Error({type:'notFound', inputs: inputs});
+        }
+        return item;
     }
 };
 ```
@@ -79,6 +100,16 @@ Each input has the following attributes:
 * description - description of the parameter. USed for documentaiton and command line help command.
 * type - This is the type of parameter ( string, boolean, number, json, or object).
 * required - true or false. Throw an except if required parameter is not submitted.
+
+### exits
+
+The exits are called when the function exits. 
+
+* success - return to the calling function or AService.call to the action. The parameter passed in is what was returned from the fn.
+* json - This is called when the env.res has been set and will package up the return value from the fn (passed into the json function as retval). What ever is returned from here will sent via env.res.json call over the rest interface.
+* notFound - This is an error type that is called when an Error is throw with the parameter type set to 'notFound'
+
+Additional exit types can be added to handle different types of errors or return types as defined by the type in the Error constructor.
 
 ### fn
 
@@ -117,9 +148,11 @@ curl "http://localhost:8080/mypackage/actionname?param1=name1&param2=name2"
 ```
 
 #### Web Interface
+
 Look at the left panel for in the web interface under the packages items.
 
 ### Model Action 
+
 Each Model has standard actions that are automatically generated.
 * create
 * list
@@ -129,6 +162,7 @@ Each Model has standard actions that are automatically generated.
 This shows how actions for a model are accessed in javascript, cli, rest and web interface.
 
 #### javascript
+
 The model action can be called within a javascript. Both static and object are shown.
 ```javascript
 let obj = MyModel.create({name:'myModel'}); // Static method.
@@ -136,6 +170,7 @@ obj.myaction({param1: name1, param2: name2}); // Object Method.
 
 ```
 #### Command Line Interface (CLI)
+
 The model action can be called with the command line interface.
 ```shell
 myapp mymodel create --name myName # Static call
@@ -143,6 +178,7 @@ myapp mymodel actionanem --id obj_id --param1 name1 --param2 name2 # Object call
 ```
 
 #### REST
+
 The model action can be called with the REST inteface.
 ```shell
 # Static Call
@@ -153,4 +189,5 @@ curl "http://localhost:8080/mymodel/actioname?param1=name1&param2=name2"
 ```
 
 #### Web Interface
+
 Look at the right panel for in the web interface under the packages items.
