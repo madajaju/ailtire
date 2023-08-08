@@ -1,5 +1,5 @@
 
-FROM alpine:latest
+FROM alpine:3.18.3
 
 # Create app directory
 WORKDIR /usr/src/app
