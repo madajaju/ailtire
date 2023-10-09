@@ -195,6 +195,9 @@ const addForModels = (server) => {
 
 const setAction = (route, action) => {
     route = route.toLowerCase();
+    if(!global.actions) {
+        global.actions = {};
+    }
     if (!global.actions.hasOwnProperty(route)) {
         global.actions[route] = action;
     } else {
