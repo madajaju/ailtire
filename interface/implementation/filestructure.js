@@ -1,5 +1,5 @@
 const path = require('path');
-const api = require('ailtire/src/Documentation/api');
+const api = require('../../src/Documentation/api.js');
 module.exports = {
     friendlyName: 'create',
     description: 'Create a Method in a Model',

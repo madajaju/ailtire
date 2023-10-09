@@ -28,6 +28,9 @@ module.exports = {
     },
     set: (obj, prop, value) => {
         // Check if the class has the attribute
+        if(prop === "_state") {
+           obj._state = value;
+        }
         if (!obj.hasOwnProperty('definition')) {
             console.error("Missing \"definition\" property value for ", obj);
             return false;
@@ -214,6 +217,8 @@ function getHandler(obj, definition, prop) {
         } else {
             return shallowJSON(obj);
         }
+    } else if(prop === 'then') {
+          return new Promise((resolve, reject) => resolve(obj));
     } else if (prop === 'toJSONShallow') {
         return shallowJSON(obj);
     } // Association addTo, removeFrom, and Clear
@@ -406,7 +411,8 @@ function getHandler(obj, definition, prop) {
                 return undefined;
             }
         }
-    } else {
+    }
+    else {
         console.error(`Error cloudnot find ${prop} on ${obj}`);
         throw new Error(`Could not find ${prop}! on ${obj}`);
         return undefined;
