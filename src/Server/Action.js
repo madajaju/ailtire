@@ -11,7 +11,17 @@ module.exports = {
     execute: (action, inputs, env) => {
         return execute(action, inputs, env);
     },
+    add: (route, action) => {
+        let nroute = '*' + route.replaceAll(/\s/g,'');
+        global.actions[nroute] = action;
+        global._server.all(nroute, (req, res) => {
+            execute(action, req.query, {req: req, res: res});
+        });
+    },
     load: (server, prefix, mDir, config) => {
+        if(server && !global._server) {
+            global._server = server;
+        }
         loadActions(prefix, mDir);
         mapToServices();
         if (server) {

@@ -20,6 +20,7 @@ module.exports = {
         global.packages = {};
         global.topPackage = {};
         global.usecases = {};
+        global.workloads = {};
         global.appBaseDir = dir;
         global.topPackage = processDirectory(dir);
         _processModelIncludeFiles();
@@ -576,6 +577,7 @@ const checkDeployment = (deployments, images) => {
                     }
                 }
             } catch (e) {
+                if(!global.ailtire.error) { global.ailtire.error = [];}
                 global.ailtire.error.push({
                     type: 'build.image',
                     object: {type: "Image", id: image.image.tag, name: image.image.tag},
@@ -902,10 +904,11 @@ const checkScenario = (pkg, scenario) => {
         let nsAname = aname.replace(/\s/g, '');
         if (!global.actors.hasOwnProperty(nsAname)) {
             apiGenerator.actor({name: aname}, global.appBaseDir + '/actors');
-        } else if (!global.actors[nsAname].hasOwnProperty('scenarios')) {
-            global.actors[nsAname].scenarios = {};
-            global.actors[nsAname].scenarios[scenario.name.replace(/\s/g, '')] = scenario;
         }
+        if (!global.actors[nsAname].hasOwnProperty('scenarios')) {
+            global.actors[nsAname].scenarios = {};
+        }
+        global.actors[nsAname].scenarios[scenario.name.replace(/\s/g, '')] = scenario;
     }
 
     // Make sure each UseCase has a method that matches an interface that exists.
