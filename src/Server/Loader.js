@@ -13,7 +13,7 @@ module.exports = {
     },
     processPackage: (dir) => {
         global.actors = {};
-        global.actions = {};
+        global.actions = global.actions || {}; // Allow actions to be added programattically
         global.events = {};
         global.handlers = {};
         global.classes = {};
