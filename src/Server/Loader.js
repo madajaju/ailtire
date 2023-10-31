@@ -17,10 +17,10 @@ module.exports = {
         global.events = {};
         global.handlers = {};
         global.classes = {};
-        global.packages = {};
+        global.packages = {}
         global.topPackage = {};
         global.usecases = {};
-        global.workloads = {};
+        global.workflows = global.workflows || {};
         global.appBaseDir = dir;
         global.topPackage = processDirectory(dir);
         _processModelIncludeFiles();
