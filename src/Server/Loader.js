@@ -519,6 +519,7 @@ const checkWorkflows = (workflows) => {
 }
 const checkDeployment = (deployments, images) => {
     let imageRepo = global.ailtire.implementation.images;
+    if(!global.ailtire.error) { global.ailitre.error = [];}
     // Make sure that every services has a valid image that can be built.
     for (let i in deployments.envs) {
         let env = deployments.envs[i];
