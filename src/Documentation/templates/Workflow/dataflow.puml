@@ -1,0 +1,105 @@
+@startuml
+<%
+let actMap = {};
+let inum = 0;
+for(let aname in workflow.activities) {
+    let activity = workflow.activities[aname];
+    inum++
+    actMap[aname] = "S" + inum;
+    let pname = "None";
+    let pcolor = "#dddddd";
+    if(activity.hasOwnProperty('actor')) {
+        pname = activity.actor;
+        pcolor = "#ffffcc";
+    } else if(activity.hasOwnProperty('package')) {
+        pname = activity.package;
+        pnospace = activity.package.replace(/\s/g, '');
+        if(global.packages.hasOwnProperty(pnospace)) {
+           let pkg = global.packages[pnospace];
+           pcolor = pkg.color;
+        }
+    }
+%>
+state "<%- aname %>" as S<%- inum %> <%- pcolor %>
+<%
+}
+inum = 0;
+for(let aname in workflow.activities) {
+    let activity = workflow.activities[aname];
+    let length = 0;
+    if(activity.next) {
+        length = Object.keys(activity.next).length;
+    }
+    inum++;
+    let jnum = 0;
+    let actName = `${actMap[aname]}`
+    for(let nname in activity.next) {
+        let next = activity.next[nname];
+        let nactivity = workflow.activities[nname];
+        if(next.condition) {
+            if(jnum === 0) {
+        -%>
+state C<%- inum %> <<choice>>
+<%- actName %> --> C<%- inum %>
+            <%
+                jnum++;
+            } -%>
+C<%- inum %> --> <%- actMap[nname] %> : <%= next.condition.test %>\n[<%= next.condition.value %>]
+<%
+        } else {
+            if(length > 1) {
+                if(jnum === 0) {
+-%>
+state F<%- inum %> <<fork>>
+<%- actName %> --> ===F<%- inum %>===
+<%
+                    jnum++;
+                }
+-%>
+
+===F<%- inum %>=== --> <%= actMap[nname] %>
+<%
+            } else {
+-%>
+<%- actName %> --> <%- actMap[nname] %>
+<%
+            }
+        }
+    }
+
+    if(activity.inputs) {
+    %>
+json "inputs" as inputs<%- inum %> {
+<%
+        let inputs = [];
+        for(let iname in activity.inputs) {
+            let input = activity.inputs[iname];
+            inputs.push(`    "${iname}" : "${input.type}"`);
+        }
+-%>
+<%- inputs.join(',\n') %>
+}
+
+inputs<%- inum %> -right[dashed]-> <%- actName %>
+<%
+    }
+
+    if(activity.outputs) {
+    %>
+json "outputs" as outputs<%- inum %> {
+<%
+        let outputs = [];
+        for(let iname in activity.outputs) {
+            let output = activity.outputs[iname];
+            outputs.push(`    "${iname}" : "${output.type}"`);
+        }
+-%>
+<%- outputs.join(',\n') %>
+}
+
+<%- actName %> -right[dashed]-> outputs<%- inum %>
+<%
+    }
+}
+%>
+@enduml

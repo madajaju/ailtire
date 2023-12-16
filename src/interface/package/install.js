@@ -2,7 +2,7 @@ const path = require('path');
 const exec = require('child_process').spawnSync;
 const sLoader = require('../../Server/Loader');
 const APackage = require('../../Server/APackage');
-const Build = require("ailtire/src/Services/Build");
+const Build = require("../../Services/BuildEngine");
 const {spawnSync: spawn} = require("child_process");
 
 module.exports = {

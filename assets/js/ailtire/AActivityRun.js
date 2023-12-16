@@ -1,19 +1,97 @@
-/*
- * Copyright 2023 Intel Corporation.
- * This software and the related documents are Intel copyrighted materials, and your use of them is governed by
- * the express license under which they were provided to you (License). Unless the License provides otherwise,
- * you may not use, modify, copy, publish, distribute, disclose or transmit this software or the related documents
- * without  Intel's prior written permission. This software and the related documents are provided as is, with no
- * express or implied warranties, other than those that are expressly stated in the License.
- *
- */
+import {AText, AWorkFlow, ASelectedHUD, AScenario, AUsecase, AUserActivity} from './index.js';
 
-import {AText, AWorkFlow, ASelectedHUD, AScenario, AUsecase} from './index.js';
+const scolor = {
+    started: "#00ffff",
+    created: "#00ffff",
+    inprogress: "#00aaff",
+    blocked: "#ffbb44",
+    completed: "#aaffaa",
+    failed: "#ffaaaa",
+    error: "#ffaaaa",
+    enabled: "#00ff00",
+    disable: "#aaaaaa",
+    rejected: "#ff0000",
+    accepted: "#00aaaa",
+    update: "#00aaaa",
+    needed: "#ffbb44",
+    selected: "#00ff00",
+    evaluated: "#ffff00",
+};
 
-export default class AActivity {
-    constructor(config) {
-        this.config = config;
+export default class AActivityRun {
+    constructor(activity) {
+        // Load up the attributes from the activity
+        for(let iname in activity) {
+            this[iname] = activity[iname];
+        }
+        let data = {nodes: {}, links: []};
+        let aid = "AAI" + activity.id;
+        let color = scolor['created'];
+        // The depth of the activity has to do with activities that are workflows.
+        // There are two numbers for each depth in the id. 0.1 is level 1, 0.1.2.3 is level 2.
+        let depth = -(Math.floor(activity.id.split('.').length / 2) - 1)*200;
+        let bbox = {
+            x: { min: depth, max: depth},
+            y: { min: -1000, max: 300 },
+            z: { max: -200 }
+        };
+
+        if(activity.name === "Init") {
+            // fix the location to the upper left hand corner.
+            bbox = {
+                x: { min: depth, max: depth},
+                y: { min: 300, max: 300 },
+                z: { min: -200, max: -200 }
+            };
+            // Set the parent link for the init.
+            // This will prevent all of the states being connected to the parent activity.
+            // Although that is correct, the graph becomes too confusing.
+            // The parent activity is the id minus the last number. The last number represents the workflow id.
+            // Which is not shown in the graph.
+            if(activity.parent && typeof activity.parent === 'string') {
+                let ids = activity.parent.split('.');
+                ids.pop();
+                if (ids.length > 0) {
+                    data.links.push({
+                        source: "AAI" + ids.join('.'),
+                        target: aid,
+                        value: 10,
+                        width: 1,
+                        color: '#0088ff'
+                    });
+                }
+            }
+        }
+        this.node = {
+            id: aid,
+            state: "created",
+            name: activity.name,
+            details: activity.description,
+            view: AActivityRun.view3D,
+            activity: activity,
+            color: color,
+            bbox: bbox,
+            rotate: {
+                y:  Math.PI/2 // Rotate to the right side
+            },
+            orientation: { x: 1, y: 0, z: 0 }
+        };
+        // Set up the detail popup for the user activity if the activity requires user input.
+        // If the actor is set on the activity it requires user input.
+        // This is handled in the getDetail for the node.
+        if(activity.actor) {
+            this.node.actor = activity.actor;
+        }
+        data.nodes[aid] = this.node;
+        if(activity.previous) {
+            data.links.push({source: "AAI" + activity.previous, target: aid, value: 10, arrow: 30, width: 3});
+        }
+        // This is the link to the AActivity.
+        data.links.push({target: aid, source: activity.name, value: 0, width: 0.1});
+        window.graph.addData(data.nodes, data.links);
+        AActivityRun._instances[activity.id] = this;
     }
+    static _instances = {};
 
     static default = {
         fontSize: 15,
@@ -31,12 +109,12 @@ export default class AActivity {
             return Math.max(a, b);
         }, -Infinity);
 
-        let height = nameArray.length * AActivity.default.fontSize * 2;
-        let width = maxLetters * (AActivity.default.fontSize / 1.5);
-        let depth = AActivity.default.depth;
+        let height = nameArray.length * AActivityRun.default.fontSize * 2;
+        let width = maxLetters * (AActivityRun.default.fontSize / 1.5);
+        let depth = AActivityRun.default.depth;
         let radius = Math.max(Math.sqrt(width * width + height * height), Math.sqrt(height * height + depth * depth), Math.sqrt(width * width + depth * depth)) / 2;
 
-        // Now calculate hieght for the inputs and outputs.
+        // Now calculate height for the inputs and outputs.
         if(node.object) {
             let inputLength = 0;
             let outputLength = 0;
@@ -47,21 +125,25 @@ export default class AActivity {
                 outputLength = Object.keys(node.object.outputs).length || 0;
             }
             let iolength = Math.max(inputLength, outputLength);
-            let ioHeight = iolength * AActivity.default.fontSize * 2; // The font height should be half the size of the normal font. See above.
+            let ioHeight = iolength * AActivityRun.default.fontSize * 2; // The font height should be half the size of the normal font. See above.
             height = Math.max(ioHeight * 1.2, height);
         }
         return {w: width, h: height, d: depth, r: radius};
     }
     static viewIO3D(name, object) {
+        let oname = object;
+
+        if(typeof object === 'object') { oname = object.type }
+
         let node = {
-            name: name,
+            name: `${name}: ${oname}`,
             description: object.description
         }
-        let height = AActivity.default.fontSize /  1.5; // 1/3 the normal font size
-        let width = node.name.length * (AActivity.default.fontSize / 4.5); // half the normal font size
+        let height = AActivityRun.default.fontSize /  1.5; // 1/3 the normal font size
+        let width = node.name.length * (AActivityRun.default.fontSize / 4.5); // half the normal font size
 
 
-        let shape = new THREE.BoxGeometry(width, height, AActivity.default.fontSize / 3);
+        let shape = new THREE.BoxGeometry(width, height, AActivityRun.default.fontSize / 3);
 
         let opacity = 1;
         let color = node.color || "#006699";
@@ -83,9 +165,9 @@ export default class AActivity {
             text: labelText,
             color: "#ffffff",
             width: node.width,
-            size: AActivity.default.fontSize /3
+            size: AActivityRun.default.fontSize /3
         });
-        label.position.set(0, 0, (AActivity.default.fontSize/6)* 1.1 );
+        label.position.set(0, 0, (AActivityRun.default.fontSize/6)* 1.1 );
         label.applyMatrix4(new THREE.Matrix4().makeScale(1, 1, 1));
         group.add(label);
         group.width = width;
@@ -93,7 +175,8 @@ export default class AActivity {
         return group;
     }
     static view3D(node, type) {
-        let size = AActivity.calculateBox(node);
+        node.object = node.activity;
+        let size = AActivityRun.calculateBox(node);
         // This is the rounded cube
         let width = size.w;
         let height = size.h
@@ -103,15 +186,21 @@ export default class AActivity {
         let radius0 = node.radius || (Math.min(Math.min(width, height), depth) * .25);
         let smoothness = Math.max(3, Math.floor(node.smoothness) || 3);
 
+
         let shape = new THREE.Shape();
-        let eps = AActivity.default.corner;
+        let eps = AActivityRun.default.corner;
         let radius = radius0 - 1;
 
         shape.absarc(-halfWidth + eps, -halfHeight + eps, eps, -Math.PI / 2, -Math.PI, true);
         shape.absarc(-halfWidth + eps, halfHeight - radius * 2, eps, Math.PI, Math.PI / 2, true);
         shape.absarc(halfWidth - radius * 2, halfHeight - radius * 2, eps, Math.PI / 2, 0, true);
         shape.absarc(halfWidth - radius * 2, -halfHeight + eps, eps, 0, -Math.PI / 2, true);
-
+        // Save the orginal details.
+        node.description = `<b>State:</b> - ${node.state}\n`
+        if(node.message) {
+            node.description += node.message;
+        }
+        node.description += `\n${node.detail}\n`;
         // This is the rounded cube
         let geometry = new THREE.ExtrudeBufferGeometry(shape, {
             depth: depth,
@@ -122,9 +211,9 @@ export default class AActivity {
             bevelThickness: radius0,
             curveSegments: smoothness
         });
-        node.description = node.detail;
-        let opacity = node.opacity || 0.50;
-        let color = node.color || "#66ffaa";
+
+        let opacity = node.opacity || 1;
+        let color = node.color || "#22bb66";
         if (type === 'Selected') {
             color = "yellow";
         } else if (type === 'Targeted') {
@@ -150,37 +239,48 @@ export default class AActivity {
             text: labelText,
             color: "#ffffff",
             width: node.width,
-            size: AActivity.default.fontSize
+            size: AActivityRun.default.fontSize
         });
         label.position.set(0, 0, (depth + radius0) + 2);
         label.applyMatrix4(new THREE.Matrix4().makeScale(1, 1, 1));
         group.add(label);
 
+        let stateText = `(${node.id.replace('AAI', '')}) [${node.state}]`;
+        let labelState = AText.view3D({
+            text: stateText,
+            color: "#ffffff",
+            width: node.width,
+            size: AActivityRun.default.fontSize/2
+        });
+        labelState.position.set(0, (size.h/2 - AActivityRun.default.fontSize/3), (depth + radius0) + 2);
+        labelState.applyMatrix4(new THREE.Matrix4().makeScale(1, 1, 1));
+        group.add(labelState);
+
         // Add the specific type of Activity
 
         if(node.object && node.object.inputs) {
-            let yoffset = AActivity.default.fontSize * 1.5;
+            let yoffset = AActivityRun.default.fontSize * 1.5;
             let inputs = []
             for (let iname in node.object.inputs) {
                 inputs.push(`${iname}: ${node.object.inputs[iname].type} - ${node.object.inputs[iname].description}`);
 
-                let ioNode = AActivity.viewIO3D(iname, node.object.inputs[iname]);
-                ioNode.position.set(-(size.w/2 + ioNode.width/2 - AActivity.default.fontSize * 0.5) , size.h / 2 - yoffset, size.d * 1.2);
+                let ioNode = AActivityRun.viewIO3D(iname, node.object.inputs[iname]);
+                ioNode.position.set(-(size.w/2 + ioNode.width/2 - AActivityRun.default.fontSize * 0.5) , size.h / 2 - yoffset, size.d * 1.2);
                 group.add(ioNode);
-                yoffset += AActivity.default.fontSize;
+                yoffset += AActivityRun.default.fontSize;
             }
             node.description = node.description + "\n<b>Inputs:</b>\n  - " + inputs.join('\n  - ');
         }
         if(node.object && node.object.outputs) {
             let outputs = []
-            let yoffset = AActivity.default.fontSize * 1.5;
+            let yoffset = AActivityRun.default.fontSize * 1.5;
             for (let iname in node.object.outputs) {
-                outputs.push(`${iname}: ${node.object.outputs[iname].type} - ${node.object.outputs[iname].description}`);
+                outputs.push(`${iname}: ${node.object.outputs[iname]}`);
 
-                let ioNode = AActivity.viewIO3D(iname, node.object.outputs[iname]);
-                ioNode.position.set((size.w/2 + ioNode.width/2 - AActivity.default.fontSize * 0.5), size.h / 2 - yoffset, size.d * 1.2);
+                let ioNode = AActivityRun.viewIO3D(iname, node.object.outputs[iname]);
+                ioNode.position.set((size.w/2 + ioNode.width/2 - AActivityRun.default.fontSize * 0.5), size.h / 2 - yoffset, size.d * 1.2);
                 group.add(ioNode);
-                yoffset += AActivity.default.fontSize;
+                yoffset += AActivityRun.default.fontSize;
             }
             node.description = node.description + "\n<b>Outputs:</b>\n  - " + outputs.join('\n  - ');
         }
@@ -191,7 +291,7 @@ export default class AActivity {
         }
 
         node.expandLink = `nolink`;
-        node.getDetail = AActivity.getDetail;
+        node.getDetail = AActivityRun.getDetail;
         if (node.object) {
             if (node.object.type === "scenario") {
                 let item = AScenario.view3D(subNode);
@@ -199,7 +299,7 @@ export default class AActivity {
                 item.position.set(-(size.w / 2), size.h / 2, size.d + 1);
                 group.add(item);
                 // The Scenario id is UseCase.Scenario This is found in the object.obj.uid field.
-                node.expandLink = `scenario/get?id=${node.object.obj.uid}`;
+                node.expandLink = `scenario/get?id=${node.object?.obj?.uid}`;
                 node.expandView = AScenario.handle;
             } else if (node.object.type === "usecase") {
                 let item = AUsecase.view3D(subNode);
@@ -284,12 +384,17 @@ export default class AActivity {
 
         group.aid = node.id;
         node.box = size.r;
-        node.getDetail = AActivity.getDetail;
+        node.getDetail = AActivityRun.getDetail;
         return group;
     }
 
     static getDetail(node) {
-        AActivity.showDetail(node);
+        if(!node.actor) {
+            AActivityRun.showDetail(node);
+        } else {
+            AActivityRun.showUserActivity(node);
+        }
+
     }
 
     static showDetail(result) {
@@ -355,6 +460,92 @@ export default class AActivity {
 
     static handle(results) {
 
+    }
+    static handleEvent(event, activity, message) {
+        let records = w2ui['WorkflowSimulation'].records;
+        let color = scolor[event];
+        if (event === 'created') {
+            let params = [];
+            for (let j in activity.inputs) {
+                params.push(`${j}: ${activity.inputs[j]}`);
+            }
+            let outputs = [];
+            for (let j in activity.outputs) {
+                outputs.push(`${j}: ${activity.outputs[j].type}`);
+            }
+            w2ui['WorkflowSimulation'].add({
+                recid: "AAI" + activity.id,
+                name: activity.name,
+                id: activity.id,
+                type: activity.type,
+                inputs: params.join(","),
+                outputs: outputs.join(","),
+                "w2ui": {"style": `background-color: ${color}`}
+            });
+            // Handle the graphical elements
+            // Create an AActivityRun
+            let node = new AActivityRun(activity);
+        } else {
+            // Find the appropriate node.
+            let record = records["AAI" + activity.id];
+            let inputs = [];
+            for (let j in activity.args) {
+                inputs.push(`${j}: ${activity.args[j]}`);
+            }
+            let outputs = [];
+            for (let j in activity.outputs) {
+                outputs.push(`${j}: ${activity.outputs[j]}`);
+            }
+            let newRecord = {
+                "id": "AAI" + activity.id,
+                "w2ui": {"style": `background-color: ${color}`}
+            }
+            if (inputs.length > 0) {
+                newRecord.inputs = inputs;
+            }
+            if (outputs.length > 0) {
+                newRecord.outputs = outputs;
+            }
+            w2ui['WorkflowSimulation'].set(newRecord.id, newRecord);
+            activity.state = event;
+            activity.message = message;
+            AActivityRun.update(activity);
+        }
+    }
+    static update(activity) {
+        let myact = AActivityRun._instances[activity.id];
+        if(myact) {
+            if (activity.inputs) {
+                if (!myact.inputs) {
+                    myact.inputs = {};
+                }
+                for (let iname in activity.inputs) {
+                    myact.inputs[iname] = activity.inputs[iname];
+                }
+            }
+            if (activity.outputs) {
+                if (!myact.outputs) {
+                    myact.outputs = {};
+                }
+                for (let oname in activity.outputs) {
+                    myact.outputs[oname] = activity.outputs[oname];
+                }
+            }
+            window.graph.setNodeAndFocus(myact.node.id, {
+                color: scolor[activity.state],
+                state: activity.state,
+                activity: myact
+            });
+        }
+    }
+    static clear() {
+    }
+
+    static selectNode(id) {
+        window.graph.selectNodeByID(event.recid);
+    }
+    static showUserActivity(node) {
+        AUserActivity.openInputDialog(node.id.replace('AAI',''));
     }
 }
 

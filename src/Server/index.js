@@ -58,7 +58,6 @@ const circularReplacer = () => {
     }
 }
 
-
 // Here we are configuring express to use body-parser as middle-ware.
 server.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
@@ -87,6 +86,9 @@ module.exports = {
         htmlGenerator.package(global.topPackage, apath + '/docs');
         htmlGenerator.actors(global.actors, apath + '/docs');
         console.log("Built the Documentation");
+    },
+    addRoute: (path, fn) => {
+        server.all(path, fn);
     },
     doc: (config) => {
         console.log("Serving documenration");

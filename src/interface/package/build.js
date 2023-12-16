@@ -45,7 +45,6 @@ module.exports = {
         let topPackage = sLoader.processPackage(apath);
         // Find the package
         let pkg = APackage.getPackage(name);
-        console.log("Build Package:", pkg);
         if(!inputs.recursive) {
             inputs.recursive = true
         }

@@ -157,6 +157,7 @@ const workflowGenerator = (workflow, output) => {
         targets: {
             './:workFlowName:.md': {template: '/templates/Workflow/index.emd'},
             './:workFlowName:.puml': {template: '/templates/Workflow/workflow.puml'},
+            './:workFlowName:Data.puml': {template: '/templates/Workflow/dataflow.puml'},
         },
     };
     Generator.process(files, output);

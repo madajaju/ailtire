@@ -6,7 +6,7 @@ module.exports = {
     static: true,
     inputs: {
         name: {
-            description: 'The name of the workflow',
+            description: 'The name of the usecase',
             type: 'string',
             required: true
         },

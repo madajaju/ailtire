@@ -1,8 +1,8 @@
 const AClass = require('../../Server/AClass');
 
 module.exports = {
-    friendlyName: 'show',
-    description: 'Show called for web interface',
+    friendlyName: 'new',
+    description: 'New called for web interface',
     static: true, // True is for Class methods. False is for object based.
     inputs: {},
 
@@ -42,8 +42,7 @@ module.exports = {
                 _id: obj.id,
                 _name: obj.name || obj.id,
                 _package: cls.definition.package.shortname,
-                _type: cls.definition.name,
-                _state: obj._state
+                _type: cls.definition.name
             };
             for (let aname in cls.definition.attributes) {
                 item[aname] = {name: obj[aname]};
@@ -57,8 +56,7 @@ module.exports = {
                             _id: obj[aname].id,
                             _name: obj[aname].name || obj[aname].id,
                             _type: obj[aname].definition.name,
-                            _link: `${assoc.type}?id=${obj[aname].id}`,
-                            _state: obj[aname]._state,
+                            _link: `${assoc.type}?id=${obj[aname].id}`
                         };
                         for (let aaname in obj[aname].definition.attributes) {
                             item[aname][aaname] = obj[aname][aaname];
@@ -71,8 +69,7 @@ module.exports = {
                             _id: obj[aname][i].id,
                             _name: obj[aname][i].name || obj[aname][i].id,
                             _type: obj[aname][i].definition.name,
-                            _link: `${assoc.type}?id=${obj[aname][i].id}`,
-                            _state: obj[aname][i]._state,
+                            _link: `${assoc.type}?id=${obj[aname][i].id}`
                         };
                         for (let aaname in obj[aname][i].definition.attributes) {
                             mitem[aaname] = obj[aname][i][aaname];

@@ -157,7 +157,6 @@ function buildEngine(pkg, opts) {
 
 function buildPackage(pkg, opts) {
     if (pkg.deploy) {
-
         // Create a tmp directory to build the microservice
         let destDir = path.resolve(`${pkg.deploy.dir}/.buildDir`);
         if (!fs.existsSync(destDir)) {
@@ -196,7 +195,7 @@ function buildPackage(pkg, opts) {
             } catch (e) {
                 console.error("Could not copy the dir:", fromPath, " to ", buildDir, e);
             }
-            let buildFile = path.resolve(`${pkg.deploy.dir}/${build.file}`);
+            let buildFile = path.resolve(`${fromPath}/${build.file}`);
             // Copy all of the contents from the deploy build directory into the top directory.
             let destBuildFile = path.join(buildDir, "Dockerfile");
             try {
@@ -207,14 +206,15 @@ function buildPackage(pkg, opts) {
             // Now copy the deployment to the top directory.
             _copyDirectory(path.resolve(pkg.deploy.dir), path.join(buildDir, "deploy"));
             // Create the interface directory if it does not exist.
-            if(!fs.existsSync(`${buildDir}/interface`)) {
-                fs.mkdirSync(`${buildDir}/interface`, { recursive: true});
+            if (!fs.existsSync(`${buildDir}/interface`)) {
+                fs.mkdirSync(`${buildDir}/interface`, {recursive: true});
             }
 
             // Now copy the packages included in the definition
-            build.packages.forEach((depPkg) => {
+            for (let i in build.packages) {
+                let depPkg = build.packages[i];
                 _copyPackage(depPkg, buildDir);
-            });
+            }
 
             for (ename in build.env) {
                 process.env[ename] = build.env[ename];
@@ -286,8 +286,9 @@ function _copyDirectory(src, dest) {
         }
     }
     if (fs.existsSync(src)) {
-        files = fs.readdirSync(src)
-        files.forEach((file) => {
+        let files = fs.readdirSync(src)
+        for (let i in files) {
+            let file = files[i];
             let srcFile = path.join(src, file);
             let destFile = path.join(dest, file);
             switch (file) {
@@ -305,7 +306,7 @@ function _copyDirectory(src, dest) {
                     }
                     break;
             }
-        })
+        }
     }
 }
 
@@ -313,16 +314,17 @@ function _copyPackage(srcPkg, destDir) {
     // Top Package has the base directory.
     let topDirectory = path.resolve(global.topPackage.dir);
     // Find the packge first
+    console.log("Adding Package:", srcPkg);
 
     // Put the application index.js definition file in the api directory.
     let topPackageFile = path.resolve(`${global.topPackage.definition.dir}/index.js`);
-    if(!fs.existsSync(`${destDir}/api/index.js`)) {
-        if(fs.existsSync(topPackageFile)) {
+    if (!fs.existsSync(`${destDir}/api/index.js`)) {
+        if (fs.existsSync(topPackageFile)) {
             fs.cpSync(topPackageFile, `${destDir}/api/index.js`);
         }
     }
-    if(!fs.existsSync(`${destDir}/api/interface`)) {
-       fs.mkdirSync(`${destDir}/api/interface`, { recursive: true});
+    if (!fs.existsSync(`${destDir}/api/interface`)) {
+        fs.mkdirSync(`${destDir}/api/interface`, {recursive: true});
     }
 
     if (global.packages.hasOwnProperty(srcPkg)) {
@@ -332,7 +334,7 @@ function _copyPackage(srcPkg, destDir) {
         dpkgDir = path.resolve(`${destDir}/api/${srcPkg}`);
         _copyDirectory(spkgDir, dpkgDir);
         // Now process the includes classes into the dpkgDir models file
-        for(let iname in spkg.includes) {
+        for (let iname in spkg.includes) {
             let inc = spkg.includes[iname];
             let destDir = path.resolve(`${dpkgDir}/models/${iname}`);
             _copyDirectory(inc.definition.dir, destDir)

@@ -45,8 +45,12 @@ const _processArguments = (action, opts)  => {
                 // get the file and store it in the data variable
                 try {
                     let apath = path.resolve(process.cwd() + '/' + opts[name]);
-                    let contents = fs.readFileSync(apath, 'utf-8');
-                    retval[name] = {data: contents};
+                                        if(fs.existsSync(apath)) {
+                                            let contents = fs.readFileSync(apath, 'utf-8');
+                                            retval[name] = {data: contents};
+                                        } else {
+                            retval[name] = {data: opts[name]};
+                                        }
                 }
                 catch(e) {
                     console.error("File error:", e);

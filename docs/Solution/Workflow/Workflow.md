@@ -47,7 +47,12 @@ module.exports = {
                 }   
             },
             variables: {
-                myVariable: `${inputs.param1}Parameter`
+                myVariable: {
+                    description: "Variable for the activity",
+                    fn: (activity) => {
+                        
+                    }
+                }
             },
             next: {
                 "Next Activity": {
@@ -68,6 +73,16 @@ module.exports = {
                     }
                 }
             },
+            outputs: {
+                output1: {
+                    description: "Output 1 from the activity.",
+                    fn: (activity) => { return activity.variables}
+                },
+                output2: {
+                    description: "Output 1 from the activity.",
+                    fn: (activity) => { return "Made It"; }
+                },
+            }
         },
         "Next Activity": {
             inputs: {
@@ -152,13 +167,13 @@ The following is an example of the inputs section of a activity of a workflow.
       param1: {
         description: 'This is a description of the parameter', // Description of the parameter.
                 type: 'string', // Type of parameter string,number,ref,json,
-      default: 'This is a default', // This is a default value for the parameter
+                default: 'This is a default', // This is a default value for the parameter
                 required: true // true or false
       },
       param2: {
         description: 'This is a description of the second parameter', // Description of the parameter
                 type: 'number', // Type of parameter string,number,ref,json,
-      default: 100, // The default value is 100
+                default: 100, // The default value is 100
                 required: false // true or false
       }
     },
@@ -171,7 +186,7 @@ The following is an example of the inputs section of a activity of a workflow.
 Workflow designers use variables to capture and pass additional information between activities. Variables have three attributes: a name, a description, and a value. The variable name is used to identify it, while the description provides additional information that can be used for documentation, user interface, and execution. The value of a variable can be a string or a function that returns a value to assign to the variable.
 * name - The name of the variable.
 * description - The description of the variable that can be used for documentation, user interface and execution.
-* value - This could be a string or a function that returns a value to assign to the variable.
+* fn - This a function that returns a value to assign to the variable.
 
 The following is an example of the variables in activity of a workflow.
 
@@ -179,15 +194,36 @@ The following is an example of the variables in activity of a workflow.
 variables: {
     variable1: {
         description: "This is my varaible",
-        value: `${activity.inputs.param1}MyString` 
+        fn: (activity) => return `${activity.inputs.param1}MyString` ;
     }
     variable2: {
         description: "This is my second variable",
-        value: (activity) => { return activity.inputs.param1 + activity.inputs.param2 * 10; },
+        fn: (activity) => { return activity.inputs.param1 + activity.inputs.param2 * 10; },
     }
 }
 ```
 
+## Outputs
+
+Workflow designers use output to pass additional information between activities. Outputs have three attributes: a name, a description, and a value. The output name is used to identify it, while the description provides additional information that can be used for documentation, user interface, and execution. The fn of a variable is a function that returns a value to assign to the output.
+* name - The name of the variable.
+* description - The description of the variable that can be used for documentation, user interface and execution.
+* fn - This a function that returns a value to assign to the variable.
+
+The following is an example of the outputs in activity of a workflow.
+
+``` javascript
+outputs: {
+    output1: {
+        description: "This is my output",
+        fn: (activity) => return `${activity.inputs.param1}MyString` ;
+    }
+    output2: {
+        description: "This is my second output",
+        fn: (activity) => { return activity.inputs.param1 + activity.inputs.param2 * 10; },
+    }
+}
+```
 
 ## Next Activity
 

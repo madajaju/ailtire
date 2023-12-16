@@ -55,15 +55,9 @@ module.exports = {
         // This gets the statenet from the current model or its parent.
         let statenet = _getStateNet(proxy.definition);
         // Check for the terminal state. If it is then log a warning.
-        if(!statenet.hasOwnProperty(currentState)) {
-            console.error("Unknown State:", currentState);
-            return;
-        }
         if (!statenet[currentState].hasOwnProperty('events')) {
-            if(proxy.definition.methods.hasOwnProperty(event)) {
-                retval = funcHandler.run(proxy.definition.methods[event], proxy, args[0]);
-            }
-            return retval;
+            console.warn("Terminal State: No more transistions allowed.");
+            return;
         }
 
         // Check if the event handled is a defined transition. If not then log a warning or reject the call based on
@@ -124,13 +118,8 @@ module.exports = {
             }
             // Short circuit it the transition is to itself. Do not call the entry and exit actions.
             if (obj._state === transition.state) {
-                let retval = undefined;
-                if (proxy.definition.methods.hasOwnProperty(event)) {
-                    retval = funcHandler.run(proxy.definition.methods[event], proxy, args[0]);
-                }
-                return retval;
+                return;
             }
-            
             // Change the state of the obj to the new state.
             obj._state = transition.state;
             

@@ -6,6 +6,7 @@ const packageProxy = require('../Proxy/PackageProxy');
 const apiGenerator = require('../Documentation/api');
 const YAML = require('yamljs');
 const AClass = require('./AClass');
+const AActivity = require('./AActivity');
 
 module.exports = {
     analyze: (pkg) => {
@@ -13,14 +14,13 @@ module.exports = {
     },
     processPackage: (dir) => {
         global.actors = {};
-        global.actions = global.actions || {}; // Allow actions to be added programattically
+        global.actions = {};
         global.events = {};
-        global.handlers = {};
+        global.handlers = _initHandlers();
         global.classes = {};
-        global.packages = {}
+        global.packages = {};
         global.topPackage = {};
         global.usecases = {};
-        global.workflows = global.workflows || {};
         global.appBaseDir = dir;
         global.topPackage = processDirectory(dir);
         _processModelIncludeFiles();
@@ -487,7 +487,7 @@ const checkWorkflows = (workflows) => {
             let anospace = aname.replace(/\s/g, '');
             if (aname !== "Init") {
                 if (global.workflows.hasOwnProperty(aname)) {
-                    activity.obj = global.workflows[anospace];
+                    activity.obj = global.workflows[aname];
                     activity.type = "workflow";
                 } else if (global.usecases.hasOwnProperty(anospace)) {
                     activity.obj = global.usecases[aname];
@@ -577,7 +577,6 @@ const checkDeployment = (deployments, images) => {
                     }
                 }
             } catch (e) {
-                if(!global.ailtire.error) { global.ailtire.error = [];}
                 global.ailtire.error.push({
                     type: 'build.image',
                     object: {type: "Image", id: image.image.tag, name: image.image.tag},
@@ -904,11 +903,10 @@ const checkScenario = (pkg, scenario) => {
         let nsAname = aname.replace(/\s/g, '');
         if (!global.actors.hasOwnProperty(nsAname)) {
             apiGenerator.actor({name: aname}, global.appBaseDir + '/actors');
-        }
-        if (!global.actors[nsAname].hasOwnProperty('scenarios')) {
+        } else if (!global.actors[nsAname].hasOwnProperty('scenarios')) {
             global.actors[nsAname].scenarios = {};
+            global.actors[nsAname].scenarios[scenario.name.replace(/\s/g, '')] = scenario;
         }
-        global.actors[nsAname].scenarios[scenario.name.replace(/\s/g, '')] = scenario;
     }
 
     // Make sure each UseCase has a method that matches an interface that exists.
@@ -1017,4 +1015,25 @@ function _processModelIncludeFiles() {
     }
 }
 
+// Contains defaultHandlers for workflows and activities
+function _initHandlers() {
+    let retval = {};
+    retval['activity.completed'] = {name: "activity.completed", handlers: [
+            {
+                description: 'Activity Completed Handler. Notifies the next activity of the completion.',
+                fn: (data) => {
+                    AActivity.handleEvent("activity.completed",data);
+                }
+            },
+    ]};
+    retval['activity.error'] = {name: "activity.error", handlers: [
+            {
+                description: 'Activity Completes with an Error Handler. Notifies the next activity of the error state.',
+                fn: (data) => {
+                    AActivity.handleEvent("activity.error",data);
+                }
+            },
+    ]};
+    return retval;
+}
 

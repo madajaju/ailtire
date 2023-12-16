@@ -20,4 +20,56 @@ parent: Workflows
     } else { -%>
 * <%- aname %> - <%- activity.description %>
 <% }
-} -%>
+}  %>
+
+<%for(let aname in workflow.activities) {
+  let activity = workflow.activities[aname];
+%>
+
+![DataFlow Diagram](./<%= workflow.name.replace(/\s/g,'') %>Data.png)
+
+### <%- aname %>
+
+<%- activity.description %>
+
+<% if(activity.type) { %>
+*Type* - <%- activity.type %>
+<% } -%>
+
+<% if(activity.package) { -%>
+*Package* - <%- activity.package %>
+<% } -%>
+
+<% if(activity.actor) { -%>
+*Actor* - <%- activity.actor %>
+<% } -%>
+
+<% if(activity.inputs) { -%>
+#### Inputs
+
+<% for(let iname in activity.inputs) {
+    let input = activity.inputs[iname];
+-%>
+* <%- iname %> : <%- input.type %> - <%- input.description %>
+<% } 
+}-%>
+<% if(activity.outputs) { -%>
+#### Outputs
+
+<% for(let iname in activity.outputs) {
+let output = activity.outputs[iname];
+-%>
+* <%- iname %> : <%- output.type %> - <%- output.description %>
+<% }
+}-%>
+<% if(activity.next) { %>
+#### Next Activities
+
+<% for(let nname in activity.next) { 
+    let nact = activity.next[nname];
+-%>
+* <%- nname %> <% if(nact.condition) { -%> [ <%- nact.condition.test %> === <%- nact.condition.value %> ] <% } -%>
+
+<% } 
+}
+}-%>

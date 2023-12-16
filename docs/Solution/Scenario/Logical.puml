@@ -5,6 +5,12 @@ class Scenario {
     description: string
     method: string
 }
+class Parameter {
+    name : string
+    description : string
+    required: boolean
+    type: enum[string,boolean,number,ref]
+}
 class Actor {
 }
 class Step {
@@ -14,4 +20,6 @@ class Step {
 
 Scenario o-> Actor : actors
 Scenario "0" *--> "n" Step : steps
+Scenario *--> "n" Parameter : inputs
+
 @enduml

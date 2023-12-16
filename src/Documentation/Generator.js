@@ -17,12 +17,8 @@ module.exports = {
                 }
             }
             for (let fname in files.context) {
-                if (nname.includes(`:${fname}:`)) {
-                    nname = nname.replace(':' + fname + ':', files.context[fname]);
-                }
-                if (target.name.includes(`:${fname}:`)) {
-                    target.name = target.name.replace(':' + fname + ':', files.context[fname]);
-                }
+                nname = nname.replace(':' + fname + ':', files.context[fname]);
+                target.name = target.name.replace(':' + fname + ':', files.context[fname]);
             }
             targets[nname] = target;
         }
@@ -30,41 +26,12 @@ module.exports = {
             let bfile = baseDir + '/' + file;
             // Cannot make everything lowercase it does not look good.
             // bfile = bfile.toLowerCase();
-            _processItem(targets[file], bfile, files.context);
-        }
-    },
-    processAsync: async (files, baseDir) => {
-        let targets = {};
-        for (let name in files.targets) {
-            let nname = name;
-            let target = '';
-            for (let action in files.targets[name]) {
-                if (action === 'folder') {
-                    target = {name: name, action: action};
-                } else {
-                    target = {name: files.targets[name][action], action: action};
-                }
-            }
-            for (let fname in files.context) {
-                if (nname.includes(`:${fname}:`)) {
-                    nname = nname.replace(':' + fname + ':', files.context[fname]);
-                }
-                if (target.name.includes(`:${fname}:`)) {
-                    target.name = target.name.replace(':' + fname + ':', files.context[fname]);
-                }
-            }
-            targets[nname] = target;
-        }
-        for (let file in targets) {
-            let bfile = baseDir + '/' + file;
-            // Cannot make everything lowercase it does not look good.
-            // bfile = bfile.toLowerCase();
-            await _processItemAsync(targets[file], bfile, files.context);
+            processItem(targets[file], bfile, files.context);
         }
     }
 };
 
-const _processItem = (item, target, objects) => {
+const processItem = (item, target, objects) => {
     let relfile = __dirname + '/' + item.name;
     let apath = path.resolve(relfile);
     if (!fs.existsSync(apath)) {
@@ -90,40 +57,8 @@ const _processItem = (item, target, objects) => {
                     fs.writeFileSync(apath, str);
                 }
             });
-        } catch (e) {
-            console.error("RenderFile:", e);
         }
-    } else if (item.action === 'folder') {
-        let dirname = path.resolve(target);
-        fs.mkdirSync(dirname, {recursive: true});
-    } else if (item.action === 'copy') {
-        let str = fs.readFileSync(apath);
-        let dest = path.resolve(target);
-        let dirname = path.dirname(dest);
-        fs.mkdirSync(dirname, {recursive: true});
-        fs.writeFileSync(dest, str);
-    }
-};
-const _processItemAsync = async (item, target, objects) => {
-    let relfile = __dirname + '/' + item.name;
-    let apath = path.resolve(relfile);
-    if (!fs.existsSync(apath)) {
-        // Try the absolute Path
-        relfile = item.name;
-        apath = path.resolve(relfile);
-    }
-    if (item.action === 'template') {
-        objects.partial = partialProcess;
-        try {
-            let str = await ejs.renderFile(apath, objects, {async: true});
-            // Create the directory and then store the file.
-            let a2path = path.resolve(target);
-            let dirname = path.dirname(a2path);
-            fs.mkdirSync(dirname, {recursive: true});
-            if (str) {
-                fs.writeFileSync(a2path, str);
-            }
-        } catch (e) {
+        catch(e) {
             console.error("RenderFile:", e);
         }
     } else if (item.action === 'folder') {

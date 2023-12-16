@@ -37,10 +37,24 @@ module.exports = {
     actors: {
         'IT Operations': 'uses',
     },
+    inputs: {
+        param1: {
+            description: "This is the first parameter",
+            type: "string", // string | number | ref | boolean
+            required: true | false,
+            default: "default value",
+        },
+        param2: {
+            description: "This is the second parameter",
+            type: "number",
+            required: false
+        }
+    },
     // Steps to perform to realize the scenario.
     steps: [
         {action: 'device/create', parameters: {name: 'host1', file: './templates/device.yaml'}},
         {action: 'device/create', parameters: {name: 'host2', file: './templates/device.yaml'}},
+        {action: 'device/create', parameters: {name: `:param1:`, file: './templates/device.yaml'}},
     ]
 };
 ```
