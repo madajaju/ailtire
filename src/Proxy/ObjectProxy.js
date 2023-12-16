@@ -19,8 +19,7 @@ module.exports = {
             if(prop === "_attributes") {
                 return obj._attributes;
             }
-            let results = getHandler(obj, definition, prop);
-            return results;
+            return getHandler(obj, definition, prop);
         } catch (e) {
             console.error(e);
             return null;
@@ -29,7 +28,7 @@ module.exports = {
     set: (obj, prop, value) => {
         // Check if the class has the attribute
         if(prop === "_state") {
-            obj._state = value;
+           obj._state = value;
         }
         if (!obj.hasOwnProperty('definition')) {
             console.error("Missing \"definition\" property value for ", obj);
@@ -65,7 +64,7 @@ module.exports = {
 
                     // Store things as an array or a map.
                     if (Array.isArray(value)) {
-                        let newArray = new Array();
+                        let newArray = [];
                         // Iterate through each one. If an element is a string them try and load the Object.
                         for(let i in value) {
                             let aval = value[i];
@@ -217,6 +216,8 @@ function getHandler(obj, definition, prop) {
         } else {
             return shallowJSON(obj);
         }
+    } else if(prop === 'then') {
+          return new Promise((resolve, reject) => resolve(obj));
     } else if (prop === 'toJSONShallow') {
         return shallowJSON(obj);
     } // Association addTo, removeFrom, and Clear
@@ -259,7 +260,6 @@ function getHandler(obj, definition, prop) {
             if (!obj._associations.hasOwnProperty(simpleProp)) {
                 return false;
             }
-            let toberemoved = [];
             for (let i = 0; i < obj._associations[simpleProp].length;) {
                 if (obj._associations[simpleProp][i] === args[0]) {
                     obj._associations[simpleProp].splice(i, i + 1);
@@ -393,12 +393,10 @@ function getHandler(obj, definition, prop) {
     }
     // Now check for methods that are called.
     else if (definition.methods.hasOwnProperty(prop)) {
-        let orgMethod = obj[prop];
         return function (...args) {
             if (!definition.methods[prop].static) {
                 if (hasStateNet(definition)) {
-                    let retval = stateNetHandler.processEvent(this, obj, prop, args);
-                    return retval;
+                    return stateNetHandler.processEvent(this, obj, prop, args);
                 } else {
                     // let retval =  orgMethod.apply(this,args);
                     let retval = funcHandler.run(definition.methods[prop], this, args[0]);
@@ -409,10 +407,10 @@ function getHandler(obj, definition, prop) {
                 return undefined;
             }
         }
-    } else {
+    }
+    else {
         console.error(`Error cloudnot find ${prop} on ${obj}`);
         throw new Error(`Could not find ${prop}! on ${obj}`);
-        return undefined;
     }
 }
 
@@ -481,11 +479,7 @@ function isTypeOf(item, type) {
     if (item.definition.name === type) {
         return true;
     } else {
-        if (item.definition.extends && item.definition.extends.toLowerCase() === type.toLowerCase()) {
-            return true;
-        } else {
-            return false;
-        }
+        return !!(item.definition.extends && item.definition.extends.toLowerCase() === type.toLowerCase());
     }
 }
 
@@ -524,7 +518,7 @@ function getAssociation(definition, aname) {
 }
 
 function shallowJSON(obj) {
-    let object2d = null;
+    /*let object2d = null;
     let object3d = null;
     if(obj.definition.view) {
         if(obj.definition.view.object2d) {
@@ -534,6 +528,7 @@ function shallowJSON(obj) {
             object3d = obj.definition.view.object3d();
         }
     }
+     */
     let newAttributes = { id: obj._attributes.id, state: obj._state };
     for(let aname in obj._attributes) {
         if(obj.definition.attributes.hasOwnProperty(aname)) {
@@ -547,10 +542,11 @@ function shallowJSON(obj) {
             name: obj.definition.name,
             attributes: obj.definition.attributes,
             associations: obj.definition.associations,
-            view: {
+            /* view: {
                 object2d: object2d,
                 object3d: object3d
             },
+             */
             package: {
                 shortname: obj.definition.package.shortname,
                 name: obj.definition.package.name,

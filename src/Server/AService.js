@@ -3,13 +3,19 @@ const fs = require('fs');
 const path = require('path');
 const Action = require('./Action.js');
 
+
 module.exports = {
     call: (actionName, opts, env) => {
         let actions = actionName.split('.');
         let action = _findAction(actions);
         if (action && action.fn) {
            let args = _processArguments(action, opts);
-           return Action.execute(action, args, env);
+           try {
+               return Action.execute(action, args, env);
+           }
+           catch(e) {
+               console.error("Action Execute Error:", e);
+           }
         } else {
             console.log("Could not find local Service:", actionName);
             console.log("Running via REST service!");
@@ -45,12 +51,8 @@ const _processArguments = (action, opts)  => {
                 // get the file and store it in the data variable
                 try {
                     let apath = path.resolve(process.cwd() + '/' + opts[name]);
-                                        if(fs.existsSync(apath)) {
-                                            let contents = fs.readFileSync(apath, 'utf-8');
-                                            retval[name] = {data: contents};
-                                        } else {
-                            retval[name] = {data: opts[name]};
-                                        }
+                    let contents = fs.readFileSync(apath, 'utf-8');
+                    retval[name] = {data: contents};
                 }
                 catch(e) {
                     console.error("File error:", e);

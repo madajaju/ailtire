@@ -21,6 +21,10 @@
       <column id="fixVersion" position="13" width="-1" />
     </columns>
   </component>
+  <component name="Talios.JiraConfigurationComponent" enableIssueTracking="false" autoRefresh="false" useExternalBrowser="false" refreshTimeout="0" annotateissues="false">
+    <servers />
+    <columns />
+  </component>
   <component name="TaskProjectConfiguration">
     <server type="GitHub" url="https://github.com" />
   </component>

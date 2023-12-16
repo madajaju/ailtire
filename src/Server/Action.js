@@ -9,9 +9,20 @@ const getFiles = source => fs.readdirSync(source).map(name => path.join(source, 
 
 module.exports = {
     execute: (action, inputs, env) => {
-        return execute(action, inputs, env);
+        let retval = execute(action, inputs, env);
+        return retval;
+    },
+    add: (route, action) => {
+        let nroute = '*' + route.replaceAll(/\s/g,'');
+        global.actions[nroute] = action;
+        global._server.all(nroute, (req, res) => {
+            execute(action, req.query, {req: req, res: res});
+        });
     },
     load: (server, prefix, mDir, config) => {
+        if(server && !global._server) {
+            global._server = server;
+        }
         loadActions(prefix, mDir);
         mapToServices();
         if (server) {
@@ -185,6 +196,9 @@ const addForModels = (server) => {
 
 const setAction = (route, action) => {
     route = route.toLowerCase();
+    if(!global.actions) {
+        global.actions = {};
+    }
     if (!global.actions.hasOwnProperty(route)) {
         global.actions[route] = action;
     } else {
@@ -262,7 +276,6 @@ const mapToServices = () => {
         global.services = mergeMaps(global.services, service);
     }
 };
-
 const execute = (action, inputs, env) => {
     // check the iputs
     // Add the body of the env.req to the inputs.
@@ -310,18 +323,23 @@ const execute = (action, inputs, env) => {
         }
     }
     // run the function
-    return _executeFunction(action, finputs, env);
+    let retval = _executeFunction(action, finputs, env);
+    return retval;
 };
 const _processReturn = (action, retval, env) => {
     if (action.exits) {
         // Only send json if retval has something.
         if(retval) {
-            if (env && env.res) {
-                if (action.exits.hasOwnProperty('json') && typeof action.exits.json === 'function') {
-                    env.res.json(action.exits.json(retval));
-                } else { // default return json in retval.
-                    env.res.json(retval);
+            try {
+                if (env && env.res) {
+                    if (action.exits.hasOwnProperty('json') && typeof action.exits.json === 'function') {
+                        env.res.json(action.exits.json(retval));
+                    } else if (action.exits.hasOwnProperty('json')) { // default return json in retval.
+                        env.res.json(retval);
+                    }
                 }
+            } catch(e) {
+                console.error("Cannot send json for action:", e);
             }
         }
         if (action.exits.hasOwnProperty('success') && typeof action.exits.success === 'function') {
@@ -337,9 +355,9 @@ const _executeFunction = (action, inputs, env) => {
     let retval = inputs;
     try {
         if (action.fn.constructor.name === 'AsyncFunction') {
-            (async () => {
-                retval = await action.fn(inputs, env);
-                return _processReturn(action, retval, env);
+            return (async () => {
+                let returnAsync = await action.fn(inputs, env);
+                return _processReturn(action, returnAsync, env);
             })();
         } else {
             retval = action.fn(inputs, env);
