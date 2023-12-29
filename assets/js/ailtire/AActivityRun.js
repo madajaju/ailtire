@@ -84,10 +84,12 @@ export default class AActivityRun {
         }
         data.nodes[aid] = this.node;
         if(activity.previous) {
-            data.links.push({source: "AAI" + activity.previous, target: aid, value: 10, arrow: 30, width: 3});
+            for(let i in activity.previous) {
+                data.links.push({source: "AAI" + activity.previous[i].id, target: aid, value: 10, arrow: 30, width: 3});
+            }
         }
         // This is the link to the AActivity.
-        data.links.push({target: aid, source: activity.name, value: 0, width: 0.1});
+        data.links.push({target: aid, source: activity.name.replaceAll(/\s/g,''), value: 0, width: 0.1});
         window.graph.addData(data.nodes, data.links);
         AActivityRun._instances[activity.id] = this;
     }
@@ -138,6 +140,9 @@ export default class AActivityRun {
         let node = {
             name: `${name}: ${oname}`,
             description: object.description
+        }
+        if(node.name.length > 30) {
+            node.name = node.name.substring(0,30) + "..."
         }
         let height = AActivityRun.default.fontSize /  1.5; // 1/3 the normal font size
         let width = node.name.length * (AActivityRun.default.fontSize / 4.5); // half the normal font size

@@ -18,7 +18,15 @@ module.exports = {
         }
          */
         // Execute the function with the validated parameters.
-        return method.fn(obj, args);
+        // this needs to check for an async function call.
+        // If it does have one return with await.
+        if(method.fn.constructor.name === "AsyncFunction") {
+            (async () => {
+                return await method.fn(obj, args);
+            })();
+        } else {
+            return method.fn(obj, args);
+        }
     }
 };
 

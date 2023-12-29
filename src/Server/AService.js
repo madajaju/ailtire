@@ -5,23 +5,24 @@ const Action = require('./Action.js');
 
 
 module.exports = {
-    call: (actionName, opts, env) => {
-        let actions = actionName.split('.');
-        let action = _findAction(actions);
+    call: async (actionName, opts, env) => {
+        let action = _findAction(actionName);
         if (action && action.fn) {
            let args = _processArguments(action, opts);
            try {
-               return Action.execute(action, args, env);
+               return await Action.execute(action, args, env);
            }
            catch(e) {
+               console.error(actionName);
                console.error("Action Execute Error:", e);
+               throw e;
            }
         } else {
             console.log("Could not find local Service:", actionName);
             console.log("Running via REST service!");
             let url = 'https://' + global.ailtire.config.internalURL;
             const post = bent(url, 'POST', 'string', 200);
-            const astring = actions.join('/');
+            const astring = actionName;
             (async () => {
                 try {
                         return await post('/' + astring, opts);
@@ -37,11 +38,7 @@ module.exports = {
 };
 
 const _findAction = (actions) => {
-    let aname = '/' + global.topPackage.shortname + '/' + actions.join('/');
-    aname = aname.toLowerCase();
-    if(global.actions.hasOwnProperty(aname)) {
-        return global.actions[aname];
-    }
+    return Action.find(actions);
 }
 const _processArguments = (action, opts)  => {
     let retval = {};

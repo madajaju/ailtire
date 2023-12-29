@@ -13,10 +13,10 @@ module.exports = {
         // Check and set _attributes and _associations
         try {
             let definition = obj.definition;
-            if(prop === "_associations") {
+            if (prop === "_associations") {
                 return obj._associations;
             }
-            if(prop === "_attributes") {
+            if (prop === "_attributes") {
                 return obj._attributes;
             }
             return getHandler(obj, definition, prop);
@@ -27,8 +27,8 @@ module.exports = {
     },
     set: (obj, prop, value) => {
         // Check if the class has the attribute
-        if(prop === "_state") {
-           obj._state = value;
+        if (prop === "_state") {
+            obj._state = value;
         }
         if (!obj.hasOwnProperty('definition')) {
             console.error("Missing \"definition\" property value for ", obj);
@@ -66,13 +66,13 @@ module.exports = {
                     if (Array.isArray(value)) {
                         let newArray = [];
                         // Iterate through each one. If an element is a string them try and load the Object.
-                        for(let i in value) {
+                        for (let i in value) {
                             let aval = value[i];
-                            if(typeof aval !== 'object') {
+                            if (typeof aval !== 'object') {
                                 let myClass = AClass.getClass(myAssoc.type);
                                 let myObj = myClass.find(aval);
-                                if(!myObj) {
-                                    myObj = new myClass({id:aval});
+                                if (!myObj) {
+                                    myObj = new myClass({id: aval});
                                 }
                                 newArray.push(myObj);
                             } else {
@@ -86,7 +86,10 @@ module.exports = {
                         return false;
                     }
                 } else {
-
+                    if (!value) {
+                        obj._associations[prop] = value;
+                        return true;
+                    }
                     if (typeof value === 'object' && !Array.isArray(value)) {
                         if (value.definition.name.toLowerCase() === getAssociation(obj.definition, prop).type.toLowerCase()) {
                             obj._associations[prop] = value;
@@ -216,8 +219,6 @@ function getHandler(obj, definition, prop) {
         } else {
             return shallowJSON(obj);
         }
-    } else if(prop === 'then') {
-          return new Promise((resolve, reject) => resolve(obj));
     } else if (prop === 'toJSONShallow') {
         return shallowJSON(obj);
     } // Association addTo, removeFrom, and Clear
@@ -384,177 +385,199 @@ function getHandler(obj, definition, prop) {
             }
         }
         // If there is an extends then you need to check the parent stateenet.
+    } else if (prop === 'then') {
+        return new Promise(resolve => resolve(obj));
     } else if (hasStateNet(definition)) {
         return function (...args) {
             return stateNetHandler.processEvent(this, obj, prop, args);
         }
-    } else if(prop === 'then') {
-        return undefined;
     }
     // Now check for methods that are called.
     else if (definition.methods.hasOwnProperty(prop)) {
-        return function (...args) {
-            if (!definition.methods[prop].static) {
-                if (hasStateNet(definition)) {
-                    return stateNetHandler.processEvent(this, obj, prop, args);
+        // Need to check if the method called is async
+        // If it is then you need to call await
+        if (definition.methods[prop].fn.constructor.name === "AsyncFunction") {
+            return async (...args) => {
+                if (!definition.methods[prop].static) {
+                    if (hasStateNet(definition)) {
+                        return stateNetHandler.processEvent(this, obj, prop, args);
+                    } else {
+                        if (definition.methods[prop].fn.constructor.name === "AsyncFunction") {
+                            let retval = await funcHandler.run(definition.methods[prop], obj, args[0]);
+                            return retval;
+                        } else {
+                            let retval = funcHandler.run(definition.methods[prop], obj, args[0]);
+                            return retval;
+                        }
+                    }
                 } else {
-                    // let retval =  orgMethod.apply(this,args);
-                    let retval = funcHandler.run(definition.methods[prop], this, args[0]);
-                    return retval;
+                    console.error("Cannot call class method with an object. Call with class from ", definition.name + "." + prop + "(...);");
+                    return undefined;
                 }
-            } else {
-                console.error("Cannot call class method with an object. Call with class from ", definition.name + "." + prop + "(...);");
-                return undefined;
+            };
+        } else {
+            return function (...args) {
+                if (!definition.methods[prop].static) {
+                    if (hasStateNet(definition)) {
+                        return stateNetHandler.processEvent(this, obj, prop, args);
+                    } else {
+                        // let retval =  orgMethod.apply(this,args);
+                        let retval = funcHandler.run(definition.methods[prop], this, args[0]);
+                        return retval;
+                    }
+                } else {
+                    console.error("Cannot call class method with an object. Call with class from ", definition.name + "." + prop + "(...);");
+                    return undefined;
+                }
             }
         }
+    } else {
+            console.error(`Error cloudnot find ${prop} on ${obj}`);
+            throw new Error(`Could not find ${prop}! on ${obj}`);
+        }
     }
-    else {
-        console.error(`Error cloudnot find ${prop} on ${obj}`);
-        throw new Error(`Could not find ${prop}! on ${obj}`);
-    }
-}
 
-function addToAssoc(simpleProp, obj, proxy, item) {
-    let child = null;
-    if (item === null) { // do not add a null to the assoication
-        return null;
-    }
-    // retrieve the object and add it to the array if a number is passed in.
-    if (typeof item === 'number') {
-        if (global._instances.hasOwnProperty(item)) {
-            child = global._instances[item];
-        } else {
-            console.error(prop, "could not find the object with id:", item);
+    function addToAssoc(simpleProp, obj, proxy, item) {
+        let child = null;
+        if (item === null) { // do not add a null to the assoication
             return null;
         }
-    } else if (Array.isArray(item)) { // Check if it is an array of objects. if so then recursively add to the association.
-        let retval = [];
-        for (let i in item) {
-            retval.push(addToAssoc(simpleProp, obj, proxy, item[i]));
-        }
-        return retval;
-    } else if (typeof item === 'object') {
-        // Create a new object if the item being passed in is a simple Object.
-        // Add to the array if it is a object of the correct type.
-        if (item.definition) {
-            if (!hasAssociation(obj.definition, simpleProp)) {
-                console.error("Cannot Add to unknown property:", simpleProp);
-                return;
-            }
-            if (isTypeOf(item, getAssociation(obj.definition, simpleProp).type)) {
-                child = item;
+        // retrieve the object and add it to the array if a number is passed in.
+        if (typeof item === 'number') {
+            if (global._instances.hasOwnProperty(item)) {
+                child = global._instances[item];
             } else {
-                console.error(simpleProp, "wrong type of object! Recieved:", item.definition.name, 'expecting', getAssociation(obj.definition, simpleProp).type);
-                return;
+                console.error(prop, "could not find the object with id:", item);
+                return null;
             }
-        } else {
-            let newClass = AClass.getClass(getAssociation(obj.definition, simpleProp).type);
-            child = new newClass(item);
-        }
-    }
-    if (getAssociation(obj.definition, simpleProp).unique) {
-        if (!obj._associations.hasOwnProperty(simpleProp)) {
-            obj._associations[simpleProp] = {};
-        }
-        obj._associations[simpleProp][child.name] = child;
-    } else {
-        if (!obj._associations.hasOwnProperty(simpleProp)) {
-            obj._associations[simpleProp] = [];
-        }
-        obj._associations[simpleProp].push(child);
-    }
-    // Add the back link with via
-    if (getAssociation(obj.definition, simpleProp).hasOwnProperty('via')) {
-        let via = getAssociation(obj.definition, simpleProp).via;
-        if(child) {
-            child[via] = proxy;
-        } else {
-            console.warn(`Setting via relationship ${via} on null child of ${obj.name} class!`);
-        }
-    }
-    return child;
-}
-
-function isTypeOf(item, type) {
-    if (item.definition.name === type) {
-        return true;
-    } else {
-        return !!(item.definition.extends && item.definition.extends.toLowerCase() === type.toLowerCase());
-    }
-}
-
-function hasStateNet(definition) {
-    if (definition.hasOwnProperty('statenet')) {
-        return true;
-    } else if (definition.hasOwnProperty('extends')) {
-        let parent = AClass.getClass(definition.extends);
-        return hasStateNet(parent.definition);
-    } else {
-        return false;
-    }
-}
-
-function hasAssociation(definition, aname) {
-    if (definition.associations.hasOwnProperty(aname)) {
-        return true;
-    } else if (definition.hasOwnProperty('extends')) {
-        let parent = AClass.getClass(definition.extends);
-        return hasAssociation(parent.definition, aname);
-    } else {
-        return false;
-    }
-}
-
-function getAssociation(definition, aname) {
-    if (definition.associations.hasOwnProperty(aname)) {
-        return definition.associations[aname];
-    } else if (definition.hasOwnProperty('extends')) {
-        let parent = AClass.getClass(definition.extends);
-        return getAssociation(parent.definition, aname);
-    } else {
-        console.log("Could not find association:", aname);
-        return null;
-    }
-}
-
-function shallowJSON(obj) {
-    /*let object2d = null;
-    let object3d = null;
-    if(obj.definition.view) {
-        if(obj.definition.view.object2d) {
-            object2d = obj.definition.view.object2d();
-        }
-        if(obj.definition.view.object3d) {
-            object3d = obj.definition.view.object3d();
-        }
-    }
-     */
-    let newAttributes = { id: obj._attributes.id, state: obj._state };
-    for(let aname in obj._attributes) {
-        if(obj.definition.attributes.hasOwnProperty(aname)) {
-            if(obj.definition.attributes[aname].type !== 'ref') {
-                newAttributes[aname]  = obj._attributes[aname];
+        } else if (Array.isArray(item)) { // Check if it is an array of objects. if so then recursively add to the association.
+            let retval = [];
+            for (let i in item) {
+                retval.push(addToAssoc(simpleProp, obj, proxy, item[i]));
+            }
+            return retval;
+        } else if (typeof item === 'object') {
+            // Create a new object if the item being passed in is a simple Object.
+            // Add to the array if it is a object of the correct type.
+            if (item.definition) {
+                if (!hasAssociation(obj.definition, simpleProp)) {
+                    console.error("Cannot Add to unknown property:", simpleProp);
+                    return;
+                }
+                if (isTypeOf(item, getAssociation(obj.definition, simpleProp).type)) {
+                    child = item;
+                } else {
+                    console.error(simpleProp, "wrong type of object! Recieved:", item.definition.name, 'expecting', getAssociation(obj.definition, simpleProp).type);
+                    return;
+                }
+            } else {
+                let newClass = AClass.getClass(getAssociation(obj.definition, simpleProp).type);
+                child = new newClass(item);
             }
         }
+        if (getAssociation(obj.definition, simpleProp).unique) {
+            if (!obj._associations.hasOwnProperty(simpleProp)) {
+                obj._associations[simpleProp] = {};
+            }
+            obj._associations[simpleProp][child.name] = child;
+        } else {
+            if (!obj._associations.hasOwnProperty(simpleProp)) {
+                obj._associations[simpleProp] = [];
+            }
+            obj._associations[simpleProp].push(child);
+        }
+        // Add the back link with via
+        if (getAssociation(obj.definition, simpleProp).hasOwnProperty('via')) {
+            let via = getAssociation(obj.definition, simpleProp).via;
+            if (child) {
+                child[via] = proxy;
+            } else {
+                console.warn(`Setting via relationship ${via} on null child of ${obj.name} class!`);
+            }
+        }
+        return child;
     }
-    return {
-        definition: {
-            name: obj.definition.name,
-            attributes: obj.definition.attributes,
-            associations: obj.definition.associations,
-            /* view: {
-                object2d: object2d,
-                object3d: object3d
+
+    function isTypeOf(item, type) {
+        if (item.definition.name === type) {
+            return true;
+        } else {
+            return !!(item.definition.extends && item.definition.extends.toLowerCase() === type.toLowerCase());
+        }
+    }
+
+    function hasStateNet(definition) {
+        if (definition.hasOwnProperty('statenet')) {
+            return true;
+        } else if (definition.hasOwnProperty('extends')) {
+            let parent = AClass.getClass(definition.extends);
+            return hasStateNet(parent.definition);
+        } else {
+            return false;
+        }
+    }
+
+    function hasAssociation(definition, aname) {
+        if (definition.associations.hasOwnProperty(aname)) {
+            return true;
+        } else if (definition.hasOwnProperty('extends')) {
+            let parent = AClass.getClass(definition.extends);
+            return hasAssociation(parent.definition, aname);
+        } else {
+            return false;
+        }
+    }
+
+    function getAssociation(definition, aname) {
+        if (definition.associations.hasOwnProperty(aname)) {
+            return definition.associations[aname];
+        } else if (definition.hasOwnProperty('extends')) {
+            let parent = AClass.getClass(definition.extends);
+            return getAssociation(parent.definition, aname);
+        } else {
+            console.log("Could not find association:", aname);
+            return null;
+        }
+    }
+
+    function shallowJSON(obj) {
+        /*let object2d = null;
+        let object3d = null;
+        if(obj.definition.view) {
+            if(obj.definition.view.object2d) {
+                object2d = obj.definition.view.object2d();
+            }
+            if(obj.definition.view.object3d) {
+                object3d = obj.definition.view.object3d();
+            }
+        }
+         */
+        let newAttributes = {id: obj._attributes.id, state: obj._state};
+        for (let aname in obj._attributes) {
+            if (obj.definition.attributes.hasOwnProperty(aname)) {
+                if (obj.definition.attributes[aname].type !== 'ref') {
+                    newAttributes[aname] = obj._attributes[aname];
+                }
+            }
+        }
+        return {
+            definition: {
+                name: obj.definition.name,
+                attributes: obj.definition.attributes,
+                associations: obj.definition.associations,
+                /* view: {
+                    object2d: object2d,
+                    object3d: object3d
+                },
+                 */
+                package: {
+                    shortname: obj.definition.package.shortname,
+                    name: obj.definition.package.name,
+                    color: obj.definition.package.color
+                },
             },
-             */
-            package: {
-                shortname: obj.definition.package.shortname,
-                name: obj.definition.package.name,
-                color: obj.definition.package.color
-            },
-        },
-        statenet: obj.statenet,
-        _attributes: newAttributes
-        // Shallow does not return the associations.
-    };
-}
+            statenet: obj.statenet,
+            _attributes: newAttributes
+            // Shallow does not return the associations.
+        };
+    }

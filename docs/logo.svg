@@ -2,8 +2,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
      contentScriptType="application/ecmascript" contentStyleType="text/css" height="120px" preserveAspectRatio="none"
      style="width:120px;height:120px;" version="1.1" viewBox="0 0 120 120" width="120" zoomAndPan="magnify">
-     <polygon points="0,120 30,120 60,40 45,0 0,120" style="fill:#0000aa;stroke:#0000aa;stroke-width:1" />
-     <polygon points="120,120 90,120 60,40 75,0 120,120" style="fill:#0000aa;stroke: #0000aa;stroke-width:1" />
-     <polygon points="48,70 120,70 120,95 40,95" style="fill:#00aa00;stoke:#00aa00;stoke-width:1" />
-     <polygon points="0,70 0,95 10,95 20,70" style="fill:#00aa00;stoke:#00aa00;stoke-width:1" />
+     <polygon points="45,0 75,0 60,40 45,0" style="fill:#440088;stroke:#440088;stroke-width:1" />
+     <polygon points="0,120 30,120 60,40 45,0 0,120" style="fill:#000088;stroke:#000088;stroke-width:1" />
+     <polygon points="120,120 90,120 60,40 75,0 120,120" style="fill:#008800;stroke: #008800;stroke-width:1" />
+     <polygon points="48,70 120,70 120,95 40,95" style="fill:#884400;stoke:#00aa00;stoke-width:1" />
+     <polygon points="0,70 0,95 9,95 19,70" style="fill:#884400;stoke:#884400;stoke-width:1" />
 </svg>

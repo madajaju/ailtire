@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ProjectRootManager">
     <output url="file://$PROJECT_DIR$/out" />
@@ -20,10 +21,6 @@
       <column id="version" position="12" width="-1" />
       <column id="fixVersion" position="13" width="-1" />
     </columns>
-  </component>
-  <component name="Talios.JiraConfigurationComponent" enableIssueTracking="false" autoRefresh="false" useExternalBrowser="false" refreshTimeout="0" annotateissues="false">
-    <servers />
-    <columns />
   </component>
   <component name="TaskProjectConfiguration">
     <server type="GitHub" url="https://github.com" />

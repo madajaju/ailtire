@@ -13,14 +13,14 @@ module.exports = {
         return retval;
     },
     add: (route, action) => {
-        let nroute = '*' + route.replaceAll(/\s/g,'');
+        let nroute = route.replaceAll(/\s/g, '').toLowerCase();
         global.actions[nroute] = action;
         global._server.all(nroute, (req, res) => {
             execute(action, req.query, {req: req, res: res});
         });
     },
     load: (server, prefix, mDir, config) => {
-        if(server && !global._server) {
+        if (server && !global._server) {
             global._server = server;
         }
         loadActions(prefix, mDir);
@@ -196,7 +196,7 @@ const addForModels = (server) => {
 
 const setAction = (route, action) => {
     route = route.toLowerCase();
-    if(!global.actions) {
+    if (!global.actions) {
         global.actions = {};
     }
     if (!global.actions.hasOwnProperty(route)) {
@@ -323,13 +323,13 @@ const execute = (action, inputs, env) => {
         }
     }
     // run the function
-    let retval = _executeFunction(action, finputs, env);
+    const retval = _executeFunction(action, finputs, env);
     return retval;
 };
 const _processReturn = (action, retval, env) => {
     if (action.exits) {
         // Only send json if retval has something.
-        if(retval) {
+        if (retval) {
             try {
                 if (env && env.res) {
                     if (action.exits.hasOwnProperty('json') && typeof action.exits.json === 'function') {
@@ -338,7 +338,7 @@ const _processReturn = (action, retval, env) => {
                         env.res.json(retval);
                     }
                 }
-            } catch(e) {
+            } catch (e) {
                 console.error("Cannot send json for action:", e);
             }
         }
@@ -356,8 +356,13 @@ const _executeFunction = (action, inputs, env) => {
     try {
         if (action.fn.constructor.name === 'AsyncFunction') {
             return (async () => {
-                let returnAsync = await action.fn(inputs, env);
-                return _processReturn(action, returnAsync, env);
+                try {
+                    let returnAsync = await action.fn(inputs, env);
+                    return _processReturn(action, returnAsync, env);
+                } catch (e) {
+                    console.error("Error executing Function:", e);
+                    throw e;
+                }
             })();
         } else {
             retval = action.fn(inputs, env);
@@ -369,24 +374,19 @@ const _executeFunction = (action, inputs, env) => {
                 retval = action.exits[name](e.inputs);
             }
         }
-
-        if(!retval) {
-            if(name === `notFound`) {
-                retval = { status: 404, message: "Object Not found:" + inputs.toString()};
-            } else {
-                retval = { status: 500, message: e.toString()};
-            }
-        }
         if (env && env.res) {
             console.error("Error:", e);
             console.error("Error Message:", retval.message);
-            env.res.status(retval.status).json({error: retval.message });
+            // env.res.status(retval.status).json({error: retval.message });
         }
         console.log("Error:", e, retval);
         throw new Error(e, retval);
     }
 }
 const find = (name) => {
+    if(typeof name !== "string") {
+       console.error("String should be here:", name) ;
+    }
     name = name.toLowerCase();
     // If you match the action name directly return.
     if (global.actions.hasOwnProperty(name)) {

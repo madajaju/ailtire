@@ -1,11 +1,89 @@
 const AEvent = require('../../src/Server/AEvent');
 const AActivity = require('../../src/Server/AActivity');
 const AService = require('../../src/Server/AService');
+const async_hooks = require("async_hooks");
+const fs = require('fs');
+
+const writeSomething = (phase, more) => {
+    fs.writeSync(
+        1,
+        `${' '.repeat(_indent)}Phase: ${phase}, Exec. Id: ${async_hooks.executionAsyncId()}, Parent Id:` +
+        ` ${async_hooks.triggerAsyncId()} ${
+            more ? ", " + more : ""
+        }\n`
+    );
+};
+let _promises = {};
+let _indent = 0;
+// Create and enable the hook
+const timeoutHook = async_hooks.createHook({
+    init(asyncId, type, triggerAsyncId) {
+        if(!_promises.hasOwnProperty(triggerAsyncId)) { _promises[triggerAsyncId] = { states: [], children: {}}}
+        if(!_promises.hasOwnProperty(asyncId)) { 
+            _promises[asyncId] = {
+                trigger: _promises[triggerAsyncId] || triggerAsyncId,
+                states: [],
+                children: {}
+            }
+        };
+        _promises[triggerAsyncId].children[asyncId] = _promises[asyncId];
+        _promises[asyncId].states.push({phase:"Init", type: type});
+        writeSomething(
+            "Init",
+            `asyncId: ${asyncId}, type: "${type}", triggerAsyncId: ${triggerAsyncId}`
+        );
+    },
+    before(asyncId) {
+        if(!_promises.hasOwnProperty(asyncId)) {
+            _promises[asyncId] = {
+                states: [],
+                children: {}
+            };
+        }
+        _promises[asyncId].states.push({phase:"Before"});
+        writeSomething("Before", `asyncId: ${asyncId}`);
+        _indent += 2;
+    },
+    destroy(asyncId) {
+        if(!_promises.hasOwnProperty(asyncId)) {
+            _promises[asyncId] = {
+                states: [],
+                children: {},
+            };
+        }
+        _promises[asyncId].states.push({phase:"Destroy"});
+        writeSomething("Destroy", `asyncId: ${asyncId}`);
+    },
+    after(asyncId) {
+        writeSomething("After", `asyncId: ${asyncId}`);
+        if(!_promises.hasOwnProperty(asyncId)) {
+            _promises[asyncId] = {
+                states: [],
+                children: {},
+            };
+        }
+        _promises[asyncId].states.push({phase:"After"});
+        _indent -= 2;
+        if(_indent < 0) { _indent = 0;};
+    },
+    promiseResolve(asyncId) {
+        writeSomething("PromiseResolved", `asyncId: ${asyncId}`);
+        if(!_promises.hasOwnProperty(asyncId)) {
+            _promises[asyncId] = {
+                states: [],
+                children: {},
+            };
+        }
+        _promises[asyncId].states.push({phase:"PromiseResolved"});
+    },
+
+});
 
 let _workflowInstances = { _total: 0 };
 
 module.exports = {
-    launch: async (workflow, args, callingActivity) => {
+    launch: (workflow, args, callingActivity) => {
+//        timeoutHook.enable();
         AEvent.emit("workflow.started", {obj:workflow});
         console.log("start Workflow", workflow.name, args);
         // First activity is Init.
@@ -40,7 +118,7 @@ module.exports = {
 
         // If the owner is an actor then create a activity for the user to interact with the system.
 
-        await AActivity.execute(init,args);
+        return AActivity.execute(init,args);
     },
     instances: () => {
         return _workflowInstances;
@@ -48,9 +126,11 @@ module.exports = {
     show: (workflow) => {
         return _workflowInstances[workflow.name];
     },
-    handleActivityEvent: async (event, workflow, acti) => {
+    handleActivityEvent: (event, workflow, acti) => {
+        // There isn't a next step for the activity.
         if(!acti.activity.next || Object.keys(acti.activity.next).length === 0) {
-            // Iterate over the workflow.activities and check the state
+            // Iterate over the workflow.activities and check the state. This should help determine if the workflow
+            // is in a finished state and if the finished state is completed or and error.
             let calculatedState = "";
             // Need to iterate over all of the activties because of parallelism.
             if(event === "activity.completed" || event === "activity.error") {
@@ -76,6 +156,7 @@ module.exports = {
                     });
                     if (workflow.parent) {
                         workflow.parent.state = "error";
+                        console.error("Activity Error:", nact);
                         AEvent.emit("activity.error", {
                             obj: AActivity.toJSON(workflow.parent),
                             message: "Activity Finished from workflow with an error"

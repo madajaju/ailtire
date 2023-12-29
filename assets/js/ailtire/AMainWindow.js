@@ -24,18 +24,6 @@ import {
     ASelectedHUD,
     AUserActivity,
 } from './index.js';
-import {
-    SShip,
-    SChannel,
-    SConsumer,
-    SProducer,
-    SSabr,
-    SService,
-    SServiceInstance,
-    SStream,
-    SSubscription
-} from '../sabr/index.js';
-
 import AWorkFlow from './AWorkFlow.js';
 
 import {Graph3D} from '../Graph3D.js';
@@ -88,9 +76,6 @@ export default class AMainWindow {
         component: AComponent.handle,
         image: AImage.handle,
         workflow: AWorkFlow.handle,
-        ship: SShip.handleView,
-        channel: SChannel.handle,
-        stream: SStream.handle,
     }
 
     static initialize(pconfig) {
@@ -297,8 +282,6 @@ export default class AMainWindow {
                     },
                     {id: 'deployments', text: 'Deployment View', group: true, expanded: false, nodes: []},
                     {id: 'process', text: 'Process View', group: true, expanded: false, nodes: []},
-                    {id: 'ships', text: 'Ships', group: true, expanded: true, nodes: []},
-                    {id: 'pulsar', text: 'Pulsar', group: true, expanded: true, nodes: []},
                 ],
                 onExpand: (event) => {
                     if (event.object.id === 'logical') {
@@ -320,12 +303,6 @@ export default class AMainWindow {
                         A3DGraph.implementationView();
                     } else if (event.object.id === 'process') {
                         A3DGraph.processView();
-                    } else if(event.target === 'ships') {
-                        SShip.showAllGraph('new');
-                        AMainWindow.currentView = "ship";
-                    } else if (event.object.id === 'pulsar') {
-                        SStream.getAll({ fn: SStream.handleList});
-                        AMainWindow.currentView = "pulsar";
                     }
 
                 },
@@ -358,11 +335,6 @@ export default class AMainWindow {
                         A3DGraph.implementationView();
                     } else if (event.object.id === 'process') {
                         A3DGraph.processView();
-                    } else if(event.target === 'ships') {
-                        SShip.showAllGraph('new');
-                        AMainWindow.currentView = "ship";
-                    } else if (event.object.id === 'pulsar') {
-                        SStream.getAll({ fn: SStream.handleList});
                     }
                 },
                 onClick: function (event) {
@@ -426,7 +398,6 @@ export default class AMainWindow {
         AComponent.showList('sidebar', 'libraries');
         AImage.showList('sidebar', 'images');
         AWorkFlow.showList( 'sidebar', 'process');
-        SStream.showList('sidebar', 'pulsar');
     }
 
     static setupEventWatcher(config) {
@@ -434,7 +405,7 @@ export default class AMainWindow {
             {path: window.location.pathname + '/socket.io'}
         );
         socket.onAny((event, msg) => {
-            AMainWindow.showEvent(event);
+            AMainWindow.showEvent(event, msg);
             let [eventClass, methodClass] = event.split('.');
             if (methodClass === "create") {
                 let rec = w2ui['rightbar'].get(eventClass);
@@ -445,9 +416,6 @@ export default class AMainWindow {
                 w2ui['sidebar'].add('ships', {id: msg.MMSI, text:msg.VesselName, view: 'ship', data: msg} );
             }
             if (AMainWindow.currentView) {
-                if(AMainWindow.currentView === "ship") {
-                    SShip.handle(event, msg);
-                } else {
                     let [model, view] = AMainWindow.currentView.split('/');
                     model = model.toLowerCase();
                     let obj = msg;
@@ -464,7 +432,6 @@ export default class AMainWindow {
                             AObject.addObject(obj);
                         }
                     }
-                }
             }
         });
     }
@@ -556,10 +523,10 @@ export default class AMainWindow {
             name: 'eventlist',
             show: {header: false, columnHeaders: true},
             columns: [
-                {field: 'object', caption: 'Object', size: '33%', attr: "align=right", sortable: true},
-                {field: 'count', caption: 'Count', size: '33%', attr: "align=right", sortable: true},
+                {field: 'object', caption: 'Object', size: '10%', attr: "align=right", sortable: true},
+                {field: 'count', caption: 'Count', size: '10%', attr: "align=right", sortable: true},
                 {
-                    field: 'events', caption: 'Event', size: '33%', render: function (record) {
+                    field: 'events', caption: 'Event', size: '30%', render: function (record) {
                         let retval = "";
 
                         for (let i in record.events) {
@@ -569,17 +536,18 @@ export default class AMainWindow {
                         }
                         return retval;
                     }
-                }
+                },
+                {field: 'message', caption: 'Message', size: '50%', attr: "align=left", sortable: false},
             ]
         });
     }
 
-    static showEvent(event) {
+    static showEvent(event,msg) {
         if (w2ui['eventlist']) {
             let [object, ename] = event.split(/\./);
             let rec = w2ui['eventlist'].get(object);
             if (!rec) {
-                rec = {recid: object, object: object, count: 0, events: {}};
+                rec = {recid: object, object: object, count: 0, events: {}, message: msg};
                 w2ui['eventlist'].add(rec);
             }
             if (ename) {
@@ -589,6 +557,7 @@ export default class AMainWindow {
                 rec.events[ename]++;
             }
             rec.count++;
+            rec.message = msg.message;
             w2ui['eventlist'].set(object, rec);
             w2ui['eventlist'].select(object);
             AEventHUD.updateHUD(rec);

@@ -700,10 +700,48 @@ export default class AWorkFlow {
     }
     static inputForm(workflow, activity) {
         let fields = [];
-        for(let iname in activity.inputs) {
-            fields.push({
-                field: iname, type: "text",
-            });
+        let record = {};
+        let inputs = activity.inputs;
+        for(let name in inputs) {
+            let input = inputs[name];
+            let ivalue = inputs[name];
+            if(input.type === 'date') {
+                fields.push({
+                    field: name,
+                    type: 'date',
+                    required: input.required,
+                    html: {label: name}
+                });
+            }
+            else if(input.type === "boolean") {
+                fields.push({
+                    field: name,
+                    type: 'checkbox',
+                    required: input.required,
+                    html: {label: name}
+                });
+            }
+            else if(input.size) {
+                fields.push({
+                    field: name,
+                    type: 'textarea',
+                    required: input.required,
+                    html: {label: name, attr: `size="${input.size}" style="width:300px; height:${(input.size/80)*12}px"`}
+                });
+            } else {
+                fields.push({
+                    field: name,
+                    type: 'text',
+                    required: input.required,
+                    html: {label: name, attr: `size="50" style="width:300px"`}
+                });
+            }
+
+            if(typeof ivalue !== "object") {
+                record[name] = ivalue;
+            } else {
+                record[name] = "";
+            }
         }
         $().w2form({
             name: 'WorkflowInput',
@@ -716,12 +754,19 @@ export default class AWorkFlow {
                         w2popup.close();
                         let parameters = w2ui['WorkflowInput'].record;
                         let parameterArray = [];
-                        for(let pname in parameters) {
+                        let data = {};
+                        /* for(let pname in parameters) {
                             parameterArray.push(`${pname}=${parameters[pname]}`);
                         }
-
+                        */
+                        for(let pname in parameters) {
+                            data[pname] = parameters[pname];
+                        }
                         $.ajax({
-                            url: `workflow/launch?id=${workflow.id}&${parameterArray.join("&")}`,
+                            url: `workflow/launch?id=${workflow.id}`,
+                            type: "POST",
+                            data: JSON.stringify(data),
+                            contentType: "application/json",
                             success: function (result) {
                                 window.graph.graph.cameraPosition({
                                         x: 1500,
@@ -752,8 +797,8 @@ export default class AWorkFlow {
             title: 'Workflow Inputs',
             body: '<div id="WorkflowPopup" style="width: 100%; height: 100%;"></div>',
             style: 'padding: 15px 0px 0px 0px',
-            width: 500,
-            height: 300,
+            width: 700,
+            height: 700,
             showMax: true,
             onToggle: function (event) {
                 $(w2ui.editModelDialog.box).hide();

@@ -17,7 +17,7 @@ module.exports = {
         let myInstance = { id: scenario.id, scenario:scenario, state:'started', args: args, steps:[]};
 
         _scenarioInstances[scenario.id].push(myInstance);
-
+        let results;
         for (let i in scenario.steps) {
             let step = scenario.steps[i];
             let stepInstance = {step:step, state:'started'};
@@ -25,10 +25,11 @@ module.exports = {
             scenario.currentstep = i;
             myInstance.currentstep = i;
             // await _launchStepBinary(scenario,step);
-            await _launchStepService(scenario,args, step);
+            results = await _launchStepService(scenario,args, step);
         }
         myInstance.state = 'completed';
         AEvent.emit("scenario.completed", {obj:jsonScenario});
+        return results;
     },
     instances: () => {
         return _scenarioInstances;
@@ -110,8 +111,9 @@ async function _launchStepService(scenario, args, step) {
     AEvent.emit("step.started", {obj:scenario});
     let parameters = _resolveParameters(step.parameters, args);
     try {
-        let results = AService.call(step.action.replace(/\//g, '.').replace(/\s/g, '.'), parameters);
+        let results = await AService.call(step.action.replace(/\s/g, '/').replace(/\./g,'/'), parameters);
         AEvent.emit('step.completed', {obj:scenario})
+        return results;
     } catch (e) {
         console.error("Error launching service:", step, e);
         AEvent.emit('step.failed', {obj:scenario, error: e});

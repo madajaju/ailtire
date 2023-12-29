@@ -177,15 +177,45 @@ export default class AWorkFlow {
         let fields = [];
         let record = {};
         let inputs = activity.inputs;
-        for(let iname in inputs) {
-            let ivalue = inputs[iname];
-            fields.push({
-                field: iname, type: "text",
-            });
-            if(typeof ivalue !== "object") {
-                record[iname] = ivalue;
+        for(let name in inputs) {
+            let input = inputs[name];
+            let ivalue = inputs[name];
+            if(input.type === 'date') {
+                fields.push({
+                    field: name,
+                    type: 'date',
+                    required: input.required,
+                    html: {label: name}
+                });
+            }
+            else if(input.type === "boolean") {
+                fields.push({
+                    field: name,
+                    type: 'checkbox',
+                    required: input.required,
+                    html: {label: name}
+                });
+            }
+            else if(input.size) {
+                fields.push({
+                    field: name,
+                    type: 'textarea',
+                    required: input.required,
+                    html: {label: name, attr: `size="${input.size}" style="width:500px; height:${(input.size/80)*12}px"`}
+                });
             } else {
-                record[iname] = "";
+                fields.push({
+                    field: name,
+                    type: 'textarea',
+                    required: input.required,
+                    html: {label: name, attr: `size="50" style="width:500px"`}
+                });
+            }
+
+            if(typeof ivalue !== "object") {
+                record[name] = ivalue;
+            } else {
+                record[name] = "";
             }
         }
         if(w2ui["UserActivityInput"]) {
