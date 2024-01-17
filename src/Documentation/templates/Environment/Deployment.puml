@@ -5,7 +5,7 @@ left to right direction
 <%
 if(Object.keys(deploy.ports).length > 0) {
 %>
-queue external #black [
+hexagon external #black [
     <b><color:white>external</color></b>
 ]
     <% for(let port in deploy.ports) { %>
@@ -21,10 +21,8 @@ let ingressColor = "#black";
 for(let nname in deploy.ingress) {
     let ncolor = deploy.ingress[nname].color;
     ingressColor = ncolor;
+}
 -%>
-boundary <%= nname %> <%= ncolor %>
-<% }
-%>
 <%
 /////
 // Boundary for all of the egress networks
@@ -33,7 +31,6 @@ for(let nname in deploy.egress) {
     let ncolor = deploy.egress[nname].color;
     egressColor = ncolor;
 %>
-entity <%= nname %> <%= ncolor %>
 <% }
 %>
 <%
@@ -42,10 +39,8 @@ entity <%= nname %> <%= ncolor %>
 for(let sname in deploy.stacks) {
     let stack = deploy.stacks[sname];
 -%>
-rectangle "<%= stack.name %>" as <%= stack.id %> #<%= stack.color.replace(/\#/, '')  %> {
-    queue <%= stack.id %>snet <%= egressColor %> [
-        <b><color:white>parent</color></b>
-    ]
+node "<%= stack.name %>" as <%= stack.id %> #<%= stack.color.replace(/\#/, '')  %> {
+    portin "parent" as <%= stack.id %>PortIn <%= egressColor %>
 }
 <% }
 %>
@@ -54,19 +49,38 @@ rectangle "<%= stack.name %>" as <%= stack.id %> #<%= stack.color.replace(/\#/, 
 // Main Stack for the diagram
 %>
 
-package "<%= pkg.deploy.name %>" #<%= pkg.color.replace(/\#/,''); %> {
+node "<%= pkg.deploy.name %>" #<%= pkg.color.replace(/\#/,''); %> {
+<%
+// Handle the deploy ports
+if(Object.keys(deploy.ports).length > 0) {
+    for(let port in deploy.ports) { %>
+    portin "<%= port %>" as <%= pkg.deploy.name %>Port<%= port %> <%= egressColor %>
+    <%= pkg.deploy.name %>Port<%= port %> -- external
+<% }
+}
+%>
+
 <%
 /////
 // Networks Ingress (external), Egress (attachable), other networks
 for(let nname in deploy.networks) {
     let network = deploy.networks[nname];
 -%>
-    queue <%= network.id %> <%= network.color %> [
+    hexagon <%= network.id %> <%= network.color %> [
             <b><color:white><%= nname %></color></b>
     ]
-    <% if(network.externalName) { %>
-    <%= network.id %> -[<%= network.color %>]- <%= network.externalName %>
-    <% } %>
+    <% if(network.externalName) {
+        if(network.type === 'egress') {
+    %>
+    portout " " as <%= network.id %>PortOut <%= network.color %>
+    <%= network.id %> -[<%= network.color %>]- <%= network.id %>PortOut
+    <%
+        } else {
+    %>
+    portin " " as <%= network.id %>PortIn <%= network.color %>
+    <%= network.id %>PortIn -[<%= network.color %>]- <%= network.id %>
+    <% }
+    } %>
 <% } %>
 <%
 //////
@@ -88,23 +102,34 @@ card "<%= item.path %>" as <%= item.id %>
 for(let sname in deploy.services) {
     let service = deploy.services[sname];
 -%>
-node "<%= sname %>" as <%= service.id %>
+node "<%= sname %>" as <%= service.id %> #white {
 <%
-}
+for(let nname in service.networks) {
+    let network = service.networks[nname];
+    if(network.type === 'ingress') {
 %>
+    portIn " " as <%= service.id %><%= network.id %> <%= network.color %>
+    <%= network.id %> -[<%= network.color %>]- <%= service.id %><%= network.id %>
+    <% } else { -%>
+    portOut " " as <%= service.id %><%= network.id %> <%= network.color %>
+   <%= service.id %><%= network.id %> -[<%= network.color %>]- <%= network.id %>
+   <% } -%>
+<% } %>
 <%
-/////
-// Now put the images for the services in the top stack
-for(let iname in deploy.images) {
-    let image = deploy.images[iname];
-    let imagename = image.id.replace(/[:\\\/\-]/g, '_');
+    /////
+    // Now put the images for the services in the top stack
 
+    let image = deploy.images[service.image];
+    let imagename = image.id.replace(/[:\\\/\-]/g, '_');
     if(image.stack) {
     -%>
-        collections "<%= image.name %>" as <%= imagename %>
+    collections "<%= image.name %>" as <%= imagename %>
     <% } else { %>
-        artifact "<%= image.name %>" as <%= imagename %>
+    artifact "<%= image.name %>" as <%= imagename %>
     <% }
+%>
+}
+<%
 }
 %>
 }
@@ -126,32 +151,6 @@ if(deploy.frontend.id) {
 <%  }
 }
 
-//////
-// Attach from service to network
-for(let sname in deploy.services) {
-    let service = deploy.services[sname];
-    for(let nname in service.networks) {
-        let network = service.networks[nname];
-        let arrow = `-[${network.color}]-`;
-        if(network.type !== 'internal') {
-            arrow - `--[${network.color}]--`;
-        }
-%>
-<%= service.id %> <%= arrow %> <%= network.id %>
-<%  }
-}
-
-//////
-// connnect dotted line from service to image
-for(let sname in deploy.services) {
-    let service = deploy.services[sname];
-    let image = deploy.images[service.image];
-    let imagename = image.id.replace(/[:\\\/\-]/g, '_');
--%>
-<%= service.id %> .... <%= imagename %>
-<%
-}
-
 ////
 // Connect Frontend to it's image
 if(deploy.frontend.id) {
@@ -171,8 +170,10 @@ for(let sname in deploy.stacks) {
 %>
 <%= imagename %> --> <%= stack.id %>
     <% if(stack.deploy.externalNetwork) { %>
-<%= stack.id %>snet --[<%= stack.deploy.externalNetwork.color %>]-- <%= stack.deploy.externalNetwork.externalName %>
-    <% }
+        <%= stack.id %>snet --[<%= stack.deploy.externalNetwork.color %>]-- <%= stack.deploy.externalNetwork.externalName %>
+    <% } %>
+    childrennetPortOut -[<%= egressColor %>]- <%= stack.id %>PortIn
+    <%
 } %>
 
 @enduml

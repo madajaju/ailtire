@@ -15,7 +15,6 @@ import {
     AActor,
     AModel,
     AStack,
-    AEnvironment,
     AObject,
     AComponent,
     AImage,
@@ -23,7 +22,11 @@ import {
     AEventHUD,
     ASelectedHUD,
     AUserActivity,
+    AEnvironment,
 } from './index.js';
+
+import ALocation from './ALocation.js';
+import ADevice from './ADevice.js';
 import AWorkFlow from './AWorkFlow.js';
 
 import {Graph3D} from '../Graph3D.js';
@@ -76,6 +79,10 @@ export default class AMainWindow {
         component: AComponent.handle,
         image: AImage.handle,
         workflow: AWorkFlow.handle,
+        device: ADevice.handle,
+        location: ALocation.handle,
+        deployment: AEnvironment.handleList,
+        physical: AEnvironment.handlePhysicalList
     }
 
     static initialize(pconfig) {
@@ -268,19 +275,14 @@ export default class AMainWindow {
                         ]
                     },
                     {id: 'logical', text: 'Logical View', group: true, expanded: false, nodes: []},
-                    {
-                        id: 'implementation', text: 'Implementation View', group: true, expanded: false, nodes: [
-                            {
-                                id: 'libraries',
-                                text: 'External Libraries',
-                                img: 'icon-folder',
-                                expanded: true,
-                                nodes: []
-                            },
-                            {id: 'images', text: 'Images', img: 'icon-folder', expanded: false, nodes: []},
-                        ]
-                    },
-                    {id: 'deployments', text: 'Deployment View', group: true, expanded: false, nodes: []},
+                    {id: 'implementation', text: 'Implementation View', group: true, expanded: true, nodes: [
+                        {id: 'libraries', text: 'External Libraries', img: 'icon-folder', expanded: true, nodes: [] },
+                        {id: 'images', text: 'Images', img: 'icon-folder', expanded: false, nodes: []},
+                    ]},
+                    {id: 'deployment', text: "Deployment View", group: true, expanded: true, nodes: [
+                        {id: 'environments', text: 'Logical Environments', img: 'icon-folder', expanded: false, nodes: []},
+                        {id: 'locations', text: 'Physical Environments', img: 'icon-folder', expanded: false, nodes: []},
+                    ]},
                     {id: 'process', text: 'Process View', group: true, expanded: false, nodes: []},
                 ],
                 onExpand: (event) => {
@@ -297,7 +299,9 @@ export default class AMainWindow {
                         })
                     } else if (event.object.id === 'usecases') {
                         A3DGraph.usecaseView();
-                    } else if (event.object.id === 'deployments') {
+                    } else if (event.object.id === 'locations') {
+                        A3DGraph.physicalView();
+                    } else if (event.object.id === 'environments') {
                         A3DGraph.deploymentView();
                     } else if (event.object.id === 'implementation') {
                         A3DGraph.implementationView();
@@ -329,7 +333,9 @@ export default class AMainWindow {
                         })
                     } else if (event.object.id === 'usecases') {
                         A3DGraph.usecaseView();
-                    } else if (event.object.id === 'deployments') {
+                    } else if (event.object.id === 'physical') {
+                        A3DGraph.physicalView()
+                    } else if (event.object.id === 'environments') {
                         A3DGraph.deploymentView();
                     } else if (event.object.id === 'implementation') {
                         A3DGraph.implementationView();
@@ -352,7 +358,7 @@ export default class AMainWindow {
                                 console.log(text);
                             }
                         });
-                    } else if(event.object.view === 'ship') {
+                    } else {
                         AMainWindow.handlers[event.object.view](event.object.data);
                     }
                 }
@@ -394,7 +400,7 @@ export default class AMainWindow {
         AActor.showList('sidebar', 'actors');
         AUsecase.showList('sidebar', 'usecases');
         APackage.showList('sidebar', 'logical');
-        AEnvironment.showList('sidebar', 'deployments');
+        AEnvironment.showList('sidebar', 'environments', 'locations');
         AComponent.showList('sidebar', 'libraries');
         AImage.showList('sidebar', 'images');
         AWorkFlow.showList( 'sidebar', 'process');
@@ -470,7 +476,7 @@ export default class AMainWindow {
                         }
                     });
                 } else {
-                    node.expandView(node);
+                    node.expandView(node.data);
                 }
             }
         });

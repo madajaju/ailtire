@@ -39,6 +39,10 @@ import AWorkFlow from "./AWorkFlow.js";
 import AFlowCondition from "./AFlowCondition.js";
 import ASwimlane from "./ASwimlane.js";
 import AUserActivity from "./AUserActivity.js";
+import ALocation from "./ALocation.js";
+import ADevice from "./ADevice.js";
+import AStorage from "./AStorage.js";
+import ACompute from "./ACompute.js";
 
 // without default
 export {
@@ -72,5 +76,9 @@ export {
     AMainWindow,
     AActivity,
     AActivityRun,
-    ASwimlane
+    ASwimlane,
+    ALocation,
+    ADevice,
+    AStorage,
+    ACompute
 };

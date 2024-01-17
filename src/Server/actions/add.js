@@ -71,9 +71,17 @@ module.exports = {
         } else {
             // TODO: Add the ability to add objects via the website.
             // Remove the cls  from the inputs so they are not passed down to the constructor
-            let newObj = new AClass.getClass(modelName)(inputs);
-            global.io.emit(modelName + '.create', {obj: newObj.toJSON});
-            env.res.redirect(`/${modelName}?id=${newObj.id}`)
+            let myClass = AClass.getClass(modelName);
+            if(myClass) {
+                let newObj = new myClass(inputs);
+                global.io.emit(modelName + '.create', {obj: newObj.toJSON});
+                if (env.res) {
+                    env.res.redirect(`/${modelName}?id=${newObj.id}`)
+                }
+            } else {
+                console.error("Could not add object: Class not Found!", modelName);
+                throw new Error("Could not add object:");
+            }
         }
     }
 };

@@ -461,6 +461,12 @@ const environGenerator = (pkg, env, output, urlPath) => {
 
 
     deploy.services = env.definition.services;
+    let environment = undefined;
+    if(pkg.physical) {
+        if(pkg.physical.environments.hasOwnProperty(env.name)) {
+            environment = pkg.physical.environments[env.name];
+        }
+    }
     for (let sname in env.definition.services) {
         let service = env.definition.services[sname];
         service.name = sname;
@@ -606,16 +612,24 @@ const environGenerator = (pkg, env, output, urlPath) => {
             envName: env.name,
             environ: env,
             deploy: deploy,
+            colors: colors,
             pkg: pkg,
+            environment: environment,
             package: pkg,
             pageDir: urlPath
         },
         targets: {
             ':envName:/index.md': {template: '/templates/Environment/_index.emd'},
             ':envName:/deployment.puml': {template: '/templates/Environment/Deployment.puml'},
-            ':envName:/physical.puml': {template: '/templates/Environment/Physical.puml'},
+            ':envName:/physicalOld.puml': {template: '/templates/Environment/Physical.puml'},
         },
     };
+    if(pkg.physical && environment) {
+        console.log("Physical Stuff:", output + urlPath);
+        files.targets[':envName:/physical-network.puml']= {template: '/templates/Environment/physical-network.puml'};
+        files.targets[':envName:/physical-deployment.puml']= {template: '/templates/Environment/physical-deployment.puml'};
+    }
+
     // Get the doc from the package and add them to the targets list
     Generator.process(files, output + urlPath);
 };

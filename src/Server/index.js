@@ -32,6 +32,7 @@ const circularReplacer = () => {
         }
     }
     return (key, value) => {
+        return value;
         if(key === '') {
             seen = null;
             seen = new WeakMap();

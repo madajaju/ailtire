@@ -6,37 +6,24 @@ module.exports = {
     inputs: {},
 
     fn: function (inputs, env) {
-        let [envname, stname, sname] = inputs.id.split(/\./);
+        // let [envname, stname, sname] = inputs.id.split(/\./);
+        let [stname, envname] = inputs.id.split(/:/);
         let environ = global.deploy.envs[envname];
         if(!environ) {
             console.error("Could not find the environment!", envname);
-            res.json("Could not find the environment");
+            env.res.json("Could not find the environment");
         }
         let stack = environ[stname];
         if(!stack) {
             console.error("Could not find the stack:", stname);
             return;
         }
-        if(sname === undefined) {
-            let retval = normalize_old(inputs.id, stname, stack.definition);
-            if (stack.design) {
-                retval = normalize(inputs.id, stname, stack.design);
-            }
-            env.res.json(retval);
-            return retval;
-        } else {
-            // find the service in the definition or in the design
-            let retval = undefined;
-            if(stack.definition && stack.definition.services && stack.definition.services.hasOwnProperty(sname)) {
-               retval = stack.definition.services[sname];
-            } else if(stack.design && stack.design.services && stack.design.services.hasOwnProperty(sname)) {
-                retval = stack.design.services[sname];
-                retval.name = inputs.id;
-            }
-            env.res.json(retval);
-            return retval;
+        let retval = normalize_old(inputs.id, stname, stack.definition);
+        if (stack.design) {
+            retval = normalize(inputs.id, stname, stack.design);
         }
-        
+        env.res.json(retval);
+        return retval;
     }
 };
 

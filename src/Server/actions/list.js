@@ -118,14 +118,16 @@ module.exports = {
         for (let i in items) {
             ritems.push(items[i]);
         }
-        env.res.json({
-            status: 'success',
-            name: cls.definition.name,
-            total: objs.length,
-            records: ritems,
-            columns: cols,
-            methods: methods
-        });
+        if(env.res) {
+            env.res.json({
+                status: 'success',
+                name: cls.definition.name,
+                total: objs.length,
+                records: ritems,
+                columns: cols,
+                methods: methods
+            });
+        }
     }
 };
 

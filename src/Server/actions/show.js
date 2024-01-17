@@ -12,6 +12,13 @@ module.exports = {
         // inputs contains the obj for the this method.
         let modelName = env.req.url.split(/[\/\?]/)[1];
         let cls = AClass.getClass(modelName);
+        if(!cls) {
+            console.error("Could not find the class:", modelName);
+            if(env.res) {
+                env.res.json({status: error, message:"Could not find the class"});
+            }
+            return;
+        }
         /*
         let hostURL = global.ailtire.config.host;
         if (global.ailtire.config.listenPort) {

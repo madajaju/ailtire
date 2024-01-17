@@ -398,17 +398,17 @@ function getHandler(obj, definition, prop) {
         // If it is then you need to call await
         if (definition.methods[prop].fn.constructor.name === "AsyncFunction") {
             return async (...args) => {
+                // Need to create a news proxy for the object here because the await/async module is setting this to
+                // global.
+                const objHandler = require('./ObjectProxy.js');
+                let proxy = new Proxy(obj, objHandler); 
                 if (!definition.methods[prop].static) {
                     if (hasStateNet(definition)) {
-                        return stateNetHandler.processEvent(this, obj, prop, args);
+                        return stateNetHandler.processEvent(proxy, obj, prop, args);
                     } else {
-                        if (definition.methods[prop].fn.constructor.name === "AsyncFunction") {
-                            let retval = await funcHandler.run(definition.methods[prop], obj, args[0]);
-                            return retval;
-                        } else {
-                            let retval = funcHandler.run(definition.methods[prop], obj, args[0]);
-                            return retval;
-                        }
+                        let objHandler  
+                        let retval = await funcHandler.run(definition.methods[prop], proxy, args[0]);
+                        return retval;
                     }
                 } else {
                     console.error("Cannot call class method with an object. Call with class from ", definition.name + "." + prop + "(...);");

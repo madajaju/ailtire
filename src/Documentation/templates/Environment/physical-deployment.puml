@@ -1,0 +1,181 @@
+@startuml
+
+left to right direction
+
+<%
+    let locations = environment.locations;
+    let noLocation = {};
+    let networks = environment.network.networks;
+    let index = 0;
+    for(let i in networks) {
+        networks[i].color = colors[index++];
+    }
+
+    // Network Devices first
+    let devices = environment.network.devices;
+    for(let i in devices) {
+        let device = devices[i];
+        device.inside = [];
+        device.after = [];
+        device.name = i;
+        if(device.location) {
+            if(!locations[device.location].devices) {
+                locations[device.location].devices = {};
+            }
+            locations[device.location].devices[device.name] = device;
+        } else {
+            noLocation[device.name] = device;
+        }
+        if(device.networks) {
+            for(j in device.networks) {
+                let color =  networks[device.networks[j]]?.color || "#ffffff";
+                if(!networks[device.networks[j]].devices) {
+                    networks[device.networks[j]].devices = [];
+                }
+                if(device.type.includes('switch')) {
+                    device.properties = `<&transfer*4>\\n${device.name}`;
+                    device.inside.push(`hexagon ${device.networks[j]} ${color}`);
+                    networks[device.networks[j]].switch = device;
+                } else if(device.type.includes('router')) {
+                    // Draw a line between the two networks through the router.
+                    device.properties = `<&move*4>\\n${device.name}`;
+                    if(!networks[device.networks[j]]) {
+                        device.after.push(`hexagon ${device.networks[j]}`);
+                        device.after.push(`${device.name} -- ${device.networks[j]}`);
+                    } else {
+                        device.after.push(`${device.networks[j]} -- ${device.name}`);
+                    }
+                } else if(device.type.includes('accesspoint')) {
+                    device.properties = `<&wifi*4>\\n${device.name}`;
+                    device.inside.push(`hexagon ${device.networks[j]} ${color}`);
+                }
+                networks[device.networks[j]].devices.push(device);
+            }
+        }
+    }
+    // Compute Devices
+    devices = environment.compute;
+    for(let i in devices) {
+        let device = devices[i];
+        device.name = i;
+        device.inside = [];
+        device.after = [];
+        if(device.location) {
+            if(!locations[device.location].devices) {
+                locations[device.location].devices = {};
+            }
+            locations[device.location].devices[device.name] = device;
+        } else {
+            noLocation[device.name] = device;
+        }
+        if(device.networks) {
+            for(nname in device.networks) {
+                if(!networks[nname].devices) {
+                    networks[nname].devices = [];
+                }
+                device.properties = `<&monitor*4>\\n${device.name}`;
+                if(device.type.includes('laptop')) {
+                    device.properties = `<&laptop*4>\\n${device.name}`;
+                } else if(device.type.includes('video')) {
+                    device.properties = `<&camera-slr*4>\\n${device.name}`;
+                } else if(device.type.includes('cloud')) {
+                    device.properties = `<&cloud-slr*4>\\n${device.name}`;
+                } else if(device.type.includes('tablet')) {
+                     device.properties = `<&tablet*4>\\n${device.name}`;
+                } else if(device.type.includes('phone')) {
+                     device.properties = `<&phone*4>\\n${device.name}`;
+                }
+                let color = networks[nname]?.color || "#ffffff";
+                device.inside.push(`portin " " as ${device.name}${nname} ${color}`);
+                device.after.push(`${nname} -[hidden]- ${device.name}${nname}`);
+                networks[nname].devices.push(device);
+            }
+            // Now put the mount points on Compute
+            for(let dname in device.disks) {
+                let disk = device.disks[dname];
+                let mount = disk?.mount?.replaceAll(/\//g,'') || "mount";
+                device.inside.push(`folder "${disk.mount}" as ${device.name}${mount}`);
+                if(disk.volume === 'local') {
+                    device.inside.push(`database local${dname} as ${device.name}${dname}`);
+                    device.after.push(`${device.name}${dname} -- ${device.name}${mount}`);
+                } else {
+                    device.after.push(`${device.name}${mount} ---- ${disk.volume}`);
+                }
+            }
+        }
+    }
+    // Storage
+    devices = environment.storage;
+    for(let i in devices) {
+        let device = devices[i];
+        device.inside = [];
+        device.after = [];
+        device.name = i;
+        if(device.location) {
+            if(!locations[device.location].storage) {
+                locations[device.location].storage = {};
+            }
+            locations[device.location].storage[device.name] = device;
+        } else {
+            noLocation.storage[device.name] = device;
+        }
+        if(device.networks) {
+            device.properties = `<&hard-drive*4>\\n${device.name}`;
+            for(nname in device.networks) {
+                if(!networks[nname].devices) {
+                    networks[nname].devices = [];
+                }
+                let color = networks[nname]?.color || "#ffffff";
+                device.inside.push(`portin " " as ${device.name}${nname} ${color}`);
+                networks[nname].devices.push(device);
+            }
+        }
+    }
+%>
+<% for(let i in networks) {
+    let network = networks[i];
+    if(!network.switch) {
+%>
+hexagon <%= i %>
+<%
+    }
+}
+%>
+
+<% for(let i in noLocation.devices) {
+    let device = noLocation.devices[i];
+%>
+    node <%- device.name %> <<<%- device.type %>>> {
+    <%- device.inside.join("\n") %>
+    }
+<% } %>
+
+<% for(let lname in locations) {
+    let location = locations[lname];
+    %>
+frame <%= lname %> {
+<% for(let i in location.devices) {
+    let device = location.devices[i];
+%>
+    node "<%- device.properties %>" as <%- device.name %> <<<%- device.type %>>> {
+    <%- device.inside.join("\n") %>
+    }
+<% } %>
+<% for(let i in location.storage) {
+    let device = location.storage[i];
+%>
+    database <%- device.name %> <<<%- device.type %>>> {
+    <%- device.inside.join("\n") %>
+    }
+<% } %>
+
+}
+<% } %>
+<% for(let lname in locations) {
+    let location = locations[lname];
+    let devices = location.devices;
+    for(let i in devices) { %>
+<%- devices[i].after.join('\n') %>
+<% }
+}%>
+@enduml

@@ -1,0 +1,82 @@
+@startuml
+
+<%
+    let networks = environment.network.networks;
+    let devices = environment.network.devices;
+    // Networks
+    for(let i in devices) {
+        let device = devices[i];
+        device.name = i;
+        if(device.networks) {
+            for(j in device.networks) {
+                if(!networks[device.networks[j]].devices) {
+                    networks[device.networks[j]].devices = [];
+                }
+                if(device.type.includes('switch')) {
+                    device.properties = `description= <&transfer*4>\\n${device.name}`;
+                } else if(device.type.includes('router')) {
+                    device.properties = `description= <&move*4>\\n${device.name}`;
+                } else if(device.type.includes('accesspoint')) {
+                    device.properties = `description= <&wifi*4>\\n${device.name}`;
+                }
+                networks[device.networks[j]].devices.push(device);
+            }
+        }
+    }
+    devices = environment.compute;
+    for(let i in devices) {
+        let device = devices[i];
+        device.name = i;
+        if(device.networks) {
+            for(nname in device.networks) {
+                if(!networks[nname].devices) {
+                    networks[nname].devices = [];
+                }
+                device.properties = `description= <&monitor*4>\\n${device.name}`;
+                if(device.type.includes('laptop')) {
+                    device.properties = `description= <&laptop*4>\\n${device.name}`;
+                } else if(device.type.includes('video')) {
+                    device.properties = `description= <&camera-slr*4>\\n${device.name}`;
+                } else if(device.type.includes('cloud')) {
+                    device.properties = `description= <&cloud-slr*4>\\n${device.name}`;
+                } else if(device.type.includes('tablet')) {
+                     device.properties = `description= <&tablet*4>\\n${device.name}`;
+                } else if(device.type.includes('phone')) {
+                     device.properties = `description= <&phone*4>\\n${device.name}`;
+                }
+                networks[nname].devices.push(device);
+            }
+        }
+    }
+    devices = environment.storage;
+    for(let i in devices) {
+        let device = devices[i];
+        device.name = i;
+        if(device.networks) {
+            for(nname in device.networks) {
+                if(!networks[nname].devices) {
+                    networks[nname].devices = [];
+                }
+                device.properties = `description= <&hard-drive*4>\\n${device.name}`;
+                networks[nname].devices.push(device);
+            }
+        }
+    }
+%>
+nwdiag {
+<% for(let name in networks) {
+    let network = networks[name];
+-%>
+    network <%= name %> {
+    <% if(network.network) { -%>
+    address = "<%= network.network %>"
+    <% } %>
+    <% for(let i in network.devices) {
+        let device = network.devices[i];
+    -%>
+    <%= device.name %> [ <%- device.properties %>]
+    <% } %>
+   }
+<% } %>
+}
+@enduml

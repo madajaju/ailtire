@@ -29,14 +29,23 @@ module.exports = {
             let newObj = new cls(env.req.body);
             let jobj = newObj.toJSON;
             AEvent.emit(modelName + '.create', { obj: jobj });
-            env.res.json({results: jobj._attributes});
+            if(env.res) {
+                env.res.json({results: jobj._attributes});
+            }
         }
         else {
             // Remove the cls  from the inputs so they are not passed down to the constructor
             let myClass = AClass.getClass(modelName);
-            let newObj = new myClass(inputs);
-            AEvent.emit(modelName + '.create', { obj: newObj.toJSON });
-            env.res.redirect(`/${modelName}?id=${newObj.id}`)
+            if(myClass) {
+                let newObj = new myClass(inputs);
+                AEvent.emit(modelName + '.create', {obj: newObj.toJSON});
+                if (env.res) {
+                    env.res.redirect(`/${modelName}?id=${newObj.id}`)
+                }
+            } else {
+                console.error("Could not create object. Class not found:", modelName);
+                throw new Error("Could not create object.");
+            }
         }
     }
 };

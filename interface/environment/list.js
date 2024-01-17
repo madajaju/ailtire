@@ -7,11 +7,12 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
-        let environments = processDeployment(global.packages);
+        let environments = _processDeployment(global.packages);
+        _processPhysical(environments);
         env.res.json(environments);
     }
 };
-function processDeployment(packages) {
+function _processDeployment(packages) {
     let retval = {environments:{}, images:{}};
 
     for(let pname in packages) {
@@ -19,7 +20,7 @@ function processDeployment(packages) {
         for(let ename in pkg.deploy.envs) {
             let env = pkg.deploy.envs[ename];
             if(!retval.environments.hasOwnProperty(ename)) {
-                retval.environments[ename] = { stacks: {}};
+                retval.environments[ename] = { name: ename, stacks: {}, physical: {}};
             }
             retval.environments[ename].stacks[env.tag] = processStack(`${pname}.${ename}`, env.definition);
         }
@@ -31,6 +32,17 @@ function processDeployment(packages) {
     return retval;
 }
 
+function _processPhysical(environments) {
+    let envs = global.physical.environments;
+    for(ename in envs) {
+        let env = environments[ename];
+        if(!environments.hasOwnProperty(ename)) {
+            environments[ename] = { name: ename, stacks: {}, physical: {} };
+        }
+        environments[ename].physical = env;
+    }
+    return environments;
+}
 function processStack(id, stack) {
    return {id: id, services: stack.services, networks: stack.networks};
 }

@@ -14,13 +14,15 @@ module.exports = {
     },
     processPackage: (dir) => {
         global.actors = {};
-        global.actions = {};
+        global.actions = global.actions || {}; // Allow actions to be added programattically
         global.events = {};
+        global.environments = global.enivornments || {};
         global.handlers = _initHandlers();
         global.classes = {};
         global.packages = {};
         global.topPackage = {};
         global.usecases = {};
+        global.workflows = global.workflows || {};
         global.appBaseDir = dir;
         global.topPackage = processDirectory(dir);
         _processModelIncludeFiles();
@@ -96,6 +98,10 @@ const processDirectory = dir => {
     let deployDir = dir + '/deploy';
     if (isDirectory(deployDir)) {
         loadDeploy(pkg, pkg.prefix, deployDir);
+    }
+    let physicalDir = dir + '/physical';
+    if(isDirectory(physicalDir)) {
+        loadPhysical(pkg, pkg.prefix, physicalDir);
     }
     return pkg;
 };
@@ -222,6 +228,334 @@ const loadDocs = (pkg, dir) => {
     }
 }
 
+const _loadPhysicalModules = (obj, prefix, dir, files) => {
+    for(let i in files) {
+        let file = files[i];
+        let fpath = path.resolve(`${dir}/${file}`);
+        if(isDirectory(fpath)) {
+            let dfiles =  fs.readdirSync(fpath);
+            _loadPhysicalModules(obj, prefix + file + '/', fpath, dfiles );
+        } else {
+            if(path.extname(file) === ".js") {
+                let module = require(fpath);
+                obj[prefix + file.replace('.js', '')] = module;
+            }
+        }
+    }
+}
+
+const _loadEnvironments = (obj, prefix, dir, files) => {
+    for(let i in files) {
+        let file = files[i];
+        let fpath = path.resolve(`${dir}/${file}`);
+        if(isDirectory(fpath)) {
+            let dfiles =  fs.readdirSync(fpath);
+            _loadEnvironments(obj, prefix + file + '/', fpath, dfiles );
+        } else {
+            if(path.extname(file) === ".js") {
+                let environment = require(fpath);
+                obj[prefix + file.replace('.js', '')] = environment;
+            }
+        }
+    }
+}
+
+const _getPhysicalModule = (pkg, resource, moduleName) => {
+    if (pkg.physical.modules.hasOwnProperty(moduleName)) {
+        return pkg.physical.modules[moduleName];
+    }
+    if (global.physical.modules.hasOwnProperty(moduleName)) {
+        return global.physical.modules[moduleName];
+    }
+    throw new Error("Type Not Found");
+
+}
+
+const _checkPhysicalResourceTypes = (pkg, obj, path) => {
+
+    for(let name in obj) {
+        let item = obj[name];
+        if(typeof item === 'object') {
+            _checkPhysicalResourceTypes(pkg, item, `${path}/${name}`)
+        } else if(name === 'type') {
+            try {
+                let module = _getPhysicalModule(pkg, obj, item);
+                obj._module = module;
+            }
+            catch(e) {
+                if (!global.ailtire.hasOwnProperty('error')) { global.ailtire.error = []; }
+                global.ailtire.error.push({
+                    type: 'physical.module',
+                    object: {type: "Environment", id: pkg.id, name: item},
+                    message: `Could not find the physical type: ${item} for ${path}`,
+                    data: obj,
+                    lookup: 'physical/module/list'
+                });
+                console.error(`Could not find the physical type: ${item} for ${path}`);
+            }
+        }
+    }
+}
+
+const _checkLocations = (pkg, obj) => {
+    let locations = {};
+    for(let ename in obj.environments) {
+        let defaultLocation = "";
+        let environment = obj.environments[ename] ;
+        if(!environment.locations) {
+            console.warn("No Locations found for environment: ", ename)
+            global.ailtire.error.push({
+                type: 'environment.location',
+                object: {type: "location", id: ename, name: ename },
+                message: "Location not found for environment: " + ename,
+                data: environment,
+                lookup: 'location/list'
+            });
+        } else {
+            for (let lname in environment.locations) {
+                let location = environment.locations[lname];
+                location.name = lname;
+                // Location does not exist create it.
+                if (!locations.hasOwnProperty(lname)) {
+                    locations[lname] = {};
+                    location.name = lname;
+                    for (let i in location) {
+                        locations[lname][i] = location[i];
+                    }
+                    locations[lname].environments = [];
+                }
+                locations[lname].environments.push(ename);
+                if (location.default) {
+                    defaultLocation = lname;
+                }
+            }
+            // Now traverse the network, storage, and compute devices. Make sure the location matches one of these. If
+            // there is not a location assigned then assign it to the defaultLocation.
+            for (let dname in environment.network?.devices) {
+                let device = environment.network?.devices[dname];
+                if (!device.location) {
+                    device.location = defaultLocation;
+                }
+                if (!environment.hasOwnProperty(locations)) {
+                }
+                if (typeof device.location !== 'object' && !environment.locations.hasOwnProperty(device.location)) {
+                    console.warn("Location not found for network device: ", dname)
+                    global.ailtire.error.push({
+                        type: 'environment.location',
+                        object: {type: "location", id: device.location, name: device.location},
+                        message: "Location not found for network device: " + dname,
+                        data: device,
+                        lookup: 'location/list'
+                    });
+                }
+            }
+            for (let dname in environment.compute) {
+                let device = environment.compute[dname];
+                if (!device.location) {
+                    device.location = defaultLocation;
+                }
+
+                if (typeof device.location !== 'object' && !environment.locations.hasOwnProperty(device.location)) {
+                    console.warn("Location not found for compute device: ", dname, device.location)
+                    global.ailtire.error.push({
+                        type: 'environment.location',
+                        object: {type: "location", id: device.location, name: device.location},
+                        message: "Location not found for compute device: " + dname,
+                        data: device,
+                        lookup: 'location/list'
+                    });
+                }
+            }
+            for (let dname in environment.storage) {
+                let device = environment.storage[dname];
+                if (!device.location) {
+                    device.location = defaultLocation;
+                }
+                if (typeof device.location !== 'object' && !environment.locations.hasOwnProperty(device.location)) {
+                        console.warn("Location not found for storage device: ", dname)
+                    global.ailtire.error.push({
+                        type: 'environment.location',
+                        object: {type: "location", id: lname, name: lname},
+                        message: "Location not found for storage device: " + dname,
+                        data: device,
+                        lookup: 'location/list'
+                    });
+                }
+            }
+        }
+    }
+
+}
+const _checkNetworks = (pkg, obj) => {
+    for(let ename in obj.environments) {
+        // Check that each network has a switch or router cooresponding.
+        // Check that each device in compute and storage has a network cooresponding.
+        
+        let environment = obj.environments[ename];
+        let networks = environment.network.networks;
+        for(let dname in environment.network.devices) {
+            let device = environment.network.devices[dname];
+            if(!device.networks || device.networks.length < 1) {
+                console.warn("No Networks found for network device: ", dname, ename);
+                global.ailtire.error.push({
+                    type: 'environment.network',
+                    object: {type: "network", id: dname, name: dname},
+                    message: "Location not found for network device: " + dname,
+                    data: device,
+                    lookup: 'network/list'
+                });
+            }
+            for(let i in device.networks) {
+                let nname = device.networks[i];
+                if(!networks.hasOwnProperty(nname)) {
+                    console.warn("Network not found for network device: ", dname, nname)
+                    global.ailtire.error.push({
+                        type: 'environment.network',
+                        object: {type: "network", id: nname, name: nname},
+                        message: "Location not found for storage device: " + nname,
+                        data: device,
+                        lookup: 'network/list'
+                    });
+                } else {
+                    networks[nname].hosted = true;
+                }
+            }
+        }
+        for(let nname in networks) {
+           let network = networks[nname];
+            if(!network.hosted)  {
+                console.warn("Network not host by a network device: ", nname)
+                global.ailtire.error.push({
+                    type: 'environment.network',
+                    object: {type: "network", id: nname, name: nname},
+                    message: "Network not hosted by network device: " + nname,
+                    data: network,
+                    lookup: 'network/list'
+                });
+            }
+        }
+        for(let dname in environment.compute) {
+            let device = environment.compute[dname];
+            if(!device.networks || device.networks.length < 1) {
+                console.warn("No Networks found for storage device: ", dname, ename);
+                global.ailtire.error.push({
+                    type: 'environment.network',
+                    object: {type: "network", id: dname, name: dname},
+                    message: "Location not found for storage device: " + dname,
+                    data: device,
+                    lookup: 'network/list'
+                });
+            }
+            for(let nname in device.networks) {
+                if(!networks.hasOwnProperty(nname)) {
+                    console.warn("Network not found for network device: ", dname, nname)
+                    global.ailtire.error.push({
+                        type: 'environment.network',
+                        object: {type: "network", id: nname, name: nname},
+                        message: "Location not found for storage device: " + dname + ", " + nname,
+                        data: device,
+                        lookup: 'network/list'
+                    });
+                }
+            }
+        }
+        for(let dname in environment.storage) {
+            let device = environment.storage[dname];
+            if(!device.networks || device.networks.length < 1) {
+                console.warn("No Networks found for storage device: ", dname, ename);
+                global.ailtire.error.push({
+                    type: 'environment.network',
+                    object: {type: "network", id: dname, name: dname},
+                    message: "Location not found for storage device: " + dname,
+                    data: device,
+                    lookup: 'network/list'
+                });
+            }
+            for(let nname in device.networks) {
+                if(!networks.hasOwnProperty(nname)) {
+                    console.warn("Network not found for network device: ", dname, nname)
+                    global.ailtire.error.push({
+                        type: 'environment.network',
+                        object: {type: "network", id: nname, name: nname},
+                        message: "Location not found for storage device: " + dname + ", " + nname,
+                        data: device,
+                        lookup: 'network/list'
+                    });
+                }
+            }
+        }
+    }
+}
+const _checkCompute = (pkg, obj) => {
+    
+}
+const _checkEnvironments = (pkg) => {
+    // Check that all of the types have a cooresponding module.
+    // This should travse the complete module and environments structure and check that the type matchs a module.
+    try {
+        _checkPhysicalResourceTypes(pkg, pkg.physical, "");
+        _checkLocations(pkg, pkg.physical);
+        _checkNetworks(pkg, pkg.physical);
+        _checkCompute(pkg, pkg.physical);
+    }
+    catch(e) {
+        console.error("CheckPhysicalResource Types failed:", e);
+    }
+}
+
+const _checkDeployments = (pkg) => {
+
+}
+
+const _loadPhysicalDefaults = () => {
+
+    if(!global.physical) {
+        global.physical = {
+            modules: {},
+            environments: {},
+        }
+    }
+    if(!global.environments) {
+        global.environments = {};
+    }
+    let mdir = path.resolve( __dirname + '../../../defaults/physical/modules');
+    let mfiles = fs.readdirSync(mdir);
+    _loadPhysicalModules(global.physical.modules, "",mdir, mfiles);
+
+    // Next load the environment files.
+    mdir = path.resolve(__dirname + '../../../defaults/physical/environments');
+    mfiles = fs.readdirSync(mdir);
+    _loadEnvironments(global.physical.environments,"",mdir,mfiles);
+
+}
+const loadPhysical = (pkg, prefix, dir) => {
+
+    pkg.physical = {
+        dir: dir,
+        prefix: prefix,
+        environments: {},
+        modules: {}
+    };
+    _loadPhysicalDefaults();
+
+    // first load the modules as they will be referenced in the environments.
+    let mdir = path.resolve(dir + '/modules');
+    let mfiles = fs.readdirSync(mdir);
+    _loadPhysicalModules(pkg.physical.modules, "",mdir, mfiles);
+
+    // Next load the environment files.
+    mdir = path.resolve(dir + '/environments');
+    mfiles = fs.readdirSync(mdir);
+    _loadEnvironments(pkg.physical.environments,"",mdir,mfiles);
+
+    // Now check the environment files for references to the modules, consistency in the configurations.
+    _checkEnvironments(pkg);
+
+    // Now check all of the deployments that they can handle the physical infrastructure that has been designed.
+    _checkDeployments(pkg);
+}
+
+
 const loadDeploy = (pkg, prefix, dir) => {
     pkg.deploy = {
         dir: dir,
@@ -283,14 +617,11 @@ const loadDeploy = (pkg, prefix, dir) => {
             // Now get the file from the deploy and read it in.
             let compose = {};
             if (!isFile(dir + '/' + contexts[env].file)) {
-                if (!global.ailtire.hasOwnProperty('error')) {
-                    global.ailtire.error = [];
-                }
+                if (!global.ailtire.hasOwnProperty('error')) { global.ailtire.error = []; }
                 global.ailtire.error.push({
-
                     type: 'environment.contexts',
-                    object: {type: "Environment", id: env, name: env},
-                    message: "Cloud not find envrionemt association type does not map to a model",
+                    object: {type: "environment", id: env, name: env},
+                    message: "cloud not find envrionemt association type does not map to a model",
 
                     data: dir,
                     lookup: 'model/list'
@@ -486,8 +817,8 @@ const checkWorkflows = (workflows) => {
             // Check if the activity name is a usecase, scenario, or other workflow.
             let anospace = aname.replace(/\s/g, '');
             if (aname !== "Init") {
-                if (global.workflows.hasOwnProperty(aname)) {
-                    activity.obj = global.workflows[aname];
+                if (global.workflows.hasOwnProperty(anospace)) {
+                    activity.obj = global.workflows[anospace];
                     activity.type = "workflow";
                 } else if (global.usecases.hasOwnProperty(anospace)) {
                     activity.obj = global.usecases[aname];
@@ -578,6 +909,7 @@ const checkDeployment = (deployments, images) => {
                     }
                 }
             } catch (e) {
+                if(!global.ailtire.error) { global.ailtire.error = [];}
                 global.ailtire.error.push({
                     type: 'build.image',
                     object: {type: "Image", id: image.image.tag, name: image.image.tag},
@@ -904,10 +1236,11 @@ const checkScenario = (pkg, scenario) => {
         let nsAname = aname.replace(/\s/g, '');
         if (!global.actors.hasOwnProperty(nsAname)) {
             apiGenerator.actor({name: aname}, global.appBaseDir + '/actors');
-        } else if (!global.actors[nsAname].hasOwnProperty('scenarios')) {
-            global.actors[nsAname].scenarios = {};
-            global.actors[nsAname].scenarios[scenario.name.replace(/\s/g, '')] = scenario;
         }
+        if (!global.actors[nsAname].hasOwnProperty('scenarios')) {
+            global.actors[nsAname].scenarios = {};
+        }
+        global.actors[nsAname].scenarios[scenario.name.replace(/\s/g, '')] = scenario;
     }
 
     // Make sure each UseCase has a method that matches an interface that exists.
