@@ -1,4 +1,4 @@
-FROM docker:latest
+FROM docker:24-dind
 
 WORKDIR /usr/src/app
 
