@@ -703,7 +703,7 @@ function _createUseCaseEditDoc(record, setURL) {
         $(document).ready(function () {
             $(document).on('click', "#generateDescription", function () {
                 let clsid = w2ui.UseCaseEditDoc.record.name;
-                let url = `package/generate?target=Description&id=${clsid}`;
+                let url = `usecase/generate?target=Description&id=${clsid}`;
                 w2ui.UseCaseEditDoc.lock('description', true);
                 w2ui.UseCaseEditDoc.refresh();
                 $('html').css('cursor', 'wait');
@@ -723,7 +723,7 @@ function _createUseCaseEditDoc(record, setURL) {
             });
             $(document).on('click', "#generateDocumentation", function () {
                 let clsid = w2ui.UseCaseEditDoc.record.name;
-                let url = `package/generate?target=Documentation&id=${clsid}`;
+                let url = `usecase/generate?target=Documentation&id=${clsid}`;
                 w2ui.UseCaseEditDoc.lock('Generating...', true);
                 w2ui.UseCaseEditDoc.refresh();
                 $('html').css('cursor', 'wait');
@@ -803,11 +803,23 @@ function _createUseCaseEditScenarios(record, setURL) {
     let config = {
         name: "UseCaseEditScenarios",
         title: "scenarios",
-        generateURL: 'usecase/generate?target=scenarios',
+        generateURL: 'usecase/generate?target=Scenarios',
+        editURL: 'scenario/get',
+        edit: AScenario.editDocs,
         tab: 'scenarios',
         saveURL: "scenario/save",
         attribute: 'scenarios',
         columns: [
+            {
+                field: 'uid',
+                caption: 'UID',
+                size: '0%',
+                resizable: false,
+                hiddent: true,
+                fn: (name, value) => {
+                    return value.uid;
+                }
+            },
             {
                 field: 'name',
                 caption: 'Name',
@@ -851,7 +863,7 @@ function _createUseCaseEditActors(record, setURL) {
     let config = {
         name: "UseCaseEditActors",
         title: "Actors",
-        generateURL: 'usecase/generate?target=actors',
+        generateURL: 'usecase/generate?target=Actors',
         tab: 'actors',
         saveURL: "actor/save",
         edit: AActor.editDocs,
@@ -984,12 +996,16 @@ function _createCharacteristicGrid(config) {
         });
         w2ui[config.name].on('dblClick', function(event) {
             let record = this.get(event.recid);
+            let id = record.uid || record.name;
             // THis is where we need to open up another window to show details of what was clicked on.
             if(config.edit && config.editURL) {
                 $.ajax({
-                    url: `${config.editURL}?id=${record.name}`,
+                    url: `${config.editURL}?id=${id}`,
                     success: function(results) {
                         config.edit(results, config.saveURL);
+                    },
+                    failure: function(results) {
+                        console.error(results);
                     }
                 });
             }

@@ -1215,6 +1215,7 @@ const checkScenario = (pkg, scenario) => {
 
     // Make sure each UseCase has a method that matches an interface that exists.
     let actionName = scenario.method;
+    if(!actionName) { return; }
     // Relative path does not start with /
     // Convert it to an absolute path first.
     if (actionName[0] !== '/') {

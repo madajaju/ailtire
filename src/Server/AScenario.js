@@ -269,4 +269,5 @@ function _save(usecase, scenario) {
     } catch (e) {
         console.error("Error writing Scenario File:", filename);
     }
+    usecase.scenarios[scenario.name.replace(/\s/g,'')] = scenario;
 };

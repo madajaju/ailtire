@@ -595,7 +595,7 @@ function _addInterface(package,method) {
     let apath = `${package.prefix}/${method.name}`;
     package.definition.interface[apath] = method;
     global.actions[apath] = method;
-    global.actions[apath].pkg = pkg;
-    global.actions[apath].obj = pkg.name;
+    global.actions[apath].pkg = package;
+    global.actions[apath].obj = package.name;
     return method;
 }
