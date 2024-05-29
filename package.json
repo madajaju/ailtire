@@ -7,7 +7,7 @@
     "start": "node index.js",
     "build": "node build.js",
     "docs": "java -jar docs/plantuml.jar docs/*.puml docs/**/*.puml",
-    "startTest": "node test.js",
+    "startTest": "node test.js"
   },
   "keywords": [],
   "bin": "bin/ailtire",
