@@ -1,6 +1,6 @@
 {
   "name": "ailtire",
-  "version": "0.12.3",
+  "version": "0.12.4",
   "description": "UML Architecture by coding and simulating system architectures.",
   "main": "index.js",
   "scripts": {
@@ -19,11 +19,14 @@
     "commander": "^8.3.0",
     "ejs": "^3.1.8",
     "express": "^4.18.1",
+    "flatted": "^3.2.6",
     "socket.io": "^4.5.1",
     "socket.io-client": "^4.5.1",
-    "yamljs": "^0.3.0",
-    "flatted": "^3.2.6",
-    "stream-buffers": "latest"
+    "stream-buffers": "latest",
+    "node-nailgun-client": "^0.1.2",
+    "node-nailgun-server": "^0.3.0",
+    "plantuml-encoder": "^1.4.0",
+    "yamljs": "^0.3.0"
   },
   "devDependencies": {
     "mocha": "^9.1.3"

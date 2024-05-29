@@ -17,10 +17,12 @@ ailtire <command> [args]
 ailtire action <command> [args]
 ailtire actor <command> [args]
 ailtire app <command> [args]
+ailtire method <command> [args]
 ailtire model <command> [args]
 ailtire package <command> [args]
 ailtire scenario <command> [args]
 ailtire usecase <command> [args]
+ailtire workflow <command> [args]
 ```
 
 ## Description
