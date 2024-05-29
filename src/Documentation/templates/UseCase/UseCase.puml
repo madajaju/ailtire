@@ -1,0 +1,30 @@
+@startuml
+
+left to right direction
+
+<% let unameNoSpace = usecase.name.replace(/ /g, '') %>
+usecase "<%= usecase.name %>" as <%= unameNoSpace %>
+
+<%
+for(let aname in usecase.actors) {
+let anameNoSpace = aname.replace(/\s/g,'');
+%>
+actor "<%= aname %>" as <%= anameNoSpace %>
+<%= anameNoSpace %> --> <%= unameNoSpace %>
+<%
+}
+for(let sname in usecase.scenarios) {
+let scenario = usecase.scenarios[sname];
+let snameNoSpace = sname.replace(/\s/g,'');
+%>
+json "<%= sname %>" as <%= snameNoSpace %> {
+    "Given": "<%= scenario.given %>"
+    "When": "<%= scenario.when %>"
+    "Then": "<%= scenario.then %>"
+}
+<%= unameNoSpace %> --> <% snameNoSpace %>
+<%
+}
+%>
+
+@enduml

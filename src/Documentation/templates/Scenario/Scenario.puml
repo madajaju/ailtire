@@ -1,4 +1,5 @@
 @startuml
+
 <% for(let aname in actors) { %>
 actor "<%= aname %>"
 <% } %>
@@ -19,9 +20,11 @@ box <%= pkg1.name %> #<%= pkg1.color.replace(/\#/g,'') %>
     <% } -%>
 end box
 <% } %>
+group Given [<%= scenario.given %>]
 <% for(let aname in actors) {
 %>
-"<%= aname %>" -> <%= package.shortname %>: <%= scenario.name %>
+"<%= aname %>" --/ <%= package.shortname %>: <%= scenario.when %>
+"<%= package.shortname %>" -> <%= package.shortname %>: <%= scenario.name %>
 <% for(let i in scenario.steps) {
     let step = scenario.steps[i];
     let names = step.action.split('/');
@@ -46,5 +49,11 @@ end box
     "<%= object %>" --/ EventBus: <%= calledObj + '.' + method %>
 <% } %>
 <% } %>
+<% for(let aname in actors) {
+%>
+"<%= aname %>" /-- <%= package.shortname %>: <%= scenario.then %>
+<% } %>
+
+end
 
 @enduml

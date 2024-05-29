@@ -1,5 +1,5 @@
 const Action = require('../../src/Server/Action');
-const AScenarioInstance = require('../../src/Server/AScenarioInstance');
+const AScenario = require('../../src/Server/AScenario');
 
 module.exports = {
     friendlyName: 'get',
@@ -35,7 +35,7 @@ module.exports = {
             let usecase = global.usecases[ucname];
             if (usecase.scenarios.hasOwnProperty(sname)) {
                 let scenario = usecase.scenarios[sname];
-                retscenario = AScenarioInstance.toJSON(scenario);
+                retscenario = AScenario.toJSON(scenario);
             }
         }
         if(!retscenario) {

@@ -1,7 +1,9 @@
 module.exports = {
     name: '<%= name %>',
     description: '<%= name %> is the description',
-    method: "data/create",
+    given: "given statement",
+    when: "when statement",
+    then: "then statement",
     actors: {
         'Actor': 'uses',
     },

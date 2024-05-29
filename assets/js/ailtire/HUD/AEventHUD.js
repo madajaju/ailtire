@@ -51,7 +51,7 @@ export default class AEventHUD {
             if(AEventHUD.plane) {
                 AEventHUD.plane.add(group);
             }
-            // Add Label
+            // Add Label for the event category
             let labelr = AText.view3D({
                 text: event.recid,
                 color: "#ffffff",
@@ -62,7 +62,7 @@ export default class AEventHUD {
             });
             labelr.position.set(-width/2 + 4*2*size, 0, 0.01);
             group.add(labelr);
-            // Add Count
+            // Add Count on the cube
             let labelc = AText.view3D({
                 text: event.recid,
                 color: "#ffffff",

@@ -21,6 +21,9 @@ module.exports = {
     toJSON: (activity) => {
         return _toJSON(activity);
     },
+    save: (activity) => {
+        return _save(activity);
+    },
     handleEvent: (event, data) => {
         let acti = _activityInstances[data.obj.name][data.obj.id];
         if (event === "activity.completed") {
@@ -65,6 +68,26 @@ module.exports = {
     }
 };
 
+function _itemToString(item) {
+    
+    let retval = '{';
+    for(const [key, value] of Object.entries(item)) {
+        if(typeof value === 'function') {
+            retval += `"${key}": ${value.toString()},\n`;
+        } else if(typeof value === 'object') {
+            retval += `'${key}': ${_itemToString(value)},\n`;
+        } else {
+            retval += `"${key}": "${value}",\n`;
+        }
+    }
+    retval += '}';
+    return retval;
+}
+
+// This will return a string to be used by the workflow for saving.
+function _save(activity) {
+    return `${_itemToString(activity)}`;
+}
 function _processInputs(acti, nacti) {
     let args = {};
     for (let aname in nacti.inputs) {

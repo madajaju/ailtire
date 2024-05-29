@@ -1,4 +1,5 @@
 const fs = require("fs");
+const AActor = require("../../src/Server/AActor");
 module.exports = {
     friendlyName: 'get',
     description: 'Get an Actor',
@@ -27,7 +28,7 @@ module.exports = {
     fn: function (inputs, env) {
         // Find the actor from the usecase.
         let aname = inputs.id;
-        let actor = findActor(aname);
+        let actor = AActor.get(aname);
         if(actor) {
             if(env.res) {
                 if(inputs.doc) {
@@ -38,6 +39,16 @@ module.exports = {
                             actor.document = "Enter documentation here.";
                         }
                     }
+                }
+                actor.workflows = {};
+                for(let i in global.workflows) {
+                   let workflow = global.workflows[i] ;
+                   for(let aname in workflow.activities) {
+                       let activity = workflow.activities[aname];
+                       if (activity.actor && activity.actor === actor.name) {
+                           actor.workflows[workflow.name] = workflow;
+                       }
+                   }
                 }
                 env.res.json(actor);
             }

@@ -5,13 +5,20 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
+        let firstPass = {};
         let retval = {};
         for(let ucname in global.usecases) {
             let uc = global.usecases[ucname];
-            retval[ucname] = addSubUseCase(uc);
+            firstPass[ucname] = addSubUseCase(uc);
+        }
+
+        // Now clean up the list to only show the top level ones.
+        for(let ucname in firstPass) {
+            if(!firstPass[ucname].parent) {
+               retval[ucname] = firstPass[ucname];
+            }
         }
         env.res.json(retval);
-//        env.res.end(renderer.render('default', 'actor/list', {actors: global.actors, app: global.topPackage}));
     }
 };
 function addSubUseCase(uc) {
@@ -27,6 +34,7 @@ function addSubUseCase(uc) {
     for(let sucName in uc.extended) {
         let suc = uc.extended[sucName];
         retval.extended[sucName] = addSubUseCase(suc);
+        suc.parent = true;
     }
     return retval;
 }

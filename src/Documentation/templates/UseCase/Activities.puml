@@ -1,6 +1,8 @@
 @startuml
 <% let ucNoSpace = usecase.name.replace(/ /g, '') %>
 
+left to right direction
+
 usecase "<%= usecase.name %>" as <%= ucNoSpace %> #yellow
 <% for(let aname in usecase.actors) {
 aname = aname.replace(/\s/g, '');
@@ -13,10 +15,15 @@ Actor "<%= actor.name %>" as <%= aname %>
 
 <% for(let sname in usecase.scenarios) {
 let snameNoSpace = sname.replace(/ /g, '')
+let scenario = usecase.scenarios[sname];
 %>
-usecase "<%= sname %>" as <%= snameNoSpace %> #lightgrey
+json <%= snameNoSpace %> #lightyellow {
+    "Given": "<%= scenario.given %>",
+    "When": "<%= scenario.when %>",
+    "Then": "<%= scenario.then %>"
+}
 
-<%= ucNoSpace %> --> <%= snameNoSpace %>
+<%= ucNoSpace %> <|-- <%= snameNoSpace %>
 <% } %>
 
 <% for(let i in usecase.extends) {

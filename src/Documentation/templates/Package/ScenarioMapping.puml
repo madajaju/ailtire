@@ -101,26 +101,27 @@ rectangle "<%= uc.name %>" as <%= uc.name.replace(/\s/g,'') %> #ffffaa {
 <% } } %>
 <% for(let sname in uc.scenarios) {
     let scen = uc.scenarios[sname];
+    let ascname = "";
     for(let aname in scen.actors) {
         let method = package.prefix + '/' + scen.method;
         if(g_interfaces[method]) {
         let smstates = getStates(method);
         let auscname = aname.replace(/\s/g,'') + uc.name.replace(/\s/g,'');
-        let ascname = auscname + sname.replace(/\s/g,'');
+        ascname = auscname + sname.replace(/\s/g,'');
     %>
         rectangle "<%= uc.name %>" as <%= uc.name.replace(/\s/g,'') %> #ffffaa {
             ("<%= scen.name %>")/ as <%= ascname %>
         }
     <%- smstates.states %>
     <%- smstates.sname %> <-- <%= ascname %>
-    <%
-    }
+<%
+        }
         for(let i in scen.steps) {
             let step = scen.steps[i];
             let stepname = step.action;
             if(g_interfaces[stepname]) {
             let sstates = getStates(stepname);
-    -%>
+-%>
     <%= sstates.sname %> <-- <%= ascname %>
     <%
             }

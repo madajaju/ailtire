@@ -7,6 +7,7 @@ const apiGenerator = require('../Documentation/api');
 const YAML = require('yamljs');
 const AClass = require('./AClass');
 const AActivity = require('./AActivity');
+const AHandler = require('./AHandler');
 
 module.exports = {
     analyze: (pkg) => {
@@ -952,7 +953,7 @@ const checkPackage = (pkg) => {
     // Inheritance relationship check.
     for (let i in pkg.classes) {
         let cls = pkg.classes[i];
-        if (cls.definition.hasOwnProperty('extends')) {
+        if (cls.definition.extends && typeof cls.definition.extends === 'string') {
             if (global.classes.hasOwnProperty(cls.definition.extends)) {
                 let parentCls = AClass.getClass(cls.definition.extends);
                 if (!parentCls.definition.hasOwnProperty('subClasses')) {
@@ -984,7 +985,7 @@ const checkPackage = (pkg) => {
                             cls.definition.associations[fname] = parentCls.definition.associations[fname];
                         }
                     }
-                    if (parentCls.definition.hasOwnProperty('extends')) {
+                    if (parentCls.definition.extends) {
                         parentCls = AClass.getClass(parentCls.definition.extends);
                     } else {
                         parentCls = null;
@@ -1002,6 +1003,10 @@ const checkPackage = (pkg) => {
                     lookup: 'model/list',
                 });
                 console.error(`Parent Class ${cls.definition.extends} is not defined!`);
+            }
+        } else {
+            if(cls.definition.extends) {
+                 console.error("Fix problem with:", cls.definition.name);
             }
         }
     }
@@ -1067,42 +1072,7 @@ const checkPackage = (pkg) => {
     // Create a global struture to store the events.
     for (let i in pkg.handlers) {
         let handler = pkg.handlers[i];
-        let ename = handler.name;
-        if (!global.events.hasOwnProperty(ename)) {
-            global.events[ename] = {
-                handlers: {},
-            }
-        }
-        // Find the emitter.
-        // Event syntax is ClassName.event
-        let cls = AClass.getClass(ename.split(/\./)[0]);
-        if (cls) {
-            handler.emitter = cls;
-            global.events[ename].emitter = cls;
-            if (!cls.definition.hasOwnProperty('messages')) {
-                cls.definition.messages = {};
-            }
-            cls.definition.messages[ename] = global.events[ename];
-            if (!cls.definition.package.definition) {
-                if (!global.ailtire.hasOwnProperty('error')) {
-                    global.ailtire.error = [];
-                }
-                global.ailtire.error.push({
-                    type: 'model.definition',
-                    object: {type: 'Model', id: cls.id, name: cls.name},
-                    message: "Class parent package definitition has a problem",
-                    data: cls.definition.package,
-                    lookup: 'package/list',
-                });
-                console.error("Class Definition package problem");
-                console.error(cls.definition.package);
-            }
-            if (!cls.definition.package.definition.hasOwnProperty('messages')) {
-                cls.definition.package.definition.messages = {};
-            }
-            cls.definition.package.definition.messages[ename] = global.events[ename];
-        }
-        global.events[ename].handlers[pkg.prefix] = handler;
+        AHandler.checker(pkg, handler);
     }
     //
 };

@@ -7,6 +7,11 @@ let nameNoSpaces = scenario.name.replace(/ /g, '');
 <%= scenario.description %>
 
 ![Scenario <%=nameNoSpaces%>](./<%= nameNoSpaces %>.png)
+#### Criteria
+
+* Given - <%= scenario.given %>
+* When - <%= scenario.when %>
+* Then - <%= scenario.given %>
 
 #### Steps
 <%

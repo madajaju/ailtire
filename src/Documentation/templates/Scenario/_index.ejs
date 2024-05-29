@@ -6,6 +6,13 @@ let nameNoSpaces = scenario.name.replace(/ /g, '');
 <%= scenario.description %>
 <img src="<%= pageDir %>/<%= scenario.name.replace(/\s/g,'') %>.puml">
 
+<h4>Criteria</h4>
+    <ol>
+        <li>Given - <%= scenario.given %></li>
+        <li>When - <%= scenario.when %></li>
+        <li>Then - <%= scenario.then %></li>
+    </ol>
+
 <h4>Steps</h4>
 <%
 if(scenario.steps) {

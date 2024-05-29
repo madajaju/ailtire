@@ -15,7 +15,7 @@ module.exports = {
         if(!cls) {
             console.error("Could not find the class:", modelName);
             if(env.res) {
-                env.res.json({status: error, message:"Could not find the class"});
+                env.res.json({status:'error', message:"Could not find the class " + modelName});
             }
             return;
         }

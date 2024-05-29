@@ -432,8 +432,8 @@ export class Graph3D {
             if (this.options.selectCallback) {
                 this.options.selectCallback(node);
             }
-            this.selectRelNodes(node, "source");
-            this.selectRelNodes(node, "target");
+            this.selectRelNodes(node, "source", 1);
+            this.selectRelNodes(node, "target", 1);
         }
         this.graph
             .nodeThreeObject(this.graph.nodeThreeObject())
@@ -489,7 +489,7 @@ export class Graph3D {
         }
     };
 
-    selectRelNodes(node, direction) {
+    selectRelNodes(node, direction, levels) {
         let bdir = "target";
         if (direction === "target") {
             bdir = "source";
@@ -509,8 +509,11 @@ export class Graph3D {
                 this.selected.links[bdir].add(link);
                 if (this.data.nodes.hasOwnProperty(link[direction].id)) {
                     let nnode = this.data.nodes[link[direction].id];
+                    if(nnode.hasOwnProperty('parentObject')) {
+                       this.selectRel(nnode.parentObject, direction, levels);
+                    }
                     this.selected.nodes[bdir][nnode.id] = nnode;
-                    this.selectRelNodes(nnode, direction);
+                    this.selectRelNodes(nnode, direction, levels);
                 }
             }
         }

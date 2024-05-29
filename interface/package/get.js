@@ -55,7 +55,8 @@ function processPackage(pkg, depth = false) {
         classes: {},
         usecases: {},
         subpackages: {},
-        handlers: {}
+        handlers: {},
+        workflows: {}
     }
 
     for(let iname in pkg.interface) {
@@ -85,6 +86,9 @@ function processPackage(pkg, depth = false) {
     }
     for(let hname in pkg.handlers) {
         jpkg.handlers[hname] = pkg.handlers[hname];
+    }
+    for(let wname in pkg.workflows) {
+        jpkg.workflows[wname] = pkg.workflows[wname];
     }
     return jpkg;
 }

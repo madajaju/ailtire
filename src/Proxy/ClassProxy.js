@@ -12,6 +12,9 @@ module.exports = {
                 }
             }
         }
+        if(prop === 'doc') {
+           return obj.doc; 
+        }
         if (prop === '_gid') {
             if (!obj.hasOwnProperty('_gid)')) {
                 obj._gid = 0;
@@ -30,6 +33,9 @@ module.exports = {
             }
             obj.definition.package = obj.package;
             return obj.definition;
+        }
+        if(prop === 'doc') {
+            return obj.doc;
         }
         if (prop === 'toJSON') {
             return function (...args) {
@@ -53,6 +59,7 @@ module.exports = {
                     _attributes: obj.definition.attributes,
                     _associations: obj.definition.associations,
                     statenet: obj.definition.statenet,
+                    document: obj.document,
                 }
             }
         }

@@ -1,4 +1,3 @@
-const AEvent = require('../../src/Server/AEvent');
 const Action = require('../../src/Server/Action');
 const AService = require('../../src/Server/AService');
 const exec = require('child_process').exec;
@@ -9,6 +8,7 @@ let _scenarioInstances = {};
 
 module.exports = {
     launch: async (scenario, args) => {
+        const AEvent = require('../../src/Server/AEvent');
         let jsonScenario = _toJSON(scenario);
         AEvent.emit("scenario.started", {obj:jsonScenario});
         if(!_scenarioInstances.hasOwnProperty(scenario.id)) {
@@ -43,10 +43,12 @@ module.exports = {
 }
 
 function _toJSON(scenario) {
-    let retscenario = {name: scenario.name, description: scenario.description, actors: scenario.actors};
+    let retscenario = {name: scenario.name, description: scenario.description, actors: scenario.actors, when:scenario.when, then:scenario.then, given:scenario.given};
     retscenario.document = scenario.description;
     retscenario.inputs = scenario.inputs;
     retscenario.id = scenario.uid;
+
+    const Action = require('../../src/Server/Action');
     let steps = [];
     for (let i in scenario.steps) {
         let step = scenario.steps[i];
@@ -72,6 +74,7 @@ function _toJSON(scenario) {
     return retscenario;
 }
 async function _launchStepBinary(scenario, args, step) {
+    const AEvent = require('../../src/Server/AEvent');
     AEvent.emit("step.started", {obj:scenario});
     let params = [];
     let parameters = _resolveParameters(step.parameters, args);
@@ -108,6 +111,8 @@ async function _launchStepBinary(scenario, args, step) {
 
 }
 async function _launchStepService(scenario, args, step) {
+
+    const AEvent = require('../../src/Server/AEvent');
     AEvent.emit("step.started", {obj:scenario});
     let parameters = _resolveParameters(step.parameters, args);
     try {

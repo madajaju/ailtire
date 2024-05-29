@@ -45,6 +45,7 @@ module.exports = {
 };
 
 const _findAction = (actions) => {
+    const Action = require('./Action');
     return Action.find(actions);
 }
 const _processArguments = (action, opts)  => {
