@@ -6,6 +6,8 @@ const isDirectory = source => fs.lstatSync(source).isDirectory();
 const isFile = source => !fs.lstatSync(source).isDirectory();
 const getDirectories = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
 const getFiles = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isFile);
+const multer = require('multer');
+const upload = multer({dest: '.uploads/'});
 
 module.exports = {
     execute: (action, inputs, env) => {
@@ -72,6 +74,7 @@ const mergeMaps = (target, source) => {
     }
 };
 const addForModels = (server) => {
+    const AClass = require('./AClass');
     // This are the same actions for all of the standard action for the Models.
     // They are not copies but are references to the actions.
     // Anything you attach to these actions will show up in all of the default model actions.
@@ -83,7 +86,7 @@ const addForModels = (server) => {
     const showAction = require('./actions/show.js');
     const addAction = require('./actions/add.js');
     let act;
-
+    
     for (let name in global.classes) {
         let cls = AClass.getClass(name);
         act = setAction(`/${name}/new`, newAction);
@@ -233,26 +236,41 @@ const mapToServer = (server, config) => {
         }
         let normalizedName = i.replace('/' + global.topPackage.shortname, '');
 
-        server.post('*' + normalizedName, (req, res) => {
-            req.url = req.url.replace(config.urlPrefix, '');
-            execute(gaction, req.query, {req: req, res: res});
-        });
-        server.all('*' + normalizedName, (req, res) => {
-            req.url = req.url.replace(config.urlPrefix, '');
-            execute(gaction, req.query, {req: req, res: res});
-        });
-        if (!config.hasOwnProperty('urlPrefix')) {
-            config.urlPrefix = '';
+        if(normalizedName.includes('upload')) {
+            server.post('*' + normalizedName, (req, res) => {
+                req.url = req.url.replace(config.urlPrefix, '');
+                execute(gaction, req.query, {req: req, res: res});
+            });
+            if (!config.hasOwnProperty('urlPrefix')) {
+                config.urlPrefix = '';
+            }
+            normalizedName = config.urlPrefix + normalizedName;
+            server.post('*' + normalizedName, (req, res) => {
+                req.url = req.url.replace(config.urlPrefix, '');
+                execute(gaction, req.query, {req: req, res: res});
+            });
+        } else {
+            server.post('*' + normalizedName, (req, res) => {
+                req.url = req.url.replace(config.urlPrefix, '');
+                execute(gaction, req.query, {req: req, res: res});
+            });
+            server.all('*' + normalizedName, (req, res) => {
+                req.url = req.url.replace(config.urlPrefix, '');
+                execute(gaction, req.query, {req: req, res: res});
+            });
+            if (!config.hasOwnProperty('urlPrefix')) {
+                config.urlPrefix = '';
+            }
+            normalizedName = config.urlPrefix + normalizedName;
+            server.post('*' + normalizedName, (req, res) => {
+                req.url = req.url.replace(config.urlPrefix, '');
+                execute(gaction, req.query, {req: req, res: res});
+            });
+            server.all('*' + normalizedName, (req, res) => {
+                req.url = req.url.replace(config.urlPrefix, '');
+                execute(gaction, req.query, {req: req, res: res});
+            });
         }
-        normalizedName = config.urlPrefix + normalizedName;
-        server.post('*' + normalizedName, (req, res) => {
-            req.url = req.url.replace(config.urlPrefix, '');
-            execute(gaction, req.query, {req: req, res: res});
-        });
-        server.all('*' + normalizedName, (req, res) => {
-            req.url = req.url.replace(config.urlPrefix, '');
-            execute(gaction, req.query, {req: req, res: res});
-        });
     }
 };
 
@@ -384,6 +402,7 @@ const _executeFunction = (action, inputs, env) => {
     }
 }
 const find = (name) => {
+    const AClass = require('./AClass');
     if(typeof name !== "string") {
        console.error("String should be here:", name) ;
     }

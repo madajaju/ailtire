@@ -1,7 +1,7 @@
-const AEvent = require('../../src/Server/AEvent');
 const AActivity = require('../../src/Server/AActivity');
 const AService = require('../../src/Server/AService');
 const AIHelper = require('../../src/Server/AIHelper');
+const AEvent = require('../../src/Server/AEvent');
 const fs = require('fs');
 const path = require('path');
 const APackage = require("ailtire/src/Server/APackage");
@@ -90,7 +90,6 @@ const workflowFormat = `
 
 module.exports = {
     launch: (workflow, args, callingActivity) => {
-//        timeoutHook.enable();
         AEvent.emit("workflow.started", {obj: workflow});
         console.log("start Workflow", workflow.name, args);
         // First activity is Init.
@@ -134,6 +133,7 @@ module.exports = {
         return _workflowInstances[workflow.name];
     },
     handleActivityEvent: (event, workflow, acti) => {
+        const AEvent = require('../../src/Server/AEvent');
         // There isn't a next step for the activity.
         if (!acti.activity.next || Object.keys(acti.activity.next).length === 0) {
             // Iterate over the workflow.activities and check the state. This should help determine if the workflow

@@ -26,7 +26,8 @@
     "node-nailgun-client": "^0.1.2",
     "node-nailgun-server": "^0.3.0",
     "plantuml-encoder": "^1.4.0",
-    "yamljs": "^0.3.0"
+    "yamljs": "^0.3.0",
+    "multer": "latest"
   },
   "devDependencies": {
     "mocha": "^9.1.3"

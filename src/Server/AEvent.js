@@ -49,7 +49,7 @@ module.exports = {
         // TODO: Could check if the event has the right signature in the data
         try {
             const nevent = event.toLowerCase();
-            console.log("Event:", nevent);
+            // console.log("Event:", nevent);
             // send the event to all clients.
             let sdata = data.toJSON;
             if (!sdata) {
