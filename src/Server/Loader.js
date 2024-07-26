@@ -6,8 +6,8 @@ const packageProxy = require('../Proxy/PackageProxy');
 const apiGenerator = require('../Documentation/api');
 const YAML = require('yamljs');
 const AClass = require('./AClass');
-const AActivity = require('./AActivity');
 const AHandler = require('./AHandler');
+const AActivityInstance = require("ailtire/src/Server/AActivityInstance");
 
 module.exports = {
     analyze: (pkg) => {
@@ -27,6 +27,7 @@ module.exports = {
         global.appBaseDir = dir;
         global.topPackage = processDirectory(dir);
         _processModelIncludeFiles();
+        _loadWorkflowInstances();
         return global.topPackage;
     },
     checkPackages: () => {
@@ -101,7 +102,7 @@ const processDirectory = dir => {
         loadDeploy(pkg, pkg.prefix, deployDir);
     }
     let physicalDir = dir + '/physical';
-    if(isDirectory(physicalDir)) {
+    if (isDirectory(physicalDir)) {
         loadPhysical(pkg, pkg.prefix, physicalDir);
     }
     return pkg;
@@ -169,7 +170,7 @@ let reservedDirs = {
         }
     },
     workflows: (pkg, prefix, dir) => {
-        loadWorkflows(pkg, prefix, dir);
+        loadWorkflows(pkg, "", dir);
     },
     usecases: (pkg, prefix, dir) => {
         pkg.usecases = {};
@@ -194,21 +195,54 @@ const loadWorkflows = (pkg, prefix, dir) => {
         if (!pkg.hasOwnProperty('workflows')) {
             pkg.workflows = {};
         }
+        let category = {};
+        let workflows = [];
         let files = getFiles(dir);
         for (let i in files) {
             let file = files[i];
-            let workflow = require(file);
-            pkg.workflows[workflow.name] = workflow;
-            workflow.pkg = pkg.shortname;
-            if (!global.hasOwnProperty('workflows')) {
-                global.workflows = {};
-            }
-            if (!global.workflows.hasOwnProperty(workflow.name)) {
-                global.workflows[workflow.name] = workflow;
-            } else {
-                console.error("Workflow already defined:", workflow.name);
+            let ext = path.extname(file);
+            if (file.includes('index.js')) {
+                category = require(file);
+            } else if(ext === '.js') {
+                let workflow = require(file);
+                workflow.baseDir = dir;
+                pkg.workflows[workflow.name] = workflow;
+                workflow.pkg = pkg.shortname;
+                workflow.category = prefix;
+                if (!global.hasOwnProperty('workflows')) {
+                    global.workflows = {};
+                }
+                if (!global.workflows.hasOwnProperty(workflow.name)) {
+                    let anospace = workflow.name.replace(/\s/g,'');
+                    global.workflows[anospace] = workflow;
+                } else {
+                    console.error("Workflow already defined:", workflow.name);
+                }
+                workflows.push(workflow);
             }
         }
+        category.prefix = prefix;
+        category.baseDir = dir;
+        category.subcategories = [];
+        category.workflows = workflows;
+        let dirs = getDirectories(dir);
+        for (let i in dirs) {
+            let mdir = dirs[i];
+            let mprefix = path.basename(mdir);
+            if(mprefix !== 'doc') {
+                if (prefix) {
+                    mprefix = `${prefix}/${mprefix}`;
+                }
+                let subcategory = loadWorkflows(pkg, mprefix, mdir);
+                category.subcategories.push(subcategory);
+            }
+        }
+        let shortName = path.basename(dir);
+        if(!global.categories) {
+            global.categories = {};
+        }
+        global.categories[shortName] = category;
+        return category;
     }
 };
 const loadDocs = (pkg, dir) => {
@@ -230,14 +264,14 @@ const loadDocs = (pkg, dir) => {
 }
 
 const _loadPhysicalModules = (obj, prefix, dir, files) => {
-    for(let i in files) {
+    for (let i in files) {
         let file = files[i];
         let fpath = path.resolve(`${dir}/${file}`);
-        if(isDirectory(fpath)) {
-            let dfiles =  fs.readdirSync(fpath);
-            _loadPhysicalModules(obj, prefix + file + '/', fpath, dfiles );
+        if (isDirectory(fpath)) {
+            let dfiles = fs.readdirSync(fpath);
+            _loadPhysicalModules(obj, prefix + file + '/', fpath, dfiles);
         } else {
-            if(path.extname(file) === ".js") {
+            if (path.extname(file) === ".js") {
                 let module = require(fpath);
                 obj[prefix + file.replace('.js', '')] = module;
             }
@@ -246,14 +280,14 @@ const _loadPhysicalModules = (obj, prefix, dir, files) => {
 }
 
 const _loadEnvironments = (obj, prefix, dir, files) => {
-    for(let i in files) {
+    for (let i in files) {
         let file = files[i];
         let fpath = path.resolve(`${dir}/${file}`);
-        if(isDirectory(fpath)) {
-            let dfiles =  fs.readdirSync(fpath);
-            _loadEnvironments(obj, prefix + file + '/', fpath, dfiles );
+        if (isDirectory(fpath)) {
+            let dfiles = fs.readdirSync(fpath);
+            _loadEnvironments(obj, prefix + file + '/', fpath, dfiles);
         } else {
-            if(path.extname(file) === ".js") {
+            if (path.extname(file) === ".js") {
                 let environment = require(fpath);
                 obj[prefix + file.replace('.js', '')] = environment;
             }
@@ -274,17 +308,18 @@ const _getPhysicalModule = (pkg, resource, moduleName) => {
 
 const _checkPhysicalResourceTypes = (pkg, obj, path) => {
 
-    for(let name in obj) {
+    for (let name in obj) {
         let item = obj[name];
-        if(typeof item === 'object') {
+        if (typeof item === 'object') {
             _checkPhysicalResourceTypes(pkg, item, `${path}/${name}`)
-        } else if(name === 'type') {
+        } else if (name === 'type') {
             try {
                 let module = _getPhysicalModule(pkg, obj, item);
                 obj._module = module;
-            }
-            catch(e) {
-                if (!global.ailtire.hasOwnProperty('error')) { global.ailtire.error = []; }
+            } catch (e) {
+                if (!global.ailtire.hasOwnProperty('error')) {
+                    global.ailtire.error = [];
+                }
                 global.ailtire.error.push({
                     type: 'physical.module',
                     object: {type: "Environment", id: pkg.id, name: item},
@@ -300,14 +335,14 @@ const _checkPhysicalResourceTypes = (pkg, obj, path) => {
 
 const _checkLocations = (pkg, obj) => {
     let locations = {};
-    for(let ename in obj.environments) {
+    for (let ename in obj.environments) {
         let defaultLocation = "";
-        let environment = obj.environments[ename] ;
-        if(!environment.locations) {
+        let environment = obj.environments[ename];
+        if (!environment.locations) {
             console.warn("No Locations found for environment: ", ename)
             global.ailtire.error.push({
                 type: 'environment.location',
-                object: {type: "location", id: ename, name: ename },
+                object: {type: "location", id: ename, name: ename},
                 message: "Location not found for environment: " + ename,
                 data: environment,
                 lookup: 'location/list'
@@ -373,7 +408,7 @@ const _checkLocations = (pkg, obj) => {
                     device.location = defaultLocation;
                 }
                 if (typeof device.location !== 'object' && !environment.locations.hasOwnProperty(device.location)) {
-                        console.warn("Location not found for storage device: ", dname)
+                    console.warn("Location not found for storage device: ", dname)
                     global.ailtire.error.push({
                         type: 'environment.location',
                         object: {type: "location", id: lname, name: lname},
@@ -388,15 +423,15 @@ const _checkLocations = (pkg, obj) => {
 
 }
 const _checkNetworks = (pkg, obj) => {
-    for(let ename in obj.environments) {
+    for (let ename in obj.environments) {
         // Check that each network has a switch or router cooresponding.
         // Check that each device in compute and storage has a network cooresponding.
-        
+
         let environment = obj.environments[ename];
         let networks = environment.network.networks;
-        for(let dname in environment.network.devices) {
+        for (let dname in environment.network.devices) {
             let device = environment.network.devices[dname];
-            if(!device.networks || device.networks.length < 1) {
+            if (!device.networks || device.networks.length < 1) {
                 console.warn("No Networks found for network device: ", dname, ename);
                 global.ailtire.error.push({
                     type: 'environment.network',
@@ -406,9 +441,9 @@ const _checkNetworks = (pkg, obj) => {
                     lookup: 'network/list'
                 });
             }
-            for(let i in device.networks) {
+            for (let i in device.networks) {
                 let nname = device.networks[i];
-                if(!networks.hasOwnProperty(nname)) {
+                if (!networks.hasOwnProperty(nname)) {
                     console.warn("Network not found for network device: ", dname, nname)
                     global.ailtire.error.push({
                         type: 'environment.network',
@@ -422,9 +457,9 @@ const _checkNetworks = (pkg, obj) => {
                 }
             }
         }
-        for(let nname in networks) {
-           let network = networks[nname];
-            if(!network.hosted)  {
+        for (let nname in networks) {
+            let network = networks[nname];
+            if (!network.hosted) {
                 console.warn("Network not host by a network device: ", nname)
                 global.ailtire.error.push({
                     type: 'environment.network',
@@ -435,9 +470,9 @@ const _checkNetworks = (pkg, obj) => {
                 });
             }
         }
-        for(let dname in environment.compute) {
+        for (let dname in environment.compute) {
             let device = environment.compute[dname];
-            if(!device.networks || device.networks.length < 1) {
+            if (!device.networks || device.networks.length < 1) {
                 console.warn("No Networks found for storage device: ", dname, ename);
                 global.ailtire.error.push({
                     type: 'environment.network',
@@ -447,8 +482,8 @@ const _checkNetworks = (pkg, obj) => {
                     lookup: 'network/list'
                 });
             }
-            for(let nname in device.networks) {
-                if(!networks.hasOwnProperty(nname)) {
+            for (let nname in device.networks) {
+                if (!networks.hasOwnProperty(nname)) {
                     console.warn("Network not found for network device: ", dname, nname)
                     global.ailtire.error.push({
                         type: 'environment.network',
@@ -460,9 +495,9 @@ const _checkNetworks = (pkg, obj) => {
                 }
             }
         }
-        for(let dname in environment.storage) {
+        for (let dname in environment.storage) {
             let device = environment.storage[dname];
-            if(!device.networks || device.networks.length < 1) {
+            if (!device.networks || device.networks.length < 1) {
                 console.warn("No Networks found for storage device: ", dname, ename);
                 global.ailtire.error.push({
                     type: 'environment.network',
@@ -472,8 +507,8 @@ const _checkNetworks = (pkg, obj) => {
                     lookup: 'network/list'
                 });
             }
-            for(let nname in device.networks) {
-                if(!networks.hasOwnProperty(nname)) {
+            for (let nname in device.networks) {
+                if (!networks.hasOwnProperty(nname)) {
                     console.warn("Network not found for network device: ", dname, nname)
                     global.ailtire.error.push({
                         type: 'environment.network',
@@ -488,7 +523,7 @@ const _checkNetworks = (pkg, obj) => {
     }
 }
 const _checkCompute = (pkg, obj) => {
-    
+
 }
 const _checkEnvironments = (pkg) => {
     // Check that all of the types have a cooresponding module.
@@ -498,8 +533,7 @@ const _checkEnvironments = (pkg) => {
         _checkLocations(pkg, pkg.physical);
         _checkNetworks(pkg, pkg.physical);
         _checkCompute(pkg, pkg.physical);
-    }
-    catch(e) {
+    } catch (e) {
         console.error("CheckPhysicalResource Types failed:", e);
     }
 }
@@ -510,23 +544,23 @@ const _checkDeployments = (pkg) => {
 
 const _loadPhysicalDefaults = () => {
 
-    if(!global.physical) {
+    if (!global.physical) {
         global.physical = {
             modules: {},
             environments: {},
         }
     }
-    if(!global.environments) {
+    if (!global.environments) {
         global.environments = {};
     }
-    let mdir = path.resolve( __dirname + '../../../defaults/physical/modules');
+    let mdir = path.resolve(__dirname + '../../../defaults/physical/modules');
     let mfiles = fs.readdirSync(mdir);
-    _loadPhysicalModules(global.physical.modules, "",mdir, mfiles);
+    _loadPhysicalModules(global.physical.modules, "", mdir, mfiles);
 
     // Next load the environment files.
     mdir = path.resolve(__dirname + '../../../defaults/physical/environments');
     mfiles = fs.readdirSync(mdir);
-    _loadEnvironments(global.physical.environments,"",mdir,mfiles);
+    _loadEnvironments(global.physical.environments, "", mdir, mfiles);
 
 }
 const loadPhysical = (pkg, prefix, dir) => {
@@ -542,12 +576,12 @@ const loadPhysical = (pkg, prefix, dir) => {
     // first load the modules as they will be referenced in the environments.
     let mdir = path.resolve(dir + '/modules');
     let mfiles = fs.readdirSync(mdir);
-    _loadPhysicalModules(pkg.physical.modules, "",mdir, mfiles);
+    _loadPhysicalModules(pkg.physical.modules, "", mdir, mfiles);
 
     // Next load the environment files.
     mdir = path.resolve(dir + '/environments');
     mfiles = fs.readdirSync(mdir);
-    _loadEnvironments(pkg.physical.environments,"",mdir,mfiles);
+    _loadEnvironments(pkg.physical.environments, "", mdir, mfiles);
 
     // Now check the environment files for references to the modules, consistency in the configurations.
     _checkEnvironments(pkg);
@@ -618,7 +652,9 @@ const loadDeploy = (pkg, prefix, dir) => {
             // Now get the file from the deploy and read it in.
             let compose = {};
             if (!isFile(dir + '/' + contexts[env].file)) {
-                if (!global.ailtire.hasOwnProperty('error')) { global.ailtire.error = []; }
+                if (!global.ailtire.hasOwnProperty('error')) {
+                    global.ailtire.error = [];
+                }
                 global.ailtire.error.push({
                     type: 'environment.contexts',
                     object: {type: "environment", id: env, name: env},
@@ -840,9 +876,9 @@ const checkWorkflows = (workflows) => {
                     }
                 }
             }
-            for(nname in activity.next) {
+            for (nname in activity.next) {
                 let next = activity.next[nname];
-                if(!workflow.activities.hasOwnProperty(nname)) {
+                if (!workflow.activities.hasOwnProperty(nname)) {
                     console.error("Activity not found in the workflow:", nname, " for next activity in ", aname);
                 }
             }
@@ -851,7 +887,9 @@ const checkWorkflows = (workflows) => {
 }
 const checkDeployment = (deployments, images) => {
     let imageRepo = global.ailtire.implementation.images;
-    if(!global.ailtire.error) { global.ailtire.error = [];}
+    if (!global.ailtire.error) {
+        global.ailtire.error = [];
+    }
     // Make sure that every services has a valid image that can be built.
     for (let i in deployments.envs) {
         let env = deployments.envs[i];
@@ -910,7 +948,9 @@ const checkDeployment = (deployments, images) => {
                     }
                 }
             } catch (e) {
-                if(!global.ailtire.error) { global.ailtire.error = [];}
+                if (!global.ailtire.error) {
+                    global.ailtire.error = [];
+                }
                 global.ailtire.error.push({
                     type: 'build.image',
                     object: {type: "Image", id: image.image.tag, name: image.image.tag},
@@ -1005,8 +1045,8 @@ const checkPackage = (pkg) => {
                 console.error(`Parent Class ${cls.definition.extends} is not defined!`);
             }
         } else {
-            if(cls.definition.extends) {
-                 console.error("Fix problem with:", cls.definition.name);
+            if (cls.definition.extends) {
+                console.error("Fix problem with:", cls.definition.name);
             }
         }
     }
@@ -1215,7 +1255,9 @@ const checkScenario = (pkg, scenario) => {
 
     // Make sure each UseCase has a method that matches an interface that exists.
     let actionName = scenario.method;
-    if(!actionName) { return; }
+    if (!actionName) {
+        return;
+    }
     // Relative path does not start with /
     // Convert it to an absolute path first.
     if (actionName[0] !== '/') {
@@ -1293,7 +1335,7 @@ const processModelIncludefile = (pkg, dir) => {
 
         for (let i in include.models) {
             let model = include.models[i];
-            if(global.classes.hasOwnProperty(model)) {
+            if (global.classes.hasOwnProperty(model)) {
                 pkg.includes[model] = global.classes[model];
             } else {
                 // let apath = path.resolve(file);
@@ -1312,9 +1354,14 @@ const processModelIncludefile = (pkg, dir) => {
         }
     }
 }
+
+function _loadWorkflowInstances() {
+    let AWorkFlowInstance = require('./AWorkflowInstance');
+    AWorkFlowInstance.loadAll();
+}
 function _processModelIncludeFiles() {
 
-    for(let pname in global.packages) {
+    for (let pname in global.packages) {
         let pkg = global.packages[pname];
         processModelIncludefile(pkg, path.resolve(`${pkg.dir}/models`));
     }
@@ -1322,23 +1369,38 @@ function _processModelIncludeFiles() {
 
 // Contains defaultHandlers for workflows and activities
 function _initHandlers() {
+    const AActivityInstance = require('./AActivityInstance');
     let retval = {};
-    retval['activity.completed'] = {name: "activity.completed", handlers: [
+    retval['activity.completed'] = {
+        name: "activity.completed", handlers: [
             {
                 description: 'Activity Completed Handler. Notifies the next activity of the completion.',
                 fn: (data) => {
-                    AActivity.handleEvent("activity.completed",data);
+                    AActivityInstance.handleEvent("activity.completed", data);
                 }
             },
-    ]};
-    retval['activity.error'] = {name: "activity.error", handlers: [
+        ]
+    };
+    retval['activity.skipped'] = {
+        name: "activity.skipped", handlers: [
+            {
+                description: 'Activity Completes with a Skipped Handler. Notifies the next activity of the skipped state.',
+                fn: (data) => {
+                    AActivityInstance.handleEvent("activity.skipped", data);
+                }
+            },
+        ]
+    };
+    retval['activity.error'] = {
+        name: "activity.error", handlers: [
             {
                 description: 'Activity Completes with an Error Handler. Notifies the next activity of the error state.',
                 fn: (data) => {
-                    AActivity.handleEvent("activity.error",data);
+                    AActivityInstance.handleEvent("activity.error", data);
                 }
             },
-    ]};
+        ]
+    };
     return retval;
 }
 

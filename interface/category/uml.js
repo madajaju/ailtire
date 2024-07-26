@@ -1,4 +1,4 @@
-const AWorkflow = require('ailtire/src/Server/AWorkflow');
+const ACategory = require('ailtire/src/Server/ACategory');
 const generator = require('ailtire/src/Documentation/puml');
 
 module.exports = {
@@ -16,19 +16,19 @@ module.exports = {
         try {
             // Generate the plantuml diagram
             // Or get it from the doc directory.
-            
-            let workflow = AWorkflow.get(inputs.id);
-            if(workflow) {
-                let results = await generator.workflow(workflow, inputs.diagram);
+             
+            let category = ACategory.get(inputs.id);
+            if(category) {
+                let results = await generator.category(category, inputs.diagram);
                 env.res.json(results);
             } else {
-                console.error("Workflow not found: " + inputs.id);
-                env.res.json({status: 'error', message:'Workflow not found'});
+                console.error("Category not found: " + inputs.id);
+                env.res.json({status: 'error', message:'Category not found'});
             }
         }
         catch(e) {
             console.error(e);
-            env.res.json({error:`Package not found ${inputs.id}`});
+            env.res.json({error:`Category not found ${inputs.id}`});
         }
     }
 };

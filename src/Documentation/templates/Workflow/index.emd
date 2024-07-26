@@ -1,7 +1,10 @@
 ---
 title: <%= workflow.name %>
 permalink: workflow-<%= workflow.name.replace(/\s/g, '') %>
-parent: Workflows
+parent: <%= parent %>
+<% if(grandparent) { -%>
+grand_parent: <%= grandparent %>
+<% } -%>
 ---
 # <%= workflow.name %>
 

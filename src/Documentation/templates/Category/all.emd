@@ -1,0 +1,29 @@
+---
+layout: default
+title: Workflows
+permalink: workflows
+has_children: true
+nav_order: 9
+---
+
+# Workflow Categories
+
+<% 
+function _showSubCategories(category, spaces) {
+for(let i in category.workflows) {
+    let workflow = category.workflows[i];
+    if(!workflow.prefix) { workflow.prefix = workflow.name.replace(/\s/,''); }
+-%>
+<%= spaces %>* [<%= workflow.name %>](workflow-<%= workflow.prefix.replace(/\//g, '-') %>)
+<% }
+for(let i in category.subcategories) {
+    let scat = category.subcategories[i];
+    if(!scat.name) { scat.name = scat.prefix.split('/').pop(); }
+-%>
+<%= spaces %>* [<%= scat.name %>](category-<%= scat.prefix.replace(/\//g,'-') %>)
+<%
+_showSubCategories(scat, spaces + "  ");
+    }
+}
+_showSubCategories(category.workflows,"");
+-%>

@@ -10,6 +10,9 @@ const workflowFormat = `
 {
     name: 'Workflow Name',
     description: 'Description of the Workflow',
+    precondition: 'precondition of the workflow',
+    postcondition: 'postcondition of the workflow',
+    category: 'level1/level2/...', // This shows the category of the workflow groupings by levels with / separating the groupings.
     activities: {
         // Each activity should map to a use case, scenario, or another workflow.
         // This is the initial activity in the workflow. Everything starts here
@@ -347,8 +350,8 @@ module.exports = {
         }
     },
     addInterface: (package, method) => {
-        return _addInterface(package,method);
-        
+        return _addInterface(package, method);
+
     },
     generateWorkflows: async (pkgName) => {
         let messages = [];
@@ -384,10 +387,10 @@ module.exports = {
             if (Array.isArray(workflows)) {
                 for (let i in workflows) {
                     let workflow = workflows[i];
-                    AWorkflow.save(workflow, `${package.dir}/workflows`);
+                    AWorkflow.save(workflow, package);
                 }
             } else {
-                AWorkflow.save(workflows, `${package.dir}/workflows`);
+                AWorkflow.save(workflows, package);
             }
             return package;
         } catch (e) {
@@ -430,34 +433,34 @@ module.exports = {
             return package;
         },
     generateDescription: async (pkgName) => {
-            let messages = [];
-            let package = _getPackage(pkgName);
-            // Get the current usecases, class definitions, and workflows
-            // Put them into a string and put them as system information.
-            let items = ["usecases", "classes", "workflows"];
-            for (i in items) {
-                let content = `Use the following ${items[i]} for analysis of the user prompt:`;
-                for (let name in package[items[i]]) {
-                    let obj = package[items[i]][name];
-                    content += JSON.stringify(obj);
-                    // content += `{ name:${obj.name}, description:${obj.description} }\n`;
-                }
-                messages.push({role: 'system', content: content});
+        let messages = [];
+        let package = _getPackage(pkgName);
+        // Get the current usecases, class definitions, and workflows
+        // Put them into a string and put them as system information.
+        let items = ["usecases", "classes", "workflows"];
+        for (i in items) {
+            let content = `Use the following ${items[i]} for analysis of the user prompt:`;
+            for (let name in package[items[i]]) {
+                let obj = package[items[i]][name];
+                content += JSON.stringify(obj);
+                // content += `{ name:${obj.name}, description:${obj.description} }\n`;
             }
-            // Get the current documentation. Add it as system information.
-            let docString = _getDocumentation(package);
-            messages.push({role: 'system', content: "Use the following as the package documentation: " + docString});
+            messages.push({role: 'system', content: content});
+        }
+        // Get the current documentation. Add it as system information.
+        let docString = _getDocumentation(package);
+        messages.push({role: 'system', content: "Use the following as the package documentation: " + docString});
 
-            // Now ask to show the changes to the documentation based on all of the information.
-            messages.push({
-                role: 'user', content: "Generate a concise description of the package based on the classes and" +
-                    " package definitions and documentation. It should not be more than one sentence long."
-            });
-            let response = await _askAI(messages);
-            package.definition.description = response;
-            _save(package);
-            return response;
-        },
+        // Now ask to show the changes to the documentation based on all of the information.
+        messages.push({
+            role: 'user', content: "Generate a concise description of the package based on the classes and" +
+                " package definitions and documentation. It should not be more than one sentence long."
+        });
+        let response = await _askAI(messages);
+        package.definition.description = response;
+        _save(package);
+        return response;
+    },
 };
 
 function _getDocumentation(pkg) {
@@ -566,7 +569,8 @@ module.exports = {
     console.log("Saving Package to file ", cfile);
     return true;
 }
-function _addInterface(package,method) {
+
+function _addInterface(package, method) {
     method.static = true;
     if (!method.exits) {
         method.exits = {

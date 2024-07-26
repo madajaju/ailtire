@@ -1,19 +1,21 @@
 const AActivity = require('../../src/Server/AActivity');
+const AActvityInstance = require('../../src/Server/AActivityInstance');
 const AService = require('../../src/Server/AService');
 const AIHelper = require('../../src/Server/AIHelper');
-const AEvent = require('../../src/Server/AEvent');
 const fs = require('fs');
 const path = require('path');
-const APackage = require("ailtire/src/Server/APackage");
 
 let _workflowInstances = { _total: 0 };
 const workflowFormat = `
 {
     name: 'Workflow Name',
     description: 'Description of the Workflow',
+    precondition: 'precondition of the workflow',
+    postcondition: 'postcondition of the workflow',
+    category: 'level1/level2/...', // This shows the category of the workflow groupings by levels with / separating the groupings.
     activities: {
-        // Each activity should map to a use case, scenario, or another workflow.
-        // This is the initial activity in the workflow. Everything starts here with the Init activitiy
+            // Each activity should map to a use case, scenario, or another workflow.
+            // This is the initial activity in the workflow. Everything starts here with the Init activitiy
         Init: {
             description: "Initial state for the workflow",
             actor: 'Actor', // This could be an actor or package.
@@ -24,7 +26,9 @@ const workflowFormat = `
                     type: 'string', // Type of parameter string, number, ref, json,
                     default: 'This is a default', // This is a default value for the parameter
                     required: true // true or false
-                }   
+                },
+                param2: { ...
+                }
             },
             variables: {
                 myVariable: {
@@ -42,6 +46,9 @@ const workflowFormat = `
                     }
                 },
                 "Next Activity Bad Case": {
+                    inputs: {
+                        input1: (activity) => { return activity.inputs.param1; }
+                    },
                     condition: {
                         test: "Is this good?" // this is the condition to test, Used for documentation.
                         value: "No", // This is the value expected. Used for documentation.
@@ -53,7 +60,16 @@ const workflowFormat = `
                         test: "Is this good?",
                         value: "Yes",
                     }
-                }
+                },
+                "Loop Activity": {
+                    inputs: {
+                        input1: (activity, item) => { return item.length; } // activity is the calling activity, item is the results of the loop function
+                    }
+                    loop: {
+                        description: "Iterate over the languages of the model",
+                        fn: (activity) => { return activity.variables.languages; } // This should pass back a list to be iterated over. All inputs of the activity are given the item from the list.
+                    }
+                }   
             },
             outputs: {
                 output1: {
@@ -64,9 +80,16 @@ const workflowFormat = `
                     description: "Output 1 from the activity.",
                     fn: (activity) => { return "Made It"; }
                 },
-            }
+            },
+        },
+        "Loop Activity": {
+            inputs: { ... }, 
+            variables: { ... },
+            next: { ... }, 
+            outputs: { ... }
         },
         "Next Activity": {
+            execute: wait // This will wait to run until all of the dependent activities have finish. Other option is immediate. Which means when any of the previous activites finishes it will run.
             inputs: {
                 name: {
                     description: "Name of the team",
@@ -89,135 +112,53 @@ const workflowFormat = `
 }`;
 
 module.exports = {
-    launch: (workflow, args, callingActivity) => {
-        AEvent.emit("workflow.started", {obj: workflow});
-        console.log("start Workflow", workflow.name, args);
-        // First activity is Init.
-        if (!workflow.activities.hasOwnProperty("Init")) {
-            AEvent.emit("workflow.failed", {obj: workflow, error: "Init Activity does not exist!"});
-            return;
-        }
-        if (!_workflowInstances.hasOwnProperty(workflow.name)) {
-            _workflowInstances[workflow.name] = [];
-        }
-        // Has to be the total number of woflow instances running not how many of a specific type.
-        // so _workflowInstances hos a total attribute that needs to be incremented.
-        let id = _workflowInstances._total++;
-        if (callingActivity) {
-            id = callingActivity.id + '.' + _workflowInstances._total;
-        }
-        let myInstance = {
-            name: workflow.name,
-            id: id,
-            workflow: workflow,
-            currentActivity: 'Init',
-            args: args,
-            inputs: args,
-            activities: {},
-            parent: callingActivity,
-        };
-        _workflowInstances[workflow.name].push(myInstance);
-        // Setup the workflow to handle events.
-        // Create the Activities and attach them to the workflo
-        let init = AActivity.register(myInstance, "Init", workflow.activities.Init);
-        AEvent.emit("workflow.inprogress", {obj: _toJSON(myInstance)});
-
-        // If the owner is an actor then create a activity for the user to interact with the system.
-
-        return AActivity.execute(init, args);
-    },
     instances: () => {
         return _workflowInstances;
     },
     show: (workflow) => {
         return _workflowInstances[workflow.name];
     },
-    handleActivityEvent: (event, workflow, acti) => {
-        const AEvent = require('../../src/Server/AEvent');
-        // There isn't a next step for the activity.
-        if (!acti.activity.next || Object.keys(acti.activity.next).length === 0) {
-            // Iterate over the workflow.activities and check the state. This should help determine if the workflow
-            // is in a finished state and if the finished state is completed or and error.
-            let calculatedState = "";
-            // Need to iterate over all of the activties because of parallelism.
-            if (event === "activity.completed" || event === "activity.error") {
-                for (let i in workflow.activities) {
-                    let activity = workflow.activities[i];
-                    // I only care about the last run of the activity. This gives the ability to re-try activities that fail.
-                    let subacti = activity[activity.length - 1];
-                    if (subacti.state === "inprogress") {
-                        calculatedState = "inprogress";
-                        break;
-                    } else if (subacti.state === 'error') {
-                        calculatedState = "error";
-
-                    } else if (subacti.state === "completed" && calculatedState !== "error") {
-                        calculatedState = "completed";
-                    }
-                }
-                if (calculatedState === "error") {
-                    workflow.state = "error";
-                    AEvent.emit("workflow." + workflow.state, {
-                        obj: _toJSON(workflow),
-                        message: `Workflow Finished with ${acti.name} in ${workflow.state} state`
-                    });
-                    if (workflow.parent) {
-                        workflow.parent.state = "error";
-                        console.error("Activity Error:", nact);
-                        AEvent.emit("activity.error", {
-                            obj: AActivity.toJSON(workflow.parent),
-                            message: "Activity Finished from workflow with an error"
-                        });
-                    }
-                } else if (calculatedState === "completed") {
-                    workflow.state = "completed";
-                    workflow.outputs = acti.outputs;
-                    AEvent.emit("workflow.completed", {
-                        obj: _toJSON(workflow),
-                        message: `Workflow Finished with ${acti.name} in ${workflow.state} state`
-                    });
-                    if (workflow.parent) {
-                        workflow.parent.state = "completed";
-
-                        let outputs = {};
-                        for (let oname in workflow.parent.activity.outputs) {
-                            outputs[oname] = workflow.parent.activity.outputs[oname].fn(workflow);
-                        }
-                        workflow.parent.outputs = outputs;
-                        AEvent.emit("activity.completed", {
-                            obj: AActivity.toJSON(workflow.parent),
-                            message: "Activity Finished from workflow",
-                        });
-                    }
-                } else if (calculatedState === "error") {
-                    workflow.state = "error";
-                    workflow.outputs = acti.outputs;
-                    AEvent.emit("workflow.error", {
-                        obj: _toJSON(workflow),
-                        message: `Workflow Finished with ${acti.name} in ${workflow.state} state`
-                    });
-                    if (workflow.parent) {
-                        workflow.parent.state = "error";
-
-                        let outputs = {};
-                        for (let oname in workflow.parent.activity.outputs) {
-                            outputs[oname] = workflow.parent.activity.outputs[oname].fn(workflow);
-                        }
-                        workflow.parent.outputs = outputs;
-                        AEvent.emit("activity.error", {
-                            obj: AActivity.toJSON(workflow.parent),
-                            message: "Activity Finished from workflow",
-                        });
-                    }
-                }
-            }
-        }
-    },
-    save: (workflow, dir) => {
-        _save(workflow, dir);
+    save: (workflow, package) => {
+        _save(workflow, package);
     },
     get: (wname) => {
         return _get(wname);
+    },
+    generateItems: async(text) => {
+        const APackage = require('../../src/Server/APackage');
+        let package = global.topPackage;
+        let messages = []; 
+        let docString = APackage.getDocumentation(package);
+        messages.push({role: 'system', content: "Use the following as the package documentation: " + docString});
+        // now put the list of workflows into the list so I don't create something that already exits.
+        let workflowString = Object.keys(global.workflows).map(name => { return `"${name}": "${global.workflows[name].description.substring(0,120)}"`; }).join(',');
+        messages.push({
+            role: 'system',
+            content: `Use the following as the current workflows in the system the user promot: ${workflowString}`
+        });
+        let wfcats = Object.keys(global.workflows).map(name => { return global.workflows[name].prefix; } ).join(', ');
+        
+        messages.push({
+            role:'system',
+            content: `When creating workflows make sure they fit in the current categories of the system which are defined by the following: ${wfcats}`
+        });
+        messages.push({
+            role:'system',
+            content: `Take the user prompt and identify business processes(workflows) in the systems and create the wokflows based on the following format: ${workflowFormat}`
+        });
+        
+        messages.push({
+            role: 'user',
+            content: text,
+        });
+        
+        let workflows = await AIHelper.askForCode(messages);
+        for(let i in workflows) {
+            let workflow = workflows[i];
+            _save(workflow, package);
+        }
+        return workflows;
+        
     },
     generateDescription: async (wname) => {
         const APackage = require('../../src/Server/APackage');
@@ -295,6 +236,7 @@ module.exports = {
             for(let i in results[0].activities) {
                 workflow.activities[i] = results[0].activities[i];
             }
+            _save(workflow, package);
             return workflow;
         } catch (e) {
             console.error("Error parsing JSON:", e);
@@ -304,7 +246,12 @@ module.exports = {
 }
 
 function _save(workflow,package) {
+    const ACategory = require('../../src/Server/ACategory');
     let dir = package.definition.dir + '/workflows';
+    dir += `/${workflow.category.replace(/\s/g,'')}`;
+    if(!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, {recursive:true});
+    }
     let wname = workflow.name.replace(/\s/g,'');
     let cfile = path.resolve(`${dir}/${wname}.js`);
     let activities = [];
@@ -328,18 +275,43 @@ module.exports = {
        fs.mkdirSync(dir, {recursive: true});
     }
     fs.writeFileSync(cfile, output);
+    
     if(!package.definition.workflows) {
         package.definition.workflows = {};
     }
+    
     package.definition.workflows[wname] = workflow;
+    global.workflows[wname] = workflow;
+    
+    let category = ACategory.get(workflow.category);
+    if(category) {
+        category.workflows.push(workflow);
+    }
     return true;
 }
 
 function _get(name) {
-    return global.workflows[name];
-    
+    return global.workflows[name] || global.workflows[name.replace(/\s/g,'')];
 }
 
+function _saveInstance(obj) {
+    let dir = `${ailtire.config.baseDir}/.workflows/workflow-${obj.id}`;
+    if(!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, {recursive: true}); 
+    }
+    let wfile = `${dir}/index.js`;
+    obj.baseDir = dir;
+    let json = _toJSON(obj);
+    let outputString = `module.exports = ${JSON.stringify(json)};\n`;
+    fs.writeFileSync(wfile, outputString);
+   
+    for(let i in obj.activities) {
+        let activity = obj.activities[i];
+        AActivity.saveInstance(activity, obj);
+    }
+    return;
+    
+}
 function _toJSON(obj) {
     let retval = {};
     for(let aname in obj) {

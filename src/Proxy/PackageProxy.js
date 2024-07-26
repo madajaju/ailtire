@@ -27,35 +27,37 @@ module.exports = {
          */
         if (prop === 'toJSON') {
             return function (...args) {
-                let retval = toJSON(obj.definition);
-                return retval;
-                /*let retval = {};
+                try {
+                    let retval = _toJSON(obj.definition);
+                    return retval;
+                } catch(e) {
+                    console.error(e);
+                }
+                /* let retval = {};
                 for(let i in obj.definition) {
                     if(typeof obj.definition[i] === 'object') {
                         retval[i] = {};
                         for(let j in obj.definition[i]) {
                             if (i === 'usecases') {
                                 retval[i][j] = obj.definition[i][j];
-                            }
-                            else if(typeof obj.definition[i][j] === 'object') {
+                            } else if(typeof obj.definition[i][j] === 'object') {
                                 if(obj.definition[i][j].hasOwnProperty('toJSON')) {
                                     retval[i][j] = obj.definition[i][j].toJSON();
-                                }
-                                else {
+                                } else {
                                     // Just return the value not the object.
-                                    retval[i][j] = toJSON(j;
+                                    retval[i][j] = toJSON(obj.definition[i][j]);
                                 }
-                            }
-                            else {
+                            } else {
                                 retval[i][j] = obj.definition[i][j];
                             }
                         }
-                    }
-                    else {
+                    } else {
                         retval[i] = obj.definition[i];
                     }
                 }
-                return retval;*/
+                return retval;
+                
+                 */
             }
         }
         if(obj.definition.hasOwnProperty(prop)) {
@@ -78,3 +80,15 @@ module.exports = {
     },
 };
 
+function _toJSON(obj) {
+    let jsonCache = [];
+    let retval =  JSON.stringify(obj, (key, value) => {
+        if(typeof value === 'object' && value !== null) {
+            if(jsonCache.includes(value)) return;
+            jsonCache.push(value);
+        }
+        return value;
+    });
+    jsonCache = null;
+    return retval
+}

@@ -1,5 +1,6 @@
 const AEvent = require('../../src/Server/AEvent');
 const AWorkflow = require('../../src/Server/AWorkflow');
+const AWorkflowInstance = require('../../src/Server/AWorkflowInstance');
 const AScenarioInstance = require('../../src/Server/AScenarioInstance');
 
 module.exports = {
@@ -19,6 +20,7 @@ module.exports = {
 
     fn: function (inputs, env) {
         // Find the Workflow
+        let id = inputs.id.replace(/\s/g,'');
         if(global.workflows.hasOwnProperty(inputs.id)) {
             let workflow = global.workflows[inputs.id];
             let instances = AWorkflow.show({id:inputs.id});
@@ -27,7 +29,7 @@ module.exports = {
                 instanceid = instances.length;
             }
             env.res.json({id: instanceid});
-            AWorkflow.launch(workflow, inputs);
+            AWorkflowInstance.launch(workflow, inputs);
         } else {
             AEvent.emit("workflow.failed", {message:"Workflow not found"});
         }

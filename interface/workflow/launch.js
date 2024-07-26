@@ -1,6 +1,6 @@
 const AEvent = require('../../src/Server/AEvent');
 const AWorkflow = require('../../src/Server/AWorkflow');
-const AScenarioInstance = require('../../src/Server/AScenarioInstance');
+const AWorkflowInstance = require('../../src/Server/AWorkflowInstance');
 
 module.exports = {
     friendlyName: 'launch',
@@ -19,19 +19,19 @@ module.exports = {
 
     fn: function (inputs, env) {
         // Find the Workflow
-        if(global.workflows.hasOwnProperty(inputs.id)) {
-            let workflow = global.workflows[inputs.id];
-            let instances = AWorkflow.show({id:inputs.id});
+        let id = inputs.id.replace(/\s/g,'');
+        if(global.workflows.hasOwnProperty(id)) {
+            let workflow = global.workflows[id];
+            let instances = AWorkflow.show({id:id});
             let instanceid = 0;
             if(instances) {
                 instanceid = instances.length;
             }
             env.res.json({id: instanceid});
-            AWorkflow.launch(workflow, inputs);
+            AWorkflowInstance.launch(workflow, inputs);
         } else {
             AEvent.emit("workflow.failed", {message:"Workflow not found"});
         }
-       // api.scenario(inputs.package, inputs.usecase, inputs.name, '.');
         return null;
     }
 };

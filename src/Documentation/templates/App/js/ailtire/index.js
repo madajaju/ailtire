@@ -9,6 +9,7 @@
  */
 
 import APackage from './APackage.js';
+import ACategory from './ACategory.js';
 import AObject from './AObject.js';
 import AModel from './AModel.js';
 import AScenario from './AScenario.js';
@@ -31,6 +32,7 @@ import AEnvironment from './AEnvironment.js';
 import A3DGraph from './A3DGraph.js';
 import AComponent from "./AComponent.js";
 import AEventHUD from "./HUD/AEventHUD.js";
+import AEvent from "./AEvent.js";
 import ASelectedHUD from "./HUD/ASelectedHUD.js";
 import AMainWindow from "./AMainWindow.js";
 import AActivity from "./AActivity.js";
@@ -43,6 +45,7 @@ import ALocation from "./ALocation.js";
 import ADevice from "./ADevice.js";
 import AStorage from "./AStorage.js";
 import ACompute from "./ACompute.js";
+import AGenerativeAI from "./AGenerativeAI.js";
 
 // without default
 export {
@@ -80,5 +83,8 @@ export {
     ALocation,
     ADevice,
     AStorage,
-    ACompute
+    ACompute,
+    AGenerativeAI,
+    ACategory,
+    AEvent
 };

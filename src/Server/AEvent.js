@@ -49,7 +49,7 @@ module.exports = {
         // TODO: Could check if the event has the right signature in the data
         try {
             const nevent = event.toLowerCase();
-            // console.log("Event:", nevent);
+            console.log("Event:", nevent);
             // send the event to all clients.
             let sdata = data.toJSON;
             if (!sdata) {
@@ -59,6 +59,11 @@ module.exports = {
             }
             if (!sdata) {
                 sdata = data;
+            }
+            try {
+                sdata = _toJSON(sdata);
+            } catch(e) {
+                console.error(e);
             }
             for (let i in global.servers) {
                 let server = global.servers[i];
@@ -97,4 +102,48 @@ const callActions = (event, data) => {
             handler.fn(data, event);
         }
     }
+}
+
+function _toString(obj, cache) {
+    let retval = JSON.stringify(obj, (key, value) => {
+        if (typeof value === 'object' && value !== null) {
+            if (cache.has(value)) {
+                return;
+            } else {
+                cache.set(value,true);
+                return value;
+            }
+        }
+        return value;
+    });
+    return retval;
+}
+function _toJSON(obj) {
+    let cache = new Set();
+    function clone(obj) {
+        // if it is a primitive or function, return as is
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+        // if circular detected, return undefined
+        if (cache.has(obj)){
+            return undefined;
+        }
+        cache.add(obj);
+        // handle Array
+        if (Array.isArray(obj)) {
+            let newArray = [];
+            for(let value of obj){
+                newArray.push(clone(value));
+            }
+            return newArray;
+        }
+        // handle generic object
+        let newObj = {};
+        for(let key in obj){
+            newObj[key] = clone(obj[key]);
+        }
+        return newObj;
+    }
+    return clone(obj);
 }

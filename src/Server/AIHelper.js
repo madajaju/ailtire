@@ -10,30 +10,37 @@ module.exports = {
 async function _askForCode(messages) {
     let response = await _ask(messages);
     let valid = false;
+    let tries = 0;  
     let retval = null;
-    while (!valid) {
+    while (!valid && tries < 5) {
         try {
             if (response.includes('```')) {
                 let strip = response.match(/```[a-zA-Z]*([\s\S]*?)```/i);
                 response = strip[1];
                 response = response.trimStart();
             }
-            if (response[0] !== '[') {
+            if(response[0] === '(') {
+                response =  response;
+            } else if (response[0] !== '[') {
                 response = '[' + response + ']';
             }
-            retval = eval('(' + response + ')');
+            if(response[0] !== '(') {
+                repsonse = '(' + response + ')';
+            }
+            retval = eval(response);
             if (typeof retval === 'string') {
                 retval = eval('(' + retval + ')');
             }
             valid = true;
+            tries++;
         } catch (e) {
             console.warn("Fixing the response:", response);
             let nMessages = [
                 {
                     role: 'system', content: "Given the following error from evaluting this string with" +
                         ` javascript eval function: ${e}. Make sure the response can` +
-                        " be evaluated as javascript that can be evalutated with the eval( '(' + response + ')')" +
-                        " function. The results of the eval call should return an array of javascript objects."
+                        " is a string that can be evaluated  whith the the following command: eval(response)." +
+                        " The results of the eval call should return an array of javascript objects."
                 },
                 {
                     role: 'user',
@@ -42,7 +49,12 @@ async function _askForCode(messages) {
             response = await _ask(nMessages);
         }
     }
-    return retval;
+    if(tries === 5) {
+        // Try from scratch again.
+        return _askForCode(messages);
+    } else {
+        return retval;
+    }
 }
 
 async function _ask(messages) {

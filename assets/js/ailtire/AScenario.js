@@ -395,6 +395,41 @@ export default class AScenario {
         window.graph.showLinks();
         return data.nodes[scenario.id];
     }
+    static showInstances(panel, instances) {
+
+        $(panel).w2grid({
+            name: 'workflowInstanceList',
+            show: { header: false, columnHeaders: false, toolbar: true},
+            columns: [
+                {
+                    field: 'actions',
+                    caption: 'Actions',
+                    size: '20%'
+                },
+                {
+                    field: 'name',
+                    caption: 'Name',
+                    size: '80%',
+                }
+            ],
+            onClick: function (event) {
+                let scenario = w2ui['scenariolist'].scenario;
+                let instance = w2ui['scenariolist'].scenarioinstance;
+                $.ajax({
+                    url: `scenario/instance?id=${scenario.id}`,
+                    success: (result) => {
+                        // Popup with the stdout and stderr
+                        if(!instance) { // Get the last one run
+                            instance = result.length-1;
+                        }
+                        let text = result[instance].steps[event.recid];
+                        AScenario.popup(text);
+                    }
+                })
+            },
+        });
+
+    }
     static handle2d(result, object, div) {
         _setGraphToolbar(object);
         div.innerHTML = result;
@@ -407,17 +442,10 @@ export default class AScenario {
         // Scenario List for simulation.
         let records = [];
         if (!w2ui['scenariolist']) {
-            $('#simulationWindow').w2grid({
+            $().w2grid({
                 name: 'scenariolist',
                 show: {header: false, columnHeaders: false, toolbar: true},
                 columns: [
-                    {
-                        field: 'recid',
-                        caption: 'ID',
-                        size: '10%',
-                        attr: "align=right",
-                        sortable: true
-                    },
                     {
                         field: 'action',
                         caption: 'Action',
@@ -492,6 +520,7 @@ export default class AScenario {
         w2ui['scenariolist'].records = records;
         w2ui['scenariolist_toolbar'].set('scenarioname', {html: `<span style="background-color: #2391dd; padding:5px;">${result.name}</span>`});
         w2ui['scenariolist'].refresh();
+        w2ui['bottomLayout'].html('main', w2ui['scenariolist']);
 
     }
 

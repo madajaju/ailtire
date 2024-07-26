@@ -2,7 +2,7 @@ const ejs = require('ejs');
 const path = require('path');
 const fs = require('fs');
 const proc = require('child_process').exec;
-const plantuml = require('ailtire/src/node-plantuml');
+const plantuml = require('node-plantuml');
 const {PassThrough} = require('stream');
 const streamBuffers = require('stream-buffers');
 const Action = require("ailtire/src/Server/Action");
@@ -137,12 +137,62 @@ module.exports = {
         let diagramFile = `./templates/Workflow/${diagram}.puml`;
         let apath = path.resolve(__dirname, diagramFile);
         let tempString = fs.readFileSync(apath, 'utf-8');
-        let results = ejs.render(tempString, {workflow: workflow, workFlowName: workflow.name.replace(/\s/g,'')});
+        let heritage = _getWorkflowHeritage(workflow);
+        let config= {workflow: workflow, workFlowName: workflow.name.replace(/\s/g,'')};
+        config.parent = heritage.parent;
+        config.grandparent = heritage.grandparent;
+        let results = ejs.render(tempString, config);
         let svg = await _getSVG(results);
         return svg;   
+    },
+    category: async (category, diagram) => {
+        diagram = diagram || "category";
+        let diagramFile = `./templates/Category/${diagram}.puml`;
+        let apath = path.resolve(__dirname, diagramFile);
+        let tempString = fs.readFileSync(apath, 'utf-8');
+        if(!category.name) { category.name = category.prefix.split('/').pop(); }
+        let config = {category: category, categoryName: category.name.replace(/\s/g,'')};
+        let heritage = _getCategoryHeritage(category);
+        config.parent = heritage.parent;
+        config.grandparent = heritage.grandparent;
+        let results = ejs.render(tempString, config);
+        let svg = await _getSVG(results);
+        return svg;
     }
 };
+function _getCategoryHeritage(category) {
+    let parent = "Workflows";
+    let grandparent = null;
+    let heritage = category.prefix.split('/');
+    if(heritage.length > 0) {
+        parent = `cagtegory-${heritage.join('-')}`
+        heritage.pop();
+        greandparent = "Workflows"
+        if (heritage.length > 0) {
+            grandparent = `category-${heritage.join('-')}`
+        } else {
+            grandparent = null;
+        }
+    }
+    return {grandparent: grandparent, parent: parent};
+};
 
+function _getWorkflowHeritage(workflow) {
+    let parent = "Workflows";
+    let grandparent = null;
+    let heritage = workflow.category.split('/');
+    if(heritage.length > 0) {
+        parent = `cagtegory-${heritage.join('-')}`
+        heritage.pop();
+        greandparent = "Workflows"
+        if (heritage.length > 0) {
+            grandparent = `category-${heritage.join('-')}`
+        } else {
+            grandparent = null;
+        }
+    }
+    return {grandparent: grandparent, parent: parent};
+}
 async function _getSVG(puml) {
     return new Promise((resolve) => {
         let buffer = new streamBuffers.WritableStreamBuffer();

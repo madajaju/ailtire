@@ -479,7 +479,7 @@ export default class AActivityRun {
                 outputs.push(`${j}: ${activity.outputs[j].type}`);
             }
             w2ui['WorkflowSimulation'].add({
-                recid: "AAI" + activity.id,
+                recid: activity.id,
                 name: activity.name,
                 id: activity.id,
                 type: activity.type,

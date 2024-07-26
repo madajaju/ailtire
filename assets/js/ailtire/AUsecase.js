@@ -1033,20 +1033,22 @@ function addUseCaseListNode(usecase, parent) {
         // count the new use case added and all of the sub usecases and scenarios
         snum += node.count + 1;
     }
-    let sortedScenarios = Object.keys(usecase.scenarios);
+    if(usecase.scenarios) {
+        let sortedScenarios = Object.keys(usecase.scenarios);
 
-    for (let i in sortedScenarios) {
-        let sname = sortedScenarios[i];
+        for (let i in sortedScenarios) {
+            let sname = sortedScenarios[i];
 
-        snum++;
-        ucItem.nodes.push({
-            id: parent + uname + sname,
-            text: sname,
-            img: 'ailtire-scenario',
-            link: `scenario/get?id=${uname}.${sname}`,
-            link2d: `scenario/uml?id=${uname}.${sname}`,
-            view: 'scenario'
-        });
+            snum++;
+            ucItem.nodes.push({
+                id: parent + uname + sname,
+                text: sname,
+                img: 'ailtire-scenario',
+                link: `scenario/get?id=${uname}.${sname}`,
+                link2d: `scenario/uml?id=${uname}.${sname}`,
+                view: 'scenario'
+            });
+        }
     }
     ucItem.count = snum;
     return ucItem;

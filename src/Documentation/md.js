@@ -45,6 +45,11 @@ module.exports = {
             workflowGenerator(workflows[i], output + '/workflows')
         }
     },
+    categories: (categories, output) => {
+        for(let i in categories) {
+            categoryGenerator(categories[i], output + '/categories')
+        }
+    },
     app: (app, output) => {
         appGenerator(app, output);
     }
@@ -127,7 +132,8 @@ const indexGenerator = (name, output) => {
             environments: global.deploy.envs,
             services: services,
             version: global.ailtire.config.version,
-            workflows: global.workflows
+            workflows: global.workflows,
+            category: global.categories
         },
         targets: {
             './index.md': {template: '/templates/App/index.emd'},
@@ -139,13 +145,32 @@ const indexGenerator = (name, output) => {
             './classes.md': {template: '/templates/Model/all.emd'},
             './images.md': {template: '/templates/Image/all.emd'},
             './environments.md': {template: '/templates/Environment/all.emd'},
-            './workflows.md': {template: '/templates/Workflow/all.emd'},
+            './workflows.md': {template: '/templates/Category/all.emd'},
 //             './services.md': {template: '/templates/Service/all.emd'},
             './_config.yml': {template: '/templates/App/_config.yml'},
             './_config-local.yml': {template: '/templates/App/_config-local.yml'},
         },
     };
     addDocs(global.topPackage, files, output, '');
+    Generator.process(files, output);
+};
+const categoryGenerator = (category, output) => {
+    if(!category.name) { category.name = category.prefix.split('/').pop(); }
+    let categoryName = category.name.replace(/\s/g,'');
+    let files = {
+        context: {
+            category: category,
+            basedir: category.baseDir, 
+            categoryName: categoryName
+        },
+        targets: {
+            './:categoryName:.md': {template: '/templates/Category/index.emd'},
+            './:categoryName:.puml': {template: '/templates/Category/category.puml'},
+        },
+    };
+    let heritage = _getWorkflowHeritage(category);
+    files.context.parent = heritage.parent;
+    files.context.grandparent = heritage.grandparent; 
     Generator.process(files, output);
 };
 const workflowGenerator = (workflow, output) => {
@@ -160,6 +185,9 @@ const workflowGenerator = (workflow, output) => {
             './:workFlowName:Data.puml': {template: '/templates/Workflow/dataflow.puml'},
         },
     };
+    let heritage = _getWorkflowHeritage(workflow);
+    files.context.parent = heritage.parent; 
+    files.context.grandparent = heritage.grandparent;
     Generator.process(files, output);
 };
 const modelGenerator = (model, output, urlPath) => {
@@ -736,4 +764,21 @@ const getStack = (name) => {
         }
     }
     return null;
+}
+function _getWorkflowHeritage(workflow) {
+    let parent = "Workflows";
+    let grandparent = null;
+    if(!workflow.prefix) { workflow.prefix = workflow.name.replace(/\s/,''); }
+    let heritage = workflow.prefix.split('/');
+    if(heritage.length > 0) {
+        parent = `cagtegory-${heritage.join('-')}`
+        heritage.pop();
+        greandparent = "Workflows"
+        if (heritage.length > 0) {
+            grandparent = `category-${heritage.join('-')}`
+        } else {
+            grandparent = null;
+        }
+    }
+    return {grandparent: grandparent, parent: parent};
 }

@@ -25,6 +25,7 @@ for(let aname in workflow.activities) {
             }
         }
         let nactivity = workflow.activities[nname];
+        if(nactivity) {
         let npname = "None";
         let npcolor = "#dddddd";
         if(nactivity.hasOwnProperty('actor')) {
@@ -79,6 +80,7 @@ partition "<%= npname %>" <%- npcolor %> {
 <%
             }
         }
+    }
     }
 }
 %>

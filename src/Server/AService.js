@@ -6,6 +6,7 @@ const Action = require('./Action.js');
 
 module.exports = {
     call: async (actionName, opts, env) => {
+        const Action = require('./Action.js');
         let action = _findAction(actionName);
         // If the action is being called internally we need to fake the url in the req.
         if(!env) {

@@ -1,4 +1,4 @@
-const AWorkflow = require('../../src/Server/AWorkflow');
+const ACategory = require('../../src/Server/ACategory');
 const fs = require("fs");
 module.exports = {
     friendlyName: 'generate',
@@ -6,7 +6,7 @@ module.exports = {
     static: true,
     inputs: {
         id: {
-            description: 'The id of the Workflow',
+            description: 'The id of the Category',
             type: 'string',
             required: true
         },
@@ -25,10 +25,10 @@ module.exports = {
         // Find the scenario from the usecase.
         let cname = inputs.id;
         if(inputs.target === 'Items') {
-            let retval = await AWorkflow.generateItems(inputs.prompt);
+            let retval = await ACategory.generateItems(inputs.prompt);
             return retval;
         } else {
-            let retval = await AWorkflow[`generate${inputs.target}`](cname);
+            let retval = await ACategory[`generate${inputs.target}`](cname);
             return retval;
         }
     }

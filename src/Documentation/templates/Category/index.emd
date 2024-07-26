@@ -1,0 +1,33 @@
+---
+title: <%= category.name %>
+permalink: category-<%= category.prefix.replace(/\//g,'-') %>
+parent: <%= parent %>
+<% if(grandparent) { -%>
+grand_parent: <%= grandparent %>
+<% } -%>
+---
+# <%= category.name %>
+
+<%= category.description %>
+
+<%- partial(basedir + '/doc/doc.emd', {}) %>
+
+![Category Diagram](./<%= categoryName %>.png)
+
+## Subcategories
+
+<% for(let i in category.subcategories) {
+let subcat = category.subcategories[i];
+let sname = subcat.name;
+-%>
+* [<%- sname %>](category-<%- subcat.prefix.replace(/\//g,'-')%>) - <%- subcat.description %>
+  <% } %>
+* 
+## Workflows
+
+<% for(let i in category.workflows) {
+    let workflow = category.workflows[i];
+    let wname = workflow.name;
+-%>
+* [<%- wname %>](workflow-<%- wname.replace(/\s/g,'')%>) - <%- workflow.description %>
+<% } %>

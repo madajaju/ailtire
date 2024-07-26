@@ -17,7 +17,8 @@ import {
     AEventHUD,
     AWorkFlow,
     AFlowCondition,
-    AActivity
+    AActivity,
+    ACategory
 } from './index.js';
 
 export default class A3DGraph {
@@ -307,12 +308,12 @@ export default class A3DGraph {
         $.ajax({
             url: 'workflow/list',
             success: (results) => {
-                AWorkFlow.handleList(results);
+                ACategory.handleList(results);
             },
             error: function (req, text, err) {
-                console.log(text);
+                console.error(text);
             }
-        })
+        });
     }
 
     static deploymentView() {
