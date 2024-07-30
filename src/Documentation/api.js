@@ -58,6 +58,7 @@ const appGenerator = (app, output) => {
             'views': {folder: true},
             'actors': {folder: true},
             'bin': {folder: true},
+            '.workflows': { folder: true },
             'views/layouts/default.ejs': {copy: '/templates/App/default.ejs'},
             'bin/:nameNoSpace:': {copy: '/templates/App/bin'},
             'bin/init': {copy: '/templates/App/init'},

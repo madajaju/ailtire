@@ -215,12 +215,14 @@ export default class ACategory {
         }
         for (let i in result.workflows) {
             let workflow = result.workflows[i];
-            let wname = workflow.name.replace(/\s/g,'');
-            data.nodes[wname] = {
-                id: wname,
-                name: workflow.name,
-                description: workflow.description,
-                view: AWorkFlow.view3D
+            if(workflow) {
+                let wname = workflow.name.replace(/\s/g, '');
+                data.nodes[wname] = {
+                    id: wname,
+                    name: workflow.name,
+                    description: workflow.description,
+                    view: AWorkFlow.view3D
+                }
             }
             // data.links.push({target: wname, source: aname, value: 30, width: 2});
         }

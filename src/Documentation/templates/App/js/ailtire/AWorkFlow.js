@@ -1465,16 +1465,18 @@ function _setGraphToolbar(object) {
 function _processCategoryList(parent, workflows, subcategories) {
     for (let wi in workflows) {
         let workflow = workflows[wi];
-        let wname = workflow.name.replace(/\s/g, '');
-        let node = {
-            id: wname,
-            text: workflow.name,
-            img: 'ailtire-workflow',
-            link: `workflow/get?id=${wname}`,
-            link2d: `workflow/uml?id=${wname}`,
-            view: 'workflow',
-        };
-        parent.push(node);
+        if(workflow) {
+            let wname = workflow.name.replace(/\s/g, '');
+            let node = {
+                id: wname,
+                text: workflow.name,
+                img: 'ailtire-workflow',
+                link: `workflow/get?id=${wname}`,
+                link2d: `workflow/uml?id=${wname}`,
+                view: 'workflow',
+            };
+            parent.push(node);
+        }
     }
     for (let si in subcategories) {
         let subcat = subcategories[si];

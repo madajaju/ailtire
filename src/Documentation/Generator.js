@@ -93,6 +93,10 @@ const _processItem = (item, target, objects) => {
         } catch (e) {
             console.error("RenderFile:", e);
         }
+    } else if (item.action === 'copyFolder') {
+        let dirname = path.resolve(target);
+        fs.mkdirSync(dirname, {recursive: true});
+        _copyDirectory(dirname, apath);
     } else if (item.action === 'folder') {
         let dirname = path.resolve(target);
         fs.mkdirSync(dirname, {recursive: true});
@@ -104,6 +108,24 @@ const _processItem = (item, target, objects) => {
         fs.writeFileSync(dest, str);
     }
 };
+
+const _copyDirectory = (dest, src) => {
+    fs.mkdirSync(dest, { recursive: true });
+
+    let entries = fs.readdirSync(src, { withFileTypes: true });
+
+    for (let entry of entries) {
+        let srcPath = path.join(src, entry.name);
+        let destPath = path.join(dest, entry.name);
+
+        if (entry.isDirectory()) {
+            _copyDirectory(destPath, srcPath);
+        } else {
+            fs.copyFileSync(srcPath, destPath);
+        }
+    }
+}
+
 const _processItemAsync = async (item, target, objects) => {
     let relfile = __dirname + '/' + item.name;
     let apath = path.resolve(relfile);
