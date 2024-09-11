@@ -72,6 +72,7 @@ class AWorkflowInstance {
 
     static loadAll() {
         let dir = `${ailtire.config.baseDir}/.workflows`;
+        fs.mkdirSync(dir, {recursive: true});
         let wdirs =  fs.readdirSync(dir, { withFileTypes: true })
             .filter(dirent => dirent.isDirectory() && dirent.name !== '.' && dirent.name !== '..')
             .map(dirent => path.join(dir, dirent.name));
@@ -85,16 +86,19 @@ class AWorkflowInstance {
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, {recursive: true});
         }
-        let attrs = require(path.resolve(`${dir}/index.js`));
-        attrs.load = true;
-        let workflowInstance = new AWorkflowInstance(attrs);
-        let wdirs =  fs.readdirSync(dir, { withFileTypes: true })
-            .filter(dirent => dirent.isDirectory() && dirent.name !== '.' && dirent.name !== '..')
-            .map(dirent => path.join(dir, dirent.name));
-        for (let i in wdirs) {
-            let activityInstance = AActivityInstance.load(wdirs[i], workflowInstance);
+        if(fs.existsSync(`${dir}/index.js`)) {
+            let attrs = require(path.resolve(`${dir}/index.js`));
+            attrs.load = true;
+            let workflowInstance = new AWorkflowInstance(attrs);
+            let wdirs = fs.readdirSync(dir, {withFileTypes: true})
+                .filter(dirent => dirent.isDirectory() && dirent.name !== '.' && dirent.name !== '..')
+                .map(dirent => path.join(dir, dirent.name));
+            for (let i in wdirs) {
+                let activityInstance = AActivityInstance.load(wdirs[i], workflowInstance);
+            }
+            return workflowInstance;
         }
-        return workflowInstance;
+        return null;
     }
 
     toJSON() {
@@ -305,7 +309,11 @@ class AWorkflowInstance {
         for (let aname in this.lookaheadGraph) {
             let act = this.lookaheadGraph[aname];
             for (let nname in act.next) {
-                this.lookaheadGraph[nname].previous[aname] = this.activities[aname];
+                if(this.lookaheadGraph.hasOwnProperty(nname)) {
+                    this.lookaheadGraph[nname].previous[aname] = this.activities[aname];
+                } else {
+                    console.error("-->Activity not find ", nname);
+                }
             }
         }
         return this;

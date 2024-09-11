@@ -1,12 +1,4 @@
-/*
- * Copyright 2023 Intel Corporation.
- * This software and the related documents are Intel copyrighted materials, and your use of them is governed by
- * the express license under which they were provided to you (License). Unless the License provides otherwise,
- * you may not use, modify, copy, publish, distribute, disclose or transmit this software or the related documents
- * without  Intel's prior written permission. This software and the related documents are provided as is, with no
- * express or implied warranties, other than those that are expressly stated in the License.
- *
- */
+
 
 import {AAction, AAttribute, AStateNet, AText, AObject, ASelectedHUD} from './index.js';
 
@@ -173,8 +165,8 @@ export default class AModel {
         };
 
         let anodes = [];
-        for (let aname in cls._associations) {
-            let assoc = cls._associations[aname];
+        for (let aname in cls.associations) {
+            let assoc = cls.associations[aname];
             let clsid = assoc.type;
             if (!data.nodes.hasOwnProperty(clsid)) {
                 data.nodes[clsid] = {
@@ -207,8 +199,8 @@ export default class AModel {
             }
         }
 
-        for (let aname in cls._attributes) {
-            let attr = cls._attributes[aname];
+        for (let aname in cls.attributes) {
+            let attr = cls.attributes[aname];
             let clsid = cls.id + aname
             data.nodes[clsid] = {
                 id: clsid, name: `${aname} : ${attr.type}`, view: AAttribute.view3D, rotate: {x: -theta}, box: 1,
@@ -787,9 +779,9 @@ export default class AModel {
         records.push({recid: i++, name: 'Description', value: results.description, detail: results.description});
         records.push({recid: i++, name: 'Package', value: results.package, detail: results.package});
 
-        let attDetails = getAttributeDetails(results, results._attributes);
+        let attDetails = getAttributeDetails(results, results.attributes);
         records.push({recid: i++, name: 'Attributes', value: attDetails.length, detail: attDetails.join('|')});
-        let assocDetails = getAssocDetails(results, results._associations);
+        let assocDetails = getAssocDetails(results, results.associations);
         records.push({recid: i++, name: 'Associations', value: assocDetails.length, detail: assocDetails.join('|')});
         let methodDetails = getMethodDetails(results, results.methods);
         records.push({recid: i++, name: 'Methods', value: methodDetails.length, detail: methodDetails.join('|')});
@@ -802,12 +794,12 @@ export default class AModel {
 
     static calculateDeepBox(node) {
         let aitems = {};
-        for (let name in node._attributes) {
-            aitems[name] = {name: `${name} : ${node._attributes[name].type}`}
+        for (let name in node.attributes) {
+            aitems[name] = {name: `${name} : ${node.attributes[name].type}`}
         }
         ;
-        for (let name in node._associations) {
-            aitems[name] = {name: `${name} : ${node._associations[name].type}`}
+        for (let name in node.associations) {
+            aitems[name] = {name: `${name} : ${node.associations[name].type}`}
         }
         ;
 
@@ -816,9 +808,10 @@ export default class AModel {
         let sbox = {box: {w: 0, h: 0}};
         let mbox = AModel.calculateGroupBox(node.methods, AAction.calculateBox);
 
-        const wnum = Math.max(abox.box.w, sbox.box.w);
-        const hnum = mbox.box.h;
-        const dnum = Math.max(abox.box.h, sbox.box.h, mbox.box.w);
+        let minimalBox = AModel.calculateBox(node);
+        const wnum = Math.max(abox.box.w, sbox.box.w, minimalBox.w);
+        const hnum = Math.max(mbox.box.h, minimalBox.h);
+        const dnum = Math.max(abox.box.h, sbox.box.h, mbox.box.w, minimalBox.d);
 
         const radius = Math.max(Math.sqrt(wnum ** 2 + hnum ** 2), Math.sqrt(hnum ** 2 + dnum ** 2), Math.sqrt(wnum ** 2 + dnum ** 2));
         return {w: wnum, h: hnum, d: dnum, r: radius, attributes: abox, states: sbox, methods: mbox};
@@ -1017,8 +1010,8 @@ function getEditForm(record, setURL) {
             onRender: (event) => {
                 let records = [];
                 let count = 0;
-                for (let aname in w2ui.ModelEditAttributes.record._attributes) {
-                    let attr = w2ui.ModelEditAttributes.record._attributes[aname];
+                for (let aname in w2ui.ModelEditAttributes.record.attributes) {
+                    let attr = w2ui.ModelEditAttributes.record.attributes[aname];
                     records.push({
                         recid: count++,
                         name: aname,
@@ -1309,8 +1302,8 @@ function getEditForm(record, setURL) {
             onRender: (event) => {
                 let records = [];
                 let count = 0;
-                for (let name in w2ui.ModelEditAssociations.record._associations) {
-                    let assoc = w2ui.ModelEditAssociations.record._associations[name];
+                for (let name in w2ui.ModelEditAssociations.record.associations) {
+                    let assoc = w2ui.ModelEditAssociations.record.associations[name];
                     records.push({
                         recid: count++,
                         name: assoc.name,

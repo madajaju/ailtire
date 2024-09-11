@@ -5,9 +5,12 @@ const { Server } = require("socket.io");
 const sLoader = require('./Loader.js');
 const AEvent = require('./AEvent.js');
 const Action = require('./Action.js');
+const multer  = require('multer');
 const fs = require('fs');
 // const redis = require('socket.io-redis');
 const bodyParser = require("body-parser");
+const upload = multer({dest: '.uploads/'});
+global.upload = upload;
 
 
 const htmlGenerator = require('../Documentation/html');
@@ -22,6 +25,7 @@ server.use(function(req, res, next) {
 server.use(bodyParser.urlencoded({extended: true}));
 server.use(bodyParser.json());
 server.use(bodyParser.raw());
+// server.use(upload.array());
 server.use((req, res, next) => {
     const oldJSON = res.json;
     res.json = function(obj) {
@@ -29,7 +33,8 @@ server.use((req, res, next) => {
         oldJSON.apply(res, arguments);
     };
     next();
-})
+});
+
 // server.set('json replacer', circularReplacer());
 
 module.exports = {

@@ -118,6 +118,24 @@ module.exports = {
     show: (workflow) => {
         return _workflowInstances[workflow.name];
     },
+    create: (workflow) => {
+        const AEvent = require("ailtire/src/Server/AEvent");
+        const APackage = require("ailtire/src/Server/APackage");
+        let wfObj = _get(workflow.name);
+        if(!wfObj) {
+            _save(workflow, global.topPackage);
+            AEvent.emit("workflow.created", workflow);
+        } else {
+            for(let aname in workflow) {
+                let attr = workflow[aname];
+                wfObj[aname] = workflow[aname];
+            }
+            let pkg = APackage.get(wfObj.pkg);
+            _save(wfObj, pkg);
+            AEvent.emit("workflow.updated", wfObj);
+        }
+        return workflow;
+    },
     save: (workflow, package) => {
         _save(workflow, package);
     },
@@ -310,7 +328,6 @@ function _saveInstance(obj) {
         AActivity.saveInstance(activity, obj);
     }
     return;
-    
 }
 function _toJSON(obj) {
     let retval = {};

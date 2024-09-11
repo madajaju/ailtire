@@ -5,6 +5,7 @@ const clearRegex = /^clear/;
 const funcHandler = require('./MethodProxy');
 const stateNetHandler = require('./StateNetProxy');
 const AClass = require('../Server/AClass');
+const AEvent = require("ailtire/src/Server/AEvent");
 
 let toJSONDepth = 10;
 
@@ -296,7 +297,10 @@ function getHandler(obj, definition, prop) {
                 if (hasStateNet(definition)) {
                     return stateNetHandler.processEvent(this, obj, prop, args);
                 } else {
-                    return funcHandler.run(definition.methods.create, this, args[0]);
+                    let retval = funcHandler.run(definition.methods.create, this, args[0]);
+                    let json = this.toJSON;
+                    AEvent.emit(definition.name + '.create', { obj: json });
+                    return retval;
                 }
             } else {
                 let myDef = obj.definition;
@@ -310,7 +314,10 @@ function getHandler(obj, definition, prop) {
                             if (hasStateNet(myDef)) {
                                 return stateNetHandler.processEvent(this, obj, prop, args);
                             } else {
-                                return funcHandler.run(myDef.methods.create, this, args[0]);
+                                let retval = funcHandler.run(myDef.methods.create, this, args[0]);
+                                let json = this.toJSON;
+                                AEvent.emit(definition.name + '.create', { obj: json });
+                                return retval;
                             }
                         }
                     } else {
@@ -321,15 +328,16 @@ function getHandler(obj, definition, prop) {
                 for (let name in args[0]) {
                     this[name] = args[0][name];
                 }
-                // Return the proxy.
+
                 if (hasStateNet(definition)) {
-                    return stateNetHandler.processEvent(this, obj, prop, args);
+                    return stateNetHandler.processEvent(retval, obj, prop, args);
                 } else {
+                    let json = this.toJSON;
+                    AEvent.emit(definition.name + '.create', { obj: json });
                     return this;
                 }
             }
         }
-
     } else if (prop === 'destroy') { // create a destroy method to destroy the object.
         return function (...args) {
             // call destroy on all of the attributes

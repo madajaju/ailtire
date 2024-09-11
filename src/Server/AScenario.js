@@ -23,16 +23,28 @@ const interfaceFormat = `
 }`;
 
 module.exports = {
-    save: (usecase, scenario) => {
-        _save(usecase, scenario);
-        let jsonScenario = _toJSON(scenario);
-        let outputString = `module.exports = ${JSON.stringify(scenario)};`;
-        let filename = path.resolve(`${usecase.dir}/${scenario.name.replace(/\s/g, '')}.js`);
-        try {
-            fs.writeFileSync(filename, outputString);
-        } catch (e) {
-            console.error("Error writing Scenario File:", filename);
+    create: (usecase, scenario) => {
+        const AUseCase = require('../../src/Server/AUseCase');
+        const AEvent = require('../../src/Server/AEvent');
+        // Check to see if the scenario alread exists.
+        let ucObject = AUseCase.get(usecase);
+        let snamenospace = scenario.name.replaceAll(/\s/g, '');
+        if (ucObject.scenarios.hasOwnProperty(snamenospace)) {
+            let scenarioObject = ucObject.scenarios[sname];
+            for (aname in scenario) {
+                scenarioObject[aname] = scenario[aname];
+            }
+            _save(ucObject, scenarioObject);
+            AEvent.emit('scenario.updated', scenarioObject);
+            return ucObject;
+        } else {
+            let retval = _save(ucObject, scenario);
+            AEvent.emit('scenario.created', scenario);
+            return retval;
         }
+    },
+    save: (usecase, scenario) => {
+        return _save(usecase, scenario);
     },
     instances: () => {
         return _scenarioInstances;
@@ -134,10 +146,10 @@ module.exports = {
                 let newMethod = await _askAIForCode(newMessages);
                 // AskAIForCode always returns an array;
                 newMethod = newMethod[0];
-                
+
                 newMethod.friendlyName = step.action.replace(`${package.prefix}/`, '');
                 newMethod.name = step.action;
-                 APackage.addInterface(package, newMethod);
+                APackage.addInterface(package, newMethod);
             }
         }
         return _toJSON(scenario);
@@ -269,5 +281,6 @@ function _save(usecase, scenario) {
     } catch (e) {
         console.error("Error writing Scenario File:", filename);
     }
-    usecase.scenarios[scenario.name.replace(/\s/g,'')] = scenario;
+    usecase.scenarios[scenario.name.replace(/\s/g, '')] = scenario;
+    return scenario;
 };

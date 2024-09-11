@@ -6,6 +6,7 @@ const packageProxy = require('../Proxy/PackageProxy');
 const apiGenerator = require('../Documentation/api');
 const YAML = require('yamljs');
 const AClass = require('./AClass');
+const AActor = require('./AActor');
 const AHandler = require('./AHandler');
 const AActivityInstance = require("ailtire/src/Server/AActivityInstance");
 
@@ -13,7 +14,7 @@ module.exports = {
     analyze: (pkg) => {
         analyzeApp(pkg);
     },
-    processPackage: (dir) => {
+    processPackage: async (dir) => {
         global.actors = {};
         global.actions = global.actions || {}; // Allow actions to be added programattically
         global.events = {};
@@ -28,12 +29,18 @@ module.exports = {
         global.topPackage = processDirectory(dir);
         _processModelIncludeFiles();
         _loadWorkflowInstances();
+        await _loadNotes();
         return global.topPackage;
     },
     checkPackages: () => {
     }
 
 };
+
+const _loadNotes = async () => {
+    const { default: ANote } = await import("ailtire/src/Server/ANote.mjs");
+    await ANote.loadDirectory(path.resolve('./.notes'));
+}
 
 const analyzeApp = app => {
     for (let i in global.packages) {
@@ -88,7 +95,7 @@ const processDirectory = dir => {
     // Check the actors first
     let actorDir = dir + '/actors';
     if (isDirectory(actorDir)) {
-        loadActors(actorDir, '');
+        AActor.loadAll(actorDir);
     }
     let pkg = null;
     let apiDir = dir + '/api';
@@ -110,6 +117,8 @@ const processDirectory = dir => {
 // First look load the index file as the name of the top subsystem.
 
 
+
+
 const isDirectory = source => fs.existsSync(source) && fs.lstatSync(source).isDirectory();
 const isFile = source => fs.existsSync(source) && !fs.lstatSync(source).isDirectory();
 const getDirectories = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
@@ -117,7 +126,7 @@ const getFiles = source => fs.readdirSync(source).map(name => path.join(source, 
 
 let reservedDirs = {
     actors: (pkg, prefix, dir) => {
-        loadActors(dir, prefix);
+        AActor.loadAll(dir);
     },
     node_modules: (pkg, prefix, dir) => {
         // Do Nothing.
@@ -148,25 +157,7 @@ let reservedDirs = {
             // let modelDir = models[i].replace(/\\/g,'/');
             let modelDir = models[i];
             // let model = path.basename(modelDir);
-
-            let myClass = require(modelDir + '/index.js');
-
-            myClass.package = pkg;
-            myClass.dir = modelDir;
-            if (global.classes.hasOwnProperty(myClass.definition.name)) {
-                // console.error('Class Already defined', myClass.definition.name, "in this model:", modelDir);
-                // throw new Error('Class Already defined' + myClass.definition.name + "in this model:" + modelDir);
-            } else {
-                let myProxy = new Proxy(myClass, classProxy);
-                // set the owners array for persistence.
-                myClass.definition.owners = new Array();
-                myClass.definition.dir = modelDir;
-                pkg.classes[myClass.definition.name] = myProxy;
-                global.classes[myClass.definition.name] = myProxy;
-                global[myClass.definition.name] = myProxy;
-            }
-            loadDocs(myClass, modelDir + '/doc');
-            loadClassMethods(myClass, modelDir);
+            AClass.load(pkg, modelDir);
         }
     },
     workflows: (pkg, prefix, dir) => {
@@ -245,7 +236,10 @@ const loadWorkflows = (pkg, prefix, dir) => {
         return category;
     }
 };
-const loadDocs = (pkg, dir) => {
+const loadDocs = async (pkg, dir) => {
+    const { default: ADocumentation } = await import("ailtire/src/Server/ADocumentation.mjs");
+    ADocumentation.load(pkg, dir);
+   /* 
     if (fs.existsSync(dir)) {
         let files = getFiles(dir);
         let nfiles = [];
@@ -261,6 +255,7 @@ const loadDocs = (pkg, dir) => {
         fs.mkdirSync(dir);
         pkg.doc = {basedir: dir, files: []};
     }
+    */
 }
 
 const _loadPhysicalModules = (obj, prefix, dir, files) => {
@@ -852,16 +847,18 @@ const checkWorkflows = (workflows) => {
         for (let aname in workflow.activities) {
             let activity = workflow.activities[aname];
             // Check if the activity name is a usecase, scenario, or other workflow.
+            let found = false;
             let anospace = aname.replace(/\s/g, '');
             if (aname !== "Init") {
                 if (global.workflows.hasOwnProperty(anospace)) {
                     activity.obj = global.workflows[anospace];
                     activity.type = "workflow";
+                    found = true;
                 } else if (global.usecases.hasOwnProperty(anospace)) {
                     activity.obj = global.usecases[aname];
                     activity.type = "usecase";
+                    found = true;
                 } else {
-                    let found = false;
                     for (let uname in global.usecases) {
                         let uc = global.usecases[uname];
                         if (uc.scenarios.hasOwnProperty(anospace)) {
@@ -871,9 +868,17 @@ const checkWorkflows = (workflows) => {
                             break;
                         }
                     }
-                    if (!found) {
-                        console.error(`Activity "${aname}" not found for workflow "${wname}"`);
+                }
+                // Now check and see if there is an interface that matches
+                if (!found) {
+                    if(global.actions.hasOwnProperty(anospace)) {
+                        activity.obj = global.actions[anospace];
+                        activity.type = "action";
+                        found = true;
                     }
+                }
+                if (!found) {
+                    console.error(`Activity "${aname}" not found for workflow "${wname}"`);
                 }
             }
             for (nname in activity.next) {
@@ -1301,21 +1306,6 @@ const checkScenario = (pkg, scenario) => {
             let aname = actionName.split(/\//).pop();
             let pathName = actionName.replace(pkg.prefix.toLowerCase(), '');
             apiGenerator.action({name: aname, path: pathName}, pkg.interfaceDir);
-        }
-    }
-};
-const loadActors = (dir, prefix) => {
-    let actors = getDirectories(dir);
-    if (!global.hasOwnProperty('actors')) {
-        global.actors = {};
-    }
-    for (let i in actors) {
-        let actorDir = actors[i];
-        if (!actorDir.includes('\\doc') && !actorDir.includes('\/doc')) {
-            let actor = require(actorDir + '/index.js');
-            global.actors[actor.name.replace(/\s/g, '')] = actor;
-            actor.dir = actorDir;
-            loadDocs(actor, actorDir + '/doc');
         }
     }
 };

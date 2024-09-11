@@ -13,17 +13,17 @@ class AActivityInstance {
                     this[aname] = opts[aname];
                 }
             }
-            if(!_activityInstances.hasOwnProperty(this.name)) {
-                _activityInstances[this.name] = {};
+            if(!_activityInstances.hasOwnProperty(opts.name)) {
+                _activityInstances[opts.name] = {};
             }
-            _activityInstances[this.name][this.id] = this;
+            _activityInstances[opts.name][this.id] = this;
             this.parent.totalActivities++;
             this.parent.registerActivity(this);
             return this;
         } else {
             // create the activity instance cache
-            if (!_activityInstances.hasOwnProperty(opts.activity.name)) {
-                _activityInstances[opts.activity.name] = {};
+            if (!_activityInstances.hasOwnProperty(opts.name)) {
+                _activityInstances[opts.name] = {};
             }
             this.name = opts.name;
             let iid = `${opts.parent.id}.${opts.parent.totalActivities++}`;
@@ -50,11 +50,14 @@ class AActivityInstance {
         }
     }
     static load(dir, parent) {
-        let attrs = require(path.resolve(`${dir}/index.js`));
-        attrs.load = true;
-        attrs.parent = parent;
-        let retval = new AActivityInstance(attrs);
-        return retval;
+        if(fs.existsSync(`${dir}/index.js`)) {
+            let attrs = require(path.resolve(`${dir}/index.js`));
+            attrs.load = true;
+            attrs.parent = parent;
+            let retval = new AActivityInstance(attrs);
+            return retval;
+        }
+        return null;
     }
 
     static getInstance(id) {
@@ -98,9 +101,9 @@ class AActivityInstance {
             fs.mkdirSync(dir, {recursive: true});
         }
         let wfile = `${dir}/index.js`;
-        let json = this.toJSON();
-        let outputString = `module.exports = ${JSON.stringify(json)};\n`;
-        fs.writeFileSync(wfile, outputString);
+        // let json = this.toJSON();
+        // let outputString = `module.exports = ${JSON.stringify(json)};\n`;
+        // fs.writeFileSync(wfile, outputString);
         return;
     }
 
@@ -145,7 +148,7 @@ class AActivityInstance {
     failed(message) {
         const AEvent = require('../../src/Server/AEvent');
         this.state = 'failed';
-        this.message = "Error Running Activity:" + e;
+        this.message = "Error Running Activity:" + message;
         this.finishedTime = new Date();
         this.save();
         AEvent.emit("activity.error", {obj: this.toJSON(), message: "Error Running Activity: " + message})

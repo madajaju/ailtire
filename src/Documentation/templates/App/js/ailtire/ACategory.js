@@ -1,12 +1,4 @@
-/*
- * Copyright 2023 Intel Corporation.
- * This software and the related documents are Intel copyrighted materials, and your use of them is governed by
- * the express license under which they were provided to you (License). Unless the License provides otherwise,
- * you may not use, modify, copy, publish, distribute, disclose or transmit this software or the related documents
- * without  Intel's prior written permission. This software and the related documents are provided as is, with no
- * express or implied warranties, other than those that are expressly stated in the License.
- *
- */
+
 
 import {
     AMainWindow,
@@ -215,14 +207,12 @@ export default class ACategory {
         }
         for (let i in result.workflows) {
             let workflow = result.workflows[i];
-            if(workflow) {
-                let wname = workflow.name.replace(/\s/g, '');
-                data.nodes[wname] = {
-                    id: wname,
-                    name: workflow.name,
-                    description: workflow.description,
-                    view: AWorkFlow.view3D
-                }
+            let wname = workflow.name.replace(/\s/g,'');
+            data.nodes[wname] = {
+                id: wname,
+                name: workflow.name,
+                description: workflow.description,
+                view: AWorkFlow.view3D
             }
             // data.links.push({target: wname, source: aname, value: 30, width: 2});
         }

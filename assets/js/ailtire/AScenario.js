@@ -54,6 +54,7 @@ export default class AScenario {
             }
         });
     }
+
     static popup(record) {
         let myForm = AScenario.stdioForm(record);
 
@@ -90,7 +91,7 @@ export default class AScenario {
         let height = (nameArray.length * AAction.default.fontSize) / 2 + 10;
         let width = maxLetters * (AAction.default.fontSize / 2) + 20;
         let depth = height * 2;
-        let radius = Math.max(Math.sqrt(width * width + height * height), Math.sqrt(height * height + depth * depth), Math.sqrt(width * width + depth * depth))/2;
+        let radius = Math.max(Math.sqrt(width * width + height * height), Math.sqrt(height * height + depth * depth), Math.sqrt(width * width + depth * depth)) / 2;
         return {w: width, h: height * 2, d: height * 2, r: radius};
     }
 
@@ -143,6 +144,7 @@ export default class AScenario {
         node.getDetail = AScenario.getDetail;
         return box;
     }
+
     static getDetail(node) {
         $.ajax({
             url: node.expandLink,
@@ -151,6 +153,7 @@ export default class AScenario {
             }
         });
     }
+
     static showDetail(result) {
 
         let records = [];
@@ -219,7 +222,12 @@ export default class AScenario {
         let stepsDetails = Object.keys(result.steps).map(item => {
             return `${result.steps[item].action.name}, ${showParameters(result.steps[item].parameters)}`;
         });
-        records.push({recid: i++, name: 'steps', value: Object.keys(result.steps).length, detail: stepsDetails.join('|')});
+        records.push({
+            recid: i++,
+            name: 'steps',
+            value: Object.keys(result.steps).length,
+            detail: stepsDetails.join('|')
+        });
 
         if (result._instances) {
             let runsDetails = Object.keys(result._instances).map(item => {
@@ -237,6 +245,7 @@ export default class AScenario {
         w2ui['objlist'].refresh();
         ASelectedHUD.update('Scenario', records);
     }
+
     static viewStep3D(node, type) {
         let opacity = node.opacity || 1;
         let color = node.color || "#aa8844";
@@ -247,7 +256,7 @@ export default class AScenario {
         } else if (type === 'Sourced') {
             color = "green";
         }
-        let w = Math.max(150, node.name.length * AScenario.default.fontSize/2);
+        let w = Math.max(150, node.name.length * AScenario.default.fontSize / 2);
         let geometry = new THREE.BoxGeometry(w, 20, 5);
         const material = new THREE.MeshPhysicalMaterial({
             color: color,
@@ -265,7 +274,7 @@ export default class AScenario {
         let label = AText.view3D({text: node.name, color: "#ffffff", width: 200, size: 14});
         label.position.set(0, 0, 5);
         box.add(label);
-        if(node.x !== undefined) {
+        if (node.x !== undefined) {
             box.position.set(node.x, node.y, node.z);
         }
         box.aid = node.id;
@@ -276,7 +285,7 @@ export default class AScenario {
 
     static viewDeep3D(scenario, mode, parent) {
         let data = {nodes: {}, links: []};
-        if(mode === "add" && parent) {
+        if (mode === "add" && parent) {
             data.nodes[scenario.id] = {
                 id: scenario.id, name: scenario.name,
                 view: AScenario.view3D,
@@ -308,7 +317,7 @@ export default class AScenario {
             let uid = `${scenario.id}-${i}`;
             rbox = {parent: luid, fx: 0, fy: -yoffset, fz: 0};
             let description = ""
-            for(let pname in step.parameters) {
+            for (let pname in step.parameters) {
                 description += `--${pname} ${step.parameters[pname]}\n`;
             }
             data.nodes[uid] = {
@@ -395,11 +404,12 @@ export default class AScenario {
         window.graph.showLinks();
         return data.nodes[scenario.id];
     }
+
     static showInstances(panel, instances) {
 
         $(panel).w2grid({
             name: 'workflowInstanceList',
-            show: { header: false, columnHeaders: false, toolbar: true},
+            show: {header: false, columnHeaders: false, toolbar: true},
             columns: [
                 {
                     field: 'actions',
@@ -419,8 +429,8 @@ export default class AScenario {
                     url: `scenario/instance?id=${scenario.id}`,
                     success: (result) => {
                         // Popup with the stdout and stderr
-                        if(!instance) { // Get the last one run
-                            instance = result.length-1;
+                        if (!instance) { // Get the last one run
+                            instance = result.length - 1;
                         }
                         let text = result[instance].steps[event.recid];
                         AScenario.popup(text);
@@ -430,10 +440,12 @@ export default class AScenario {
         });
 
     }
+
     static handle2d(result, object, div) {
         _setGraphToolbar(object);
         div.innerHTML = result;
     }
+
     static handle(result) {
         AScenario.viewDeep3D(result, 'new');
         AScenario.showDetail(result);
@@ -468,8 +480,8 @@ export default class AScenario {
                         url: `scenario/instance?id=${scenario.id}`,
                         success: (result) => {
                             // Popup with the stdout and stderr
-                            if(!instance) { // Get the last one run
-                                instance = result.length-1;
+                            if (!instance) { // Get the last one run
+                                instance = result.length - 1;
                             }
                             let text = result[instance].steps[event.recid];
                             AScenario.popup(text);
@@ -490,7 +502,7 @@ export default class AScenario {
                         if (event.target === 'launch') {
                             let scenario = w2ui['scenariolist'].scenario;
                             // If there aren't any inputs then launch it.
-                            if(!scenario.inputs) {
+                            if (!scenario.inputs) {
                                 $.ajax({
                                     url: `scenario/launch?id=${scenario.id}`,
                                     success: function (result) {
@@ -548,7 +560,7 @@ export default class AScenario {
             let parent = window.graph.getSelectedNode();
             // Because the event is not a scenario it is an object event.
             let object = scenario;
-            if(typeof object === 'object') {
+            if (typeof object === 'object') {
                 if (parent && parent.id) {
                     AObject.addObject(object, parent.id);
                 } else {
@@ -558,12 +570,60 @@ export default class AScenario {
         }
         w2ui['scenariolist'].refresh();
     }
+
     static inputForm(scenario) {
         let fields = [];
-        for(let iname in scenario.inputs) {
-            fields.push({
-                field: iname, type: "text",
-            });
+        let inputs = scenario.inputs;
+
+        for (let name in inputs) {
+            let input = inputs[name];
+            let ivalue = activity.inputs[name];
+            if (input.type === 'date') {
+                fields.push({
+                    field: name,
+                    type: 'date',
+                    required: input.required,
+                    html: {label: name}
+                });
+            } else if (input.type === "boolean") {
+                fields.push({
+                    field: name,
+                    type: 'checkbox',
+                    required: input.required,
+                    html: {label: name}
+                });
+            } else if (input.type === 'file') {
+                fields.push({
+                    field: name,
+                    type: 'fileUploader',
+                    required: input.required,
+                    options: {url: input.url},
+                    html: {label: name}
+                });
+            } else if (input.size) {
+                fields.push({
+                    field: name,
+                    type: 'textarea',
+                    required: input.required,
+                    html: {
+                        label: name,
+                        attr: `size="${input.size}" style="width:500px; height:${(input.size / 80) * 12}px"`
+                    }
+                });
+            } else {
+                fields.push({
+                    field: name,
+                    type: 'textarea',
+                    required: input.required,
+                    html: {label: name, attr: `size="50" style="width:500px"`}
+                });
+            }
+
+            if (typeof ivalue !== "object") {
+                record[name] = ivalue;
+            } else {
+                record[name] = "";
+            }
         }
         $().w2form({
             name: 'ScenarioInput',
@@ -576,7 +636,7 @@ export default class AScenario {
                         w2popup.close();
                         let parameters = w2ui['ScenarioInput'].record;
                         let parameterArray = [];
-                        for(let pname in parameters) {
+                        for (let pname in parameters) {
                             parameterArray.push(`${pname}=${parameters[pname]}`);
                         }
 
@@ -598,16 +658,19 @@ export default class AScenario {
         });
         return w2ui['ScenarioInput'];
     }
+
     static stdioForm(record) {
         if (!w2ui['ScenarioStdio']) {
             let fields = [
                 {field: "state", type: 'text'},
                 {field: 'step', type: 'text'},
-                {field: 'stdout', type: 'textarea',
-                    html: { label: 'Text Area', attr: 'style="width: 800px; height: 100px; resize: none"' }
+                {
+                    field: 'stdout', type: 'textarea',
+                    html: {label: 'Text Area', attr: 'style="width: 800px; height: 100px; resize: none"'}
                 },
-                { field: 'stderr', type: 'textarea',
-                    html: { label: 'Text Area', attr: 'style="width: 800px; height: 100px; resize: none"' }
+                {
+                    field: 'stderr', type: 'textarea',
+                    html: {label: 'Text Area', attr: 'style="width: 800px; height: 100px; resize: none"'}
                 }
             ];
             $().w2form({
@@ -623,7 +686,7 @@ export default class AScenario {
                 }
             });
         }
-        w2ui['ScenarioStdio'].record =  {
+        w2ui['ScenarioStdio'].record = {
             state: record.state,
             step: record.step.action,
             stdout: record.stdio.stdout,
@@ -631,6 +694,7 @@ export default class AScenario {
         };
         return w2ui['ScenarioStdio'];
     }
+
     static editDocs(results, setURL) {
         let editForm = getEditForm(results, setURL);
         w2popup.open({
@@ -739,6 +803,7 @@ function _createScenarioEditActors(record, setURL) {
     };
     _createCharacteristicGrid(config);
 }
+
 function _createScenarioEditSteps(record, setURL) {
     let config = {
         name: "ScenarioEditSteps",
@@ -768,8 +833,8 @@ function _createScenarioEditSteps(record, setURL) {
                 sortable: true,
                 fn: (name, value) => {
                     let params = value.parameters;
-                    let retval ="";
-                    for(let pname in params ) {
+                    let retval = "";
+                    for (let pname in params) {
                         let pvalue = params[pname];
                         retval += `${pname}: ${pvalue},`;
                     }
@@ -791,6 +856,7 @@ function _createScenarioEditSteps(record, setURL) {
     };
     _createCharacteristicGrid(config);
 }
+
 function _createCharacteristicGrid(config) {
     if (!w2ui[config.name]) {
         $().w2grid({
@@ -884,9 +950,9 @@ function _createCharacteristicGrid(config) {
                     let record = {
                         recid: count++
                     };
-                    for(let i in config.columns) {
+                    for (let i in config.columns) {
                         let col = config.columns[i];
-                        record[col.field] = col.fn(name,value);
+                        record[col.field] = col.fn(name, value);
                     }
                     records.push(record);
                 }
@@ -898,13 +964,13 @@ function _createCharacteristicGrid(config) {
             },
             columns: config.columns,
         });
-        w2ui[config.name].on('dblClick', function(event) {
+        w2ui[config.name].on('dblClick', function (event) {
             let record = this.get(event.recid);
             // THis is where we need to open up another window to show details of what was clicked on.
-            if(config.edit && config.editURL) {
+            if (config.edit && config.editURL) {
                 $.ajax({
                     url: `${config.editURL}?id=${record.name}`,
-                    success: function(results) {
+                    success: function (results) {
                         config.edit(results, config.saveURL);
                     }
                 });
@@ -912,6 +978,7 @@ function _createCharacteristicGrid(config) {
         });
     }
 }
+
 function _createScenarioEditDoc(record, setURL) {
     if (!w2ui.ScenarioEditDoc) {
         $().w2form({
@@ -967,7 +1034,7 @@ function _createScenarioEditDoc(record, setURL) {
                     html: {
                         attr: 'style="width: 450px; height: 50px;',
                         caption: 'Then' +
-                        "<br><button class=AIButton id='scenariogenerateGWT'></button>"
+                            "<br><button class=AIButton id='scenariogenerateGWT'></button>"
                     }
                 },
             ],
@@ -1059,6 +1126,7 @@ function _createScenarioEditDoc(record, setURL) {
         })
     }
 }
+
 function detailList(result) {
 }
 
@@ -1067,6 +1135,7 @@ function showParameters(params) {
         return `--${name}=${params[name]}`;
     }).join(' ');
 }
+
 function _setGraphToolbar(object) {
     const distance = 1750;
     const div = document.getElementById('preview2d');
@@ -1078,7 +1147,7 @@ function _setGraphToolbar(object) {
                 // 2D
                 div.innerHTML = "Fetching UML diagrams";
                 $.ajax({
-                    url: object.link2d +"&diagram=Scenario",
+                    url: object.link2d + "&diagram=Scenario",
                     success: (results) => {
                         div.innerHTML = results;
                     },
@@ -1093,7 +1162,7 @@ function _setGraphToolbar(object) {
                 // 2D
                 div.innerHTML = "Fetching UML diagrams";
                 $.ajax({
-                    url: object.link2d +"&diagram=Scenario",
+                    url: object.link2d + "&diagram=Scenario",
                     success: (results) => {
                         div.innerHTML = results;
                     },

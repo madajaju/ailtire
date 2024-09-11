@@ -149,6 +149,9 @@ const modelFormat = `
     };
     `;
 module.exports = {
+    get: (pkgName) => {
+        return _getPackage(pkgName);
+    },
     getPackage: (pkgName) => {
         return _getPackage(pkgName);
     },
@@ -183,7 +186,14 @@ module.exports = {
                 ' workflows.'
         });
         let response = await _askAI(messages);
-        let cfile = path.resolve(`${package.doc.basedir}/doc.emd`);
+        let cfile = null;
+        if(!package.doc || !package.doc.basedir) {
+            let cdir = path.resolve(package.baseDir + '/doc');
+            mkdirSync(cdir, {recursive: true});
+            cfile = path.resolve(`${cdir}/doc.emd`);
+        } else {
+            cfile = path.resolve(`${package.doc.basedir}/doc.emd`);
+        }
         fs.writeFileSync(cfile, response);
         return response;
     },

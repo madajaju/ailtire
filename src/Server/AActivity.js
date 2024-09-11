@@ -18,13 +18,15 @@ module.exports = {
 function _itemToString(item) {
     
     let retval = '{';
-    for(const [key, value] of Object.entries(item)) {
-        if(typeof value === 'function') {
-            retval += `"${key}": ${value.toString()},\n`;
-        } else if(typeof value === 'object') {
-            retval += `'${key}': ${_itemToString(value)},\n`;
-        } else {
-            retval += `"${key}": "${value}",\n`;
+    if(item) {
+        for (const [key, value] of Object.entries(item)) {
+            if (typeof value === 'function') {
+                retval += `"${key}": ${value.toString()},\n`;
+            } else if (typeof value === 'object') {
+                retval += `'${key}': ${_itemToString(value)},\n`;
+            } else {
+                retval += `"${key}": "${value}",\n`;
+            }
         }
     }
     retval += '}';

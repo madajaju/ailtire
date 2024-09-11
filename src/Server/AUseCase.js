@@ -1,12 +1,34 @@
-const AEvent = require("ailtire/src/Server/AEvent");
 const AIHelper = require("ailtire/src/Server/AIHelper");
 const AScenario = require("ailtire/src/Server/AScenario");
 const path = require("path");
 const fs = require("fs");
 
 module.exports = {
+    get: (name) => {
+        return _getUseCase(name);
+    },
     getUseCase: (name) => {
         return _getUseCase(name);
+    },
+    create: (usecase) => {
+        const AEvent = require("ailtire/src/Server/AEvent");
+        const APackage = require("ailtire/src/Server/APackage");
+        let ucObject = _getUseCase(usecase.name);
+        if (!ucObject) {
+            let pkg = APackage.get(usecase.package);
+            if (!pkg) {
+                pkg = global.topPackage;
+            }
+            let ucdir = `${pkg.dir}/usecases/${usecase.name.replace(/\s/g, '')}`
+            usecase.dir = ucdir;
+            _save(usecase);
+            AEvent.emit('usecase.created', usecase);
+            return usecase;
+        } else {
+            _save(usecase);
+            AEvent.emit('usecase.updated', usecase);
+            return usecase;
+        }
     },
     save: (usecase) => {
         return _save(usecase);
@@ -19,8 +41,14 @@ module.exports = {
         let pkgDoc = JSON.stringify(package);
         let messages = [];
         messages.push({role: 'system', content: `Use the following usecase for analysis of the user prompt: ${json}`});
-        messages.push({ role: 'system', content: `Use the following as usecase documentation for analysis of the user prompt: ${classDoc}`});
-        messages.push({ role: 'system', content: `Use the following as package documentation for analysis of the user prompt: ${pkgDoc}`});
+        messages.push({
+            role: 'system',
+            content: `Use the following as usecase documentation for analysis of the user prompt: ${classDoc}`
+        });
+        messages.push({
+            role: 'system',
+            content: `Use the following as package documentation for analysis of the user prompt: ${pkgDoc}`
+        });
         messages.push({
             role: 'user', content: "Generate summary documentation of the usecase based on the usecase and" +
                 " package definitions and documentation. It does not need to include the details of the scenarios." +
@@ -67,19 +95,19 @@ module.exports = {
                 " The results should be an array of these objects."
         });
         let scenarios = await AIHelper.askForCode(messages);
-        for(let i in scenarios) {
-            let sname = scenarios[i].name.replace(/\s/g,'');
+        for (let i in scenarios) {
+            let sname = scenarios[i].name.replace(/\s/g, '');
             let scenario = scenarios[i];
-            if(usecase.scenarios[sname]) {
+            if (usecase.scenarios[sname]) {
                 let oscenario = usecase.scenarios[sname];
                 oscenario.description = scenario.description;
                 oscenario.given = scenario.given;
                 oscenario.when = scenario.when;
                 oscenario.then = scenario.then;
                 oscenario.actors = scenario.actors;
-                AScenario.save(usecase,oscenario);
+                AScenario.save(usecase, oscenario);
             } else {
-                AScenario.save(usecase,scenario);
+                AScenario.save(usecase, scenario);
             }
         }
         return usecase;
@@ -87,7 +115,7 @@ module.exports = {
 }
 
 function _getUseCase(name) {
-     name = name.replace(/\s/g, '');
+    name = name.replace(/\s/g, '');
     if (global.usecases.hasOwnProperty(name)) {
         return global.usecases[name];
     } else {
@@ -97,7 +125,7 @@ function _getUseCase(name) {
             }
         }
     }
-    return 0;
+    return null;
 }
 
 function _getDocumentation(cls) {
@@ -112,6 +140,7 @@ function _getDocumentation(cls) {
     }
     return retval;
 }
+
 function _save(usecase) {
     let dir = path.resolve(`${usecase.dir}`);
     let cfile = path.resolve(`${dir}/index.js`);
@@ -125,8 +154,8 @@ module.exports = {
     includes: ${JSON.stringify(usecase.includes)}
 };
 `
-    if(!fs.existsSync(dir))    {
-       fs.mkdirSync(dir, {recursive:true}) ;
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, {recursive: true});
     }
     fs.writeFileSync(cfile, output);
     console.log("Saving Class to file ", cfile);

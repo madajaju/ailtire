@@ -1,17 +1,8 @@
-/*
- * Copyright 2023 Intel Corporation.
- * This software and the related documents are Intel copyrighted materials, and your use of them is governed by
- * the express license under which they were provided to you (License). Unless the License provides otherwise,
- * you may not use, modify, copy, publish, distribute, disclose or transmit this software or the related documents
- * without  Intel's prior written permission. This software and the related documents are provided as is, with no
- * express or implied warranties, other than those that are expressly stated in the License.
- *
- */
+
 
 import {AText, A3DGraph, ASelectedHUD, AMainWindow} from './index.js';
 
 export default class AObject {
-    static _ships = {};
     static scolor = {
         started: "#aaffff",
         create: "#aaffff",
@@ -74,6 +65,235 @@ export default class AObject {
                 ASelectedHUD.update(results._name + ' Details', drecords);
             }
         }
+    }
+    static getEditForm(record, setURL) {
+        if (!w2ui['ObjectEditGeneral']) {
+            $().w2layout({
+                name: 'ObjectEditGeneral',
+                panels: [
+                    {type: 'left', size: 150, resizable: true, minSize: 35},
+                    {type: 'main', overflow: 'hidden'}
+                ],
+                onRender: (event) => {
+                    // Add the record to the form and the assoication tabs
+                    if (event.target === 'ObjectEditGeneral') {
+                        if (w2ui.ObjectEditGeneral.record) {
+                            w2ui.ObjectEditGeneral.record = {};
+                        }
+                    }
+                }
+            });
+        }
+        let nodes = [
+            {id: 'details', text: "Details", selected: true}
+        ];
+        for(let aname in record.columns) {
+            let item = record.columns[aname];
+            if(item.hasOwnProperty("cardinality")) {
+                if(item.cardinality != 1) {
+                    nodes.push({id: aname, text: `${aname[0].toLowerCase()}${aname.slice(1)}`});
+                }
+            }
+        }
+        if (!w2ui['ObjectEditTabs']) {
+            $().w2sidebar({
+                name: 'ObjectEditTabs',
+                flatButton: true,
+                nodes: nodes,
+                onClick(event) {
+                    if(event.target === 'details') {
+                        w2ui['ObjectEditGeneral'].html('main', w2ui.ObjectEditDetails);
+                    } else {
+                        w2ui['ObjectEditGeneral'].html('main', w2ui[`ObjectEdit${event.target}`]);
+                    }
+                }
+            });
+        }
+        if(w2ui['ObjectEditDetails']) {
+            w2ui['ObjectEditDetails'].destroy();
+        }
+        let fields = [
+            { field: 'name' , type: 'text', required: true },
+            { field: 'type' , type: 'text', readonly: true },
+            { field: 'package' , type: 'text', readonly: true },
+            { field: 'state' , type: 'text', readonly: true },
+        ];
+        let frecord = {
+            name: record.record._name,
+            id: record.record._id,
+            state: record.record._state,
+            type: record.record._type,
+            package: record.record._package,
+        };
+        for(let aname in record.columns) {
+            let item = record.columns[aname];
+            if(!(item.hasOwnProperty("cardinality") && item.cardinality != 1)) {
+                if(aname !== 'name') {
+                    fields.push({
+                        field: aname,
+                        type: item.type,
+
+                    });
+                    frecord[aname] = record.record[aname];
+                }
+            }
+        }
+        $().w2form({
+            name: 'ObjectEditDetails',
+            saveURL: setURL,
+            style: 'border: 0px; background-color: transparent;overflow:hidden; ',
+            fields: fields,
+            record: frecord,
+            actions: {
+                Save: function () {
+                    let url = this.saveURL;
+                    let newRecord = {};
+                    for(let i in this.fields) {
+                        newRecord[this.fields[i].field] = this.record[this.fields[i].field]
+                        if(this.editors[this.fields[i].field]) {
+                            newRecord[this.fields[i].field] = this.editors[this.fields[i].field].getData();
+                        }
+                    }
+
+                    $.ajax({
+                        url: url, data: newRecord, success: function (results) {
+                            alert("Saved");
+                        }, failure: function (results) {
+                            console.error(results);
+                        }
+                    });
+                },
+                Reset: function () {
+                    this.clear();
+                },
+                cancel: {
+                    caption: "Cancel", style: 'background: pink;', onClick(event) {
+                        w2popup.close();
+                    },
+                },
+            }
+        });
+        for(let aname in record.columns) {
+            let item = record.columns[aname];
+            if(item.hasOwnProperty('cardinality') && item.cardinality != 1) {
+                let formName = `ObjectEdit${aname}`;
+                let title = `${aname[0].toUpperCase()}${aname.slice(1)}`;
+                if(w2ui[formName]) {
+                    w2ui[formName].destroy();
+                }
+                $().w2grid( {
+                   name: formName,
+                   header: title,
+                   record: record.record[aname],
+                   show: {
+                        header: true,
+                        columnHeaders: true,
+                        toolbar: true,
+                        toolbarSave: true,
+                        toolbarAdd: true,
+                        toolbarEdit: true,
+                        toolbarDelete: true
+                    },
+                    columns: [
+                        {
+                            field: 'id',
+                            caption: 'ID',
+                            size: '20%',
+                            resizable: true,
+                            editable: {type: 'text'},
+                            sortable: true,
+                        },
+                        {
+                            field: 'state',
+                            caption: 'State',
+                            size: '20%',
+                            resizable: true,
+                            editable: {type: 'text'},
+                            sortable: true,
+                        },
+                        {
+                            field: 'name',
+                            caption: 'Name',
+                            size: '60%',
+                            resizable: true,
+                            editable: {type: 'text'},
+                            sortable: true,
+                        }
+                    ],
+                    onAdd: (event) => {
+                    },
+                    onSave: (event) => {
+                        let changes = w2ui[formName].getChanges();
+                        let records = w2ui[formName].records
+                        for (let i in changes) {
+                            let change = changes[i];
+                            let rec = null;
+                            for (let j in records) {
+                                if (records[j].recid === change.recid) {
+                                    rec = records[j];
+                                    break;
+                                }
+                            }
+                            // Just updating the episode
+                            if (rec.id) {
+                                let url = `${item.type}/save?id=${rec.id}`;
+                                for (let i in change) {
+                                    url += `&${i}=${change[i]}`;
+                                }
+                                $.ajax({
+                                    url: url,
+                                    success: function (results) {
+                                        console.log("results", results);
+                                    }
+                                });
+                            }
+                        }
+                    },
+                    onEdit: (event) => {
+                        // Open the Episode Edit Dialog
+
+                        let record = w2ui[formName].records[event.recid];
+                        if (record.recid != event.recid) {
+                            for (let i in w2ui[formName].records) {
+                                if (w2ui[formName].records[i].recid === event.recid) {
+                                    record = w2ui[formName].records[i];
+                                    break;
+                                }
+                            }
+                        }
+                        record._id = record.id;
+                    },
+                    onDelete: (event) => {
+                        let selected = w2ui[formName].getSelection();
+                        console.log("Delete", selected);
+                    },
+                    onRender: (event) => {
+                        let records = [];
+                        let count = 0;
+                        for (let i in w2ui[formName].record.values) {
+                            let attr = w2ui[formName].record.values[i];
+                            records.push({
+                                recid: i,
+                                name: attr.name,
+                                id: attr.id,
+                                state: attr.state,
+                            });
+                        }
+                        w2ui[formName].records = records;
+                        w2ui[formName].sort('name', 'desc');
+                        setTimeout(function () {
+                            w2ui[formName].refreshBody();
+                        }, 10);
+                    },
+                })
+            }
+        }
+        w2ui['ObjectEditGeneral'].record = record;
+
+        w2ui['ObjectEditGeneral'].saveURL = setURL;
+        w2ui['ObjectEditGeneral'].html('left', w2ui.ObjectEditTabs);
+        w2ui['ObjectEditGeneral'].html('main', w2ui.ObjectEditDoc);
+        return w2ui['ObjectEditGeneral'];
     }
 
     static addObject(obj, creator) {
@@ -145,45 +365,6 @@ export default class AObject {
                 }
             }
             window.graph.addData(data.nodes, data.links);
-        } else {
-            return;
-            console.log("Event:", obj);
-            if (!AObject._ships.hasOwnProperty(obj.MMSI)) {
-                let obj3D = _getShip3D(obj);
-                AObject._ships[obj.MMSI] = obj;
-                let ship = AObject._ships[obj.MMSI];
-                ship.object3D = obj3D;
-                ship.z = 0;
-                ship.x = obj.location.LAT * 10;
-                ship.y = obj.location.LONG * 10;
-                _setShipPosition(ship);
-                window.graph.addObject(ship.object3D);
-                window.graph.addObject(ship.arrowObj);
-            } else {
-                /*
-                AObject._ships[obj.MMSI] = {
-                    name: obj.VesselName,
-                    description: `${obj.VesselName}\nSOG: ${obj.location.SOG}\nCOG: ${obj.location.COG}\nLAT: ${obj.location.LAT}\nLONG: ${obj.location.LONG}`,
-                    id: obj.MMSI,
-                    fx: obj.location.LAT*10,
-                    fy: obj.location.LONG*10,
-                    fz: 100,
-                    group: "Ship"
-                };
-                window.graph.addData(AObject._ships, []);
-                // let objID = "#" + node.view + type;
-                 */
-                let ship = AObject._ships[obj.MMSI];
-                let obj3D = ship.object3D;
-                let point1 = {x: ship.x, y: ship.y, z: ship.z};
-                ship.z++;
-                ship.x = obj.location.LAT * 10;
-                ship.y = obj.location.LONG * 10;
-                let point2 = {x: ship.x, y: ship.y, z: ship.z};
-                let lineObj = _getLine(point1, point2, "#cccccc");
-                window.graph.addObject(lineObj);
-                _setShipPosition(ship);
-            }
         }
     }
 
@@ -403,30 +584,33 @@ export default class AObject {
     }
 
     static editObject(obj) {
+        let editForm = null;
         if (AMainWindow.objectEditors.hasOwnProperty(obj._type)) {
-            let editForm = AMainWindow.objectEditors[obj._type](obj);
-            w2popup.open({
-                height: 850,
-                width: 850,
-                title: `Edit ${obj._type}`,
-                body: '<div id="editObjectDialog" style="width: 100%; height: 100%;"></div>',
-                showMax: true,
-                onToggle: function (event) {
-                    $(w2ui.editModelDialog.box).hide();
-                    event.onComplete = function () {
-                        $(w2ui.editObjectDialog.box).show();
-                        w2ui.editObjectDialog.resize();
-                    }
-                },
-                onOpen: function (event) {
-                    event.onComplete = function () {
-                        // specifying an onOpen handler instead is equivalent to specifying an onBeforeOpen handler,
-                        // which would make this code execute too early and hence not deliver.
-                        $('#editObjectDialog').w2render(editForm);
-                    }
-                }
-            });
+            editForm = AMainWindow.objectEditors[obj._type](obj);
+        } else {
+            editForm = AObject.getEditForm(obj);
         }
+        w2popup.open({
+            height: 850,
+            width: 850,
+            title: `Edit ${obj._type}`,
+            body: '<div id="editObjectDialog" style="width: 100%; height: 100%;"></div>',
+            showMax: true,
+            onToggle: function (event) {
+                $(w2ui.editObjectDialog.box).hide();
+                event.onComplete = function () {
+                    $(w2ui.editObjectDialog.box).show();
+                    w2ui.editObjectDialog.resize();
+                }
+            },
+            onOpen: function (event) {
+                event.onComplete = function () {
+                    // specifying an onOpen handler instead is equivalent to specifying an onBeforeOpen handler,
+                    // which would make this code execute too early and hence not deliver.
+                    $('#editObjectDialog').w2render(editForm);
+                }
+            }
+        });
     }
 }
 
@@ -511,93 +695,4 @@ const _getLine = (point1, point2, color) => {
     const geo = new THREE.BufferGeometry().setFromPoints(points);
     const ret = new THREE.Line(geo, mat);
     return ret;
-}
-const _shipColor = {
-    21: "#ffffaa",
-    22: "#ffffaa",
-    30: "#ff8844",
-    31: "#ffffaa",
-    32: "#ffffaa",
-    35: "#4488ff",
-    36: "#44ff88",
-    52: "#ffffaa",
-    60: "#44ff88",
-    61: "#44ff88",
-    62: "#44ff88",
-    63: "#44ff88",
-    64: "#44ff88",
-    65: "#44ff88",
-    66: "#44ff88",
-    67: "#44ff88",
-    68: "#44ff88",
-    69: "#44ff88",
-    70: "#ffffaa",
-    71: "#ffffaa",
-    72: "#ffffaa",
-    73: "#ffffaa",
-    74: "#ffffaa",
-    75: "#ffffaa",
-    76: "#ffffaa",
-    77: "#ffffaa",
-    78: "#ffffaa",
-    79: "#ffffaa",
-    80: "#ffaa88",
-    81: "#ffaa88",
-    82: "#ffaa88",
-    83: "#ffaa88",
-    84: "#ffaa88",
-    85: "#ffaa88",
-    86: "#ffaa88",
-    87: "#ffaa88",
-    88: "#ffaa88",
-    89: "#ffaa88"
-}
-
-const _getShip3D = (ship) => {
-    let color = "#ffffff";
-    if (_shipColor.hasOwnProperty(ship.VesselType)) {
-        color = _shipColor[ship.VesselType];
-    }
-    const geo = new THREE.ConeGeometry(ship.Width / 5, ship.Length / 10, 3, 1);
-    const material = new THREE.MeshPhysicalMaterial({
-        color: color,
-        transparent: true,
-        opacity: 0.75,
-        depthTest: true,
-        depthWrite: true,
-        alphaTest: 0,
-        reflectivity: 0.2,
-        thickness: 6,
-        metalness: 0,
-        side: THREE.DoubleSide
-    });
-    const obj3D = new THREE.Mesh(geo, material);
-    const arrow = new THREE.ConeGeometry(1, (ship.Length / 10) + 4, 20, 1);
-    const matArrow = new THREE.MeshPhysicalMaterial({
-        color: "#00ff00",
-        transparent: true,
-        opacity: 1,
-        depthTest: true,
-        depthWrite: true,
-        alphaTest: 0,
-        reflectivity: 0.2,
-        thickness: 6,
-        metalness: 0,
-        side: THREE.DoubleSide
-    });
-    const arrowObj = new THREE.Mesh(arrow, matArrow);
-   // obj3D.rotation.x = Math.PI / 2;
-    obj3D.rotation.z = (ship.location.Heading * (2 * Math.PI / 360));
-    // arrowObj.rotation.x = Math.PI / 2;
-    arrowObj.rotation.z = (ship.location.COG * (2 * Math.PI / 360));
-    ship.arrowObj = arrowObj;
-    ship.object3D = obj3D;
-    return obj3D;
-}
-
-const _setShipPosition = (ship) => {
-    ship.object3D.position.set(ship.x, ship.y, ship.z);
-    ship.object3D.rotation.z = ship.location.Heading * (2 * Math.PI / 360);
-    ship.arrowObj.position.set(ship.x, ship.y, ship.z);
-    ship.arrowObj.rotation.z = (ship.location.COG * (2 * Math.PI / 360));
 }

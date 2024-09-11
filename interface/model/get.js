@@ -31,18 +31,19 @@ module.exports = {
         let cls = AClass.getClass(cname);
         cls.name = cname;
         cls.id = cname;
+        let jcls = cls.definition;
         if(cls) {
             if(env.res) {
                 if(inputs.doc) {
                     if(cls.doc && cls.doc.basedir) {
                         if(fs.existsSync(cls.doc.basedir + '/doc.emd')) {
-                            cls.document = fs.readFileSync(cls.doc.basedir + '/doc.emd', 'utf8');
+                            jcls.document = fs.readFileSync(cls.doc.basedir + '/doc.emd', 'utf8');
                         } else {
-                            cls.document = "Enter documentation here.";
+                            jcls.document = "Enter documentation here.";
                         }
                     }
                 }
-                env.res.json(cls);
+                env.res.json(jcls);
             }
             return cls;
         } else {

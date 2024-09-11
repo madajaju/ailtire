@@ -2,60 +2,63 @@
  * Module dependencies.
  */
 
+const axios = require('axios');
+const YAML = require('yamljs');
 const spawn = require('child_process').spawn;
 const path = require('path');
 const dirname = path.dirname;
 const basename = path.basename;
 const fs = require('fs');
 const commander = require('commander');
+const {type} = require("mocha/lib/utils");
 
 // Get the package.json to get the current working directory and project name.
 
-commander._executeSubCommand = function (subcommand, args) {
-    if (!args.length) {
-        this.help();
-    }
-    if (args[0] === 'help' && args.length === 1) {
-        this.help();
-    }
+commander.executeSubCommand = function (argvAll, commands, args, subcommand) {
 
-    // <cmd> --help
-    if (args[0] === 'help') {
-        args[0] = args[1];
-        args[1] = '--help';
-    }
-
-    args.unshift(subcommand._name);
-
-    // name of the subcommand, link `pm-install`
-    let bin = args.join('/');
+    // name of the subcommand, link `pm/install`
+    let bin = commands.join('/');
 
     // In case of globally installed, get the base dir where executable
     //  subcommand file should be located at
     let baseDir = this._scriptPath;
+    if (!baseDir) {
+        baseDir = path.resolve(__dirname + '/..');
+    }
 
-    baseDir = dirname(baseDir);
 
     // prefer local `./<bin>` to bin in the $PATH
 
     // whether bin file is a js script with explicit `.js` or `.ts` extension
-    let found = findCommand(args, baseDir);
+    let found = findCommand(bin, baseDir);
     if (!found.bin) {
         // Now check the actions.
-        found = findAction(args, baseDir);
-        if (!found.bin) {
+        found = findAction(bin, baseDir);
+        if (!found._path) {
             // Try and print out the help for the command
             // if it cannot be found then show the help for the command
-            found = findHelp(args, baseDir);
+            found = findHelp(bin, baseDir);
             args = ['help'];
             if (!found.bin) {
                 this.help();
                 console.error('error: "%s" does not exist, try --help', args.join(' '));
                 return;
             }
+        } else {
+            if(args[0] === '--help' || args[0] === '-help') {
+                if(Object.keys(found).length > 2) {
+                    helpGroupAction(found);
+                } else {
+                    helpAction(found._action);
+                }
+            } else {
+                runAction(found._action, args);
+            }
         }
+
+    } else {
+        runCommand(found, args);
     }
-    runCommand(found, found.args);
 };
 
 function exists(file) {
@@ -90,10 +93,10 @@ const findHelp = (args, baseDir) => {
     let found = _findHelpCommand(args, baseDir);
     if (!found.act) {
         found = _findHelpAction(args, baseDir);
-        if(found.action) {
+        if (found.action) {
             found = _helpCommand(found);
         } else {
-            found = _helpCommandGroup(found,baseDir);
+            found = _helpCommandGroup(found, baseDir);
         }
     }
     return found;
@@ -121,15 +124,15 @@ const _findHelpCommand = (args, baseDir) => {
     return {bin: bin, args: args.slice(i)};
 };
 
-const findCommand = (args, baseDir) => {
-    let found = _findCommand(args, baseDir);
+const findCommand = (commands, baseDir) => {
+    let found = _findCommand(commands, baseDir);
     if (!found.bin) {
         // Look for the bin in the interface definitions.
         let interfaceDir = path.resolve(baseDir + "/../src/interface");
         let serverDir = path.resolve(baseDir + "/../src/Server");
-        serverDir = serverDir.replace(/\\/g,'\/');
-        serverDir = serverDir.replace(/\//g,'\/');
-        let isAction = _findCommand(args, interfaceDir);
+        serverDir = serverDir.replace(/\\/g, '\/');
+        serverDir = serverDir.replace(/\//g, '\/');
+        let isAction = _findCommand(commands, interfaceDir);
         if (isAction.bin) {
             var tdir = './.tmp/';
             var tfile = tdir + isAction.bin.replace(interfaceDir, '').split('/').pop();
@@ -144,7 +147,7 @@ const findCommand = (args, baseDir) => {
             tempString += `program`;
             for (let iname in action.inputs) {
                 let input = action.inputs[iname];
-                if(!input.required) {
+                if (!input.required) {
                     tempString += `\n\t.option('--${iname} <${input.type}>', '${input.description}')`;
                 } else {
                     tempString += `\n\t.requiredOption('--${iname} <${input.type}>', '${input.description}')`;
@@ -207,7 +210,7 @@ const runCommand = (found, args) => {
         });
         proc.on('error', (err) => {
             if (err.code === 'ENOENT') {
-                console.error('error: %s(1) does not exist, try --help', bin);
+                console.error('error: %s(1) does not exist, try -commands', bin);
             } else if (err.code === 'EACCES') {
                 console.error('error: %s(1) not executable. try chmod or run with root', bin);
             }
@@ -218,66 +221,94 @@ const runCommand = (found, args) => {
         this.runningCommand = proc;
     }
 };
-
-const findAction = (args, localBin) => {
-    let found = _findAction(args, localBin);
-    if (found.action) {
-        // Look for the bin in the interface definitions.
-        let tdir = './.tmp/';
-        let tfile = tdir + found.action._path.split('/').pop();
-        let action = found.action.action;
-        let tempString = `#!/user/bin/env node
-const bent = require('bent');
-const program = require('commander');
-const YAML = require('yamljs');
-const fs = require('fs');
-global.ailtire = { config: require('${__dirname.replace(/\\/g, '\\\\')}/../../.ailtire.js') };
-program.description('${action.description}')`;
-        for (let iname in action.inputs) {
-            let input = action.inputs[iname];
-            tempString += `\n\t.option('--${iname} <${input.type}>', '${input.description}')`;
+const runAction = async (action, args) => {
+    let url = `${global.ailtire.config.host}${action.name}`;
+    let argMap = {};
+    for(let i=0;i<args.length;i++) {
+        if(args[i].includes('-')) {
+            key = args[i].replace(/\-/g,'');
+            if(!args[i+1].includes('-')) {
+                argMap[key] = args[++i];
+            } else  {
+                argMap[key] = true;
+            }
+        } else {
+            console.error("Do not understand:", args[i]);
         }
-        tempString += `;\n`;
-        tempString += `program.parse(process.argv);
-let url = global.ailtire.config.host;
-let args = {};
-let params = '${found.action._path}?';
-params += 'mode=json';
-let options = program.opts();
-\n`;
-        for (key in action.inputs) {
-            if (action.inputs[key].type.toUpperCase() === 'YAML') {
-                tempString += `if(options['${key}']) { args['${key}'] = YAML.load(options['${key}']); }\n`;
-            } else if(action.inputs[key].type.toUpperCase() === 'FILE') {
-                tempString += `if(options['${key}']) { args['${key}'] = fs.readFileSync(options['${key}']); }\n`;
-            } else {
-                tempString += `if(options['${key}']) { args['${key}'] = options['${key}']; }\n`;
+    }
+    let data = {}
+    for(let aname in argMap) {
+        if(action.inputs && action.inputs[aname]) {
+            let typeAllCAPS = action.inputs[aname].type.toUpperCase();
+            if(typeAllCAPS === 'YAML') {
+                data[aname] = YAML.load(argMap[aname]);
+            } else if(typeAllCAPS === 'FILE') {}
+                data[aname] = fs.readfileSync(argMap[aname]);
+        } else {
+               data[aname] = argMap[aname];
+        }
+    }
+    let failed = false;
+    for(let iname in action.inputs) {
+        if(action.inputs[iname].required) {
+            if(!data[iname]) {
+                console.error(`   --${iname} is required!`);
+                failed = true;
             }
         }
-        tempString += `
-        console.log("URL:", url);
-        console.log("Args:", args);
-const post = bent(url, 'POST', 'json', 200);
-(async () => {
-    const response = await post(params, args);
-    console.log("Response:", response);
-})().catch(e => {
-    // Deal with the fact the chain failed
-    console.error("Response Error:", e);
-});`;
+    }
+    if(failed) {
+        let errorString = `Command: ${action.name.replace(/\//g,' ')}\n`;
+        for(let iname in action.inputs) {
+            errorString += ` --${iname} <${action.inputs[iname].type}> - ${action.inputs[iname].description}\n`;
+        }
+        console.error(errorString);
+        console.error("Command Failed!");
+    } else {
+        try {
+            let retVal = await axios.post(url, data);
+            console.log(retVal.data);
+        } catch(e) {
+            console.error(e);
+            throw e;
+        }
+    }
+}
+const helpGroupAction = (found) => {
+    let errorString = `Usage: ${found._path.replace(/\//g,' ')} [commands]\nCommands:\n`;
+    for(let iname in found) {
+        if(iname !== '_path' && iname !== '_action') {
+            let parameters = "";
+            let inputs = found[iname]._action.inputs;
+            for(let pname in inputs) {
+                parameters += `--pname <${inputs[pname].type}> `
+            }
+            errorString += `\t${iname} ${parameters}\n\t\t${found[iname]._action.description}\n`;
+        }
+    }
+    console.log(errorString);
+}
+const helpAction = (action) => {
+    let errorString = `Usage: ${action.name.replace(/\//g,' ')}\n`;
+    for(let iname in action.inputs) {
+        errorString += `\t--${iname} <${action.inputs[iname].type}> - ${action.inputs[iname].description}\n`;
+    }
+    console.log(errorString);
+}
+const findAction = (args, localBin) => {
+    let found = _findAction(args, localBin);
 
-        tfile = path.resolve(tfile);
-        let dirname = path.dirname(tfile);
-        fs.mkdirSync(dirname, {recursive: true});
-        fs.writeFileSync(tfile, tempString);
-        found = {bin: tfile, args: found.args, temp: true};
+    if(!found._action) {
+        helpGroupAction(found);
+        process.exit(0);
     }
     return found;
 };
-const _findAction = (args, localBin) => {
 
+const _findAction = (commandStr, localBin) => {
+    const args = commandStr.split('/');
     if (!global.hasOwnProperty('ailtire')) {
-        return {action: null, args: args};
+        return {_action: null, args: args};
     }
 
     let action = 0;
@@ -297,7 +328,7 @@ const _findAction = (args, localBin) => {
         }
         i++;
     }
-    return {action: action, args: args.slice(i-1)};
+    return aIter;
 };
 const _findHelpAction = (args, localBin) => {
     let action = 0;
@@ -333,7 +364,7 @@ const _helpCommand = (found) => {
     if (found.action) {
         // Look for the bin in the interface definitions.
         let tdir = './.tmp/';
-        let tfile = tdir + found.action._path.split('/').pop();
+        let tfile = tdir + found.action.name.split('/').pop();
 
         let tempString = '#!/usr/bin/env node\n\nconst program = require(\'commander\');\n\n';
         let action = found.action;
@@ -373,15 +404,14 @@ const _helpCommandGroup = (found, baseDir) => {
     if (existsDir(testDir)) {
         // Find all of the .js files that have the commands for this
         let files = getFiles(testDir);
-        for(let i in files) {
+        for (let i in files) {
             let cmd = require(files[i]);
             let name = cmd.friendlyName;
             let options = "";
-            for(let j in cmd.inputs) {
-                if(cmd.inputs[j].required) {
+            for (let j in cmd.inputs) {
+                if (cmd.inputs[j].required) {
                     options += ` <--${j}=${cmd.inputs[j].type}>`;
-                }
-                else {
+                } else {
                     options += ` [--${j}=${cmd.inputs[j].type}]`;
                 }
             }
@@ -396,8 +426,7 @@ const _helpCommandGroup = (found, baseDir) => {
     fs.mkdirSync(dirname, {recursive: true});
     try {
         fs.writeFileSync(tfile, tempString);
-    }
-    catch(e) {
+    } catch (e) {
         console.error("Makefile Error", e);
     }
     found = {bin: tfile, args: ['help'], temp: true};
@@ -418,7 +447,7 @@ const actionMap = () => {
             }
             act = act[cmds[i]];
         }
-        act.action = global.ailtire.config.actions[path];
+        act._action = global.ailtire.config.actions[path];
     }
     return actions;
 }

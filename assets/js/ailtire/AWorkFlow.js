@@ -1,13 +1,3 @@
-/*
- * Copyright 2023 Intel Corporation.
- * This software and the related documents are Intel copyrighted materials, and your use of them is governed by
- * the express license under which they were provided to you (License). Unless the License provides otherwise,
- * you may not use, modify, copy, publish, distribute, disclose or transmit this software or the related documents
- * without  Intel's prior written permission. This software and the related documents are provided as is, with no
- * express or implied warranties, other than those that are expressly stated in the License.
- *
- */
-
 import {
     AMainWindow,
     AText,
@@ -17,7 +7,6 @@ import {
     AFlowCondition,
     AScenario,
     AUsecase,
-    AObject
 } from './index.js';
 
 const scolor = {
@@ -270,7 +259,7 @@ export default class AWorkFlow {
                         render: function (record) {
                             if (record.startTime) {
                                 let date = new Date(record.startTime);
-                                let time =   ('0' + date.getHours()).slice(-2) + ':' +
+                                let time = ('0' + date.getHours()).slice(-2) + ':' +
                                     ('0' + date.getMinutes()).slice(-2) + ':' +
                                     ('0' + date.getSeconds()).slice(-2);
                                 let d = ('0' + date.getDate()).slice(-2) + '/' +
@@ -289,7 +278,7 @@ export default class AWorkFlow {
                         render: function (record) {
                             if (record.finishedTime) {
                                 let date = new Date(record.finishedTime);
-                                let time =   ('0' + date.getHours()).slice(-2) + ':' +
+                                let time = ('0' + date.getHours()).slice(-2) + ':' +
                                     ('0' + date.getMinutes()).slice(-2) + ':' +
                                     ('0' + date.getSeconds()).slice(-2);
                                 let d = ('0' + date.getDate()).slice(-2) + '/' +
@@ -308,7 +297,7 @@ export default class AWorkFlow {
                             if (record.finishedTime && record.startTime) {
                                 let date = new Date(record.finishedTime);
                                 let startTime = new Date(record.startTime);
-                                return `${(date - startTime)/1000}s`;
+                                return `${(date - startTime) / 1000}s`;
                             } else {
                                 return "";
                             }
@@ -761,6 +750,16 @@ export default class AWorkFlow {
             }
             yoffset -= maxSize.h + 10;
         }
+        // Find the middle and change all of the fx, fy,fz to ad
+
+
+        if (opts.mode === 'new') {
+            window.graph.setData(data.nodes, data.links);
+        } else {
+            window.graph.addData(data.nodes, data.links);
+        }
+        window.graph.showLinks();
+
         window.graph.graph.cameraPosition({
                 x: -maxSize.w / 2,
                 y: -maxSize.h / 2,
@@ -769,12 +768,6 @@ export default class AWorkFlow {
             {x: -maxSize.w / 2, y: -maxSize.h / 2, z: 0},
             1000  // ms transition duration.
         );
-        if (opts.mode === 'new') {
-            window.graph.setData(data.nodes, data.links);
-        } else {
-            window.graph.addData(data.nodes, data.links);
-        }
-        window.graph.showLinks();
         if (opts.mode === 'explode') {
             let links = [];
             for (let aname in workflow.activities) {
@@ -809,12 +802,15 @@ export default class AWorkFlow {
     }
 
     static inputForm(workflow, activity) {
+        if (w2ui['WorkflowInput']) {
+            w2ui['WorkflowInput'].destroy();
+        }
         let fields = [];
         let record = {};
         let inputs = activity.inputs;
         for (let name in inputs) {
             let input = inputs[name];
-            let ivalue = inputs[name];
+            let ivalue = activity.inputs[name];
             if (input.type === 'date') {
                 fields.push({
                     field: name,
@@ -822,11 +818,36 @@ export default class AWorkFlow {
                     required: input.required,
                     html: {label: name}
                 });
+            } else if (input.type === 'ref') {
+                let field = {
+                    field: name,
+                    type: 'list',
+                    required: input.required,
+                    options: {items: []},
+                    html: {label: name}
+                };
+                fields.push(field);
             } else if (input.type === "boolean") {
                 fields.push({
                     field: name,
                     type: 'checkbox',
                     required: input.required,
+                    html: {label: name}
+                });
+            } else if (input.type === 'enum') {
+                fields.push({
+                    field: name,
+                    type: 'list',
+                    required: input.required,
+                    html: {label: name},
+                    options: {items: input.values}
+                });
+            } else if (input.type === 'file') {
+                fields.push({
+                    field: name,
+                    type: 'fileUploader',
+                    required: input.required,
+                    options: {url: input.url},
                     html: {label: name}
                 });
             } else if (input.size) {
@@ -836,15 +857,15 @@ export default class AWorkFlow {
                     required: input.required,
                     html: {
                         label: name,
-                        attr: `size="${input.size}" style="width:300px; height:${(input.size / 80) * 12}px"`
+                        attr: `size="${input.size}" style="width:500px; height:${(input.size / 80) * 12}px"`
                     }
                 });
             } else {
                 fields.push({
                     field: name,
-                    type: 'text',
+                    type: 'textarea',
                     required: input.required,
-                    html: {label: name, attr: `size="50" style="width:300px"`}
+                    html: {label: name, attr: `size="50" style="width:500px"`}
                 });
             }
 
@@ -899,6 +920,25 @@ export default class AWorkFlow {
                 }
             }
         });
+        // Load values for dropdown list
+        for (let name in inputs) {
+            let input = inputs[name];
+            if (input.type === 'ref') {
+                let url = `${input.class}/list`;
+                $.ajax({
+                    url: url, success: function (results) {
+                        let names = ['--None--'];
+                        for (let i in results.records) {
+                            names.push(results.records[i]._name);
+                        }
+                        w2ui['WorkflowInput'].get(name).options.items = names;
+                        w2ui['WorkflowInput'].refresh();
+                    }, failure: function (results) {
+                        console.error(results);
+                    }
+                });
+            }
+        }
         return w2ui['WorkflowInput'];
     }
 
@@ -1206,8 +1246,8 @@ function _showWorkInstanceList(instances) {
                     caption: 'State',
                     size: '10%',
                     sortable: true,
-                    render: function(record) {
-                        if(record.state === 'inprogress') {
+                    render: function (record) {
+                        if (record.state === 'inprogress') {
                             return "<button class=w2ui-icon-reload></button><button class=w2ui-icon-info></button>";
                         }
                         return "<button class=w2ui-icon-check></button><button class=w2ui-icon-info></button>";
@@ -1226,7 +1266,7 @@ function _showWorkInstanceList(instances) {
                     render: function (record) {
                         if (record.startTime) {
                             let date = new Date(record.startTime);
-                            let time =   ('0' + date.getHours()).slice(-2) + ':' +
+                            let time = ('0' + date.getHours()).slice(-2) + ':' +
                                 ('0' + date.getMinutes()).slice(-2) + ':' +
                                 ('0' + date.getSeconds()).slice(-2);
                             let d = ('0' + date.getDate()).slice(-2) + '/' +
@@ -1245,7 +1285,7 @@ function _showWorkInstanceList(instances) {
                     render: function (record) {
                         if (record.finishedTime) {
                             let date = new Date(record.finishedTime);
-                            let time =   ('0' + date.getHours()).slice(-2) + ':' +
+                            let time = ('0' + date.getHours()).slice(-2) + ':' +
                                 ('0' + date.getMinutes()).slice(-2) + ':' +
                                 ('0' + date.getSeconds()).slice(-2);
                             let d = ('0' + date.getDate()).slice(-2) + '/' +
@@ -1265,7 +1305,7 @@ function _showWorkInstanceList(instances) {
                             let date = new Date(record.finishedTime);
 
                             let startTime = new Date(record.startTime);
-                            return `${(date - startTime)/1000}s`;
+                            return `${(date - startTime) / 1000}s`;
                         } else {
                             return "";
                         }
@@ -1465,16 +1505,18 @@ function _setGraphToolbar(object) {
 function _processCategoryList(parent, workflows, subcategories) {
     for (let wi in workflows) {
         let workflow = workflows[wi];
-        let wname = workflow.name.replace(/\s/g, '');
-        let node = {
-            id: wname,
-            text: workflow.name,
-            img: 'ailtire-workflow',
-            link: `workflow/get?id=${wname}`,
-            link2d: `workflow/uml?id=${wname}`,
-            view: 'workflow',
-        };
-        parent.push(node);
+        if (workflow) {
+            let wname = workflow.name.replace(/\s/g, '');
+            let node = {
+                id: wname,
+                text: workflow.name,
+                img: 'ailtire-workflow',
+                link: `workflow/get?id=${wname}`,
+                link2d: `workflow/uml?id=${wname}`,
+                view: 'workflow',
+            };
+            parent.push(node);
+        }
     }
     for (let si in subcategories) {
         let subcat = subcategories[si];

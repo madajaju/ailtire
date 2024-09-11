@@ -1,13 +1,3 @@
-/*
- * Copyright 2023 Intel Corporation.
- * This software and the related documents are Intel copyrighted materials, and your use of them is governed by
- * the express license under which they were provided to you (License). Unless the License provides otherwise,
- * you may not use, modify, copy, publish, distribute, disclose or transmit this software or the related documents
- * without  Intel's prior written permission. This software and the related documents are provided as is, with no
- * express or implied warranties, other than those that are expressly stated in the License.
- *
- */
-
 import {
     APackage,
     AScenario,
@@ -28,6 +18,7 @@ import {
 } from './index.js';
 
 import ALocation from './ALocation.js';
+import ANote from './ANote.js';
 import ADevice from './ADevice.js';
 import AWorkFlow from './AWorkFlow.js';
 import ACategory from './ACategory.js';
@@ -90,13 +81,15 @@ export default class AMainWindow {
         device: ADevice.handle,
         location: ALocation.handle,
         deployment: AEnvironment.handleList,
-        physical: AEnvironment.handlePhysicalList
+        physical: AEnvironment.handlePhysicalList,
+        note: ANote.handle
     };
     static handlers2d = {
         scenario: AScenario.handle2d,
         package: APackage.handle2d,
         usecase: AUsecase.handle2d,
         actor: AActor.handle2d,
+        note: ANote.handle2d,
         model: AModel.handle2d,
         stack: AStack.handle,
         environment: AEnvironment.handle,
@@ -113,6 +106,7 @@ export default class AMainWindow {
         package: APackage.editDocs,
         model: AModel.editDocs,
         actor: AActor.editDocs,
+        note: ANote.editDocs,
         usecase: AUsecase.editDocs,
         scenario: AScenario.editDocs,
         workflow: AWorkFlow.editDocs,
@@ -206,7 +200,7 @@ export default class AMainWindow {
                                 {type: 'button', id: 'editItem', text: 'Documentation'},
                                 {type: 'button', id: 'errorItem', text: 'View Model Errors'},
                                 {type: 'button', id: 'userActivity', text: 'User Activities'},
-                                {type: 'button', id: 'generate', text: 'Generative AI', img: 'ailtire-ai-icon'},
+                                {type: 'button', id: 'generate', text: 'GenAI', img: 'ailtire-ai-icon'},
                             ],
                             onClick: function (event) {
                                 AMainWindow.processTopMenu(event);
@@ -364,6 +358,7 @@ export default class AMainWindow {
                         ]
                     },
                     {id: 'process', text: 'Process View', group: true, expanded: false, nodes: []},
+                    {id: 'notes', text: 'Notes', group: true, expanded: false, nodes: []},
                 ],
                 onExpand: (event) => {
                     if (event.object.id === 'logical') {
@@ -519,6 +514,7 @@ export default class AMainWindow {
         AImage.showList('sidebar', 'images');
         AWorkFlow.showList('sidebar', 'process');
         AWorkFlow.showInstances('#workflowInstanceList');
+        ANote.showList('sidebar', 'notes');
     }
 
     static setupEventWatcher(config) {
@@ -545,7 +541,9 @@ export default class AMainWindow {
                 if (msg.obj) {
                     obj = msg.obj;
                 }
-                if (AMainWindow.currentView.includes('workflow')) {
+                if(AMainWindow.currentView.includes('note')) {
+                    ANote.handleEvent(event, obj, msg.message);
+                } else if (AMainWindow.currentView.includes('workflow')) {
                     AWorkFlow.handleEvent(event, obj, msg.message);
                 } else if (AMainWindow.currentView.includes('category')) {
                     ACategory.handleEvent(event, obj);
@@ -780,7 +778,14 @@ export default class AMainWindow {
                 });
             } else {
                 let sobj = AMainWindow.selectedObject.results;
-                AObject.editObject(sobj);
+                let url = `${sobj._type.toLowerCase()}?id=${sobj._id}`
+                $.ajax({
+                    url: url,
+                    success: function (results) {
+                        let sobj = results;
+                        AObject.editObject(sobj);
+                    }
+                });
             }
         } else if (event.target === 'userActivity') {
             $.ajax({
@@ -791,10 +796,18 @@ export default class AMainWindow {
             });
         } else if (event.target === 'generate') {
             if (AMainWindow.selectedObject.link) {
-                let url = `${AMainWindow.currentView}/generate?target=Items`;
+                // let url = `${AMainWindow.currentView}/generate?target=Items`;
+                let url = `app/generate`;
+                AMainWindow.currentView = 'note';
                 AGenerativeAI.inputPopup(url);
             } else if (AMainWindow.currentView) {
-                let url = `${AMainWindow.currentView}/generate?target=Items`;
+                // let url = `${AMainWindow.currentView}/generate?target=Items`;
+                let url = `app/generate`;
+                AMainWindow.currentView = 'note';
+                AGenerativeAI.inputPopup(url);
+            } else {
+                let url = `app/generate`;
+                AMainWindow.currentView = 'note';
                 AGenerativeAI.inputPopup(url);
             }
         }

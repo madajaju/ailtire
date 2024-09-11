@@ -39,7 +39,7 @@ module.exports = {
             if(myClass) {
                 let newObj = new myClass(inputs);
                 AEvent.emit(modelName + '.create', {obj: newObj.toJSON});
-                if (env.res) {
+                if (env?.res) {
                     env.res.redirect(`/${modelName}?id=${newObj.id}`)
                 }
             } else {

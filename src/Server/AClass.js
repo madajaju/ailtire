@@ -4,6 +4,7 @@ const AMethod = require("ailtire/src/Server/AMethod");
 const AIHelper = require("ailtire/src/Server/AIHelper");
 const path = require("path");
 const fs = require("fs");
+const funcHandler = require("ailtire/src/Proxy/MethodProxy");
 
 const associationFormat = `
     assocName1: {
@@ -76,6 +77,49 @@ module.exports = {
     getInstances: (className) => {
         let cls = _getClass(className);
         return _getInstances(cls);
+    },
+    create: (cls) => {
+        const APackage = require('../../src/Server/APackage');
+        const AEvent = require("../../src/Server/AEvent");
+
+        try {
+            let pkg= null;
+            try {
+                pkg = APackage.get(cls.package);
+            } catch(e) {
+                pkg = global.topPackage;
+                cls.package = pkg.name;
+            }
+            if(!pkg.classes) { pkg.classes = {}; }
+            if (pkg.classes.hasOwnProperty(cls.name)) {
+                let oClass = pkg.classes[cls.name];
+                oClass.definition.description = cls.description;
+
+                for (let aname in cls.attributes) {
+                    oClass.definition.attributes[aname] = cls.attributes[aname];
+                }
+                for (let aname in cls.associations) {
+                    oClass.definition.associations[aname] = cls.associations[aname];
+                }
+                _save(oClass);
+                AEvent.emit('class.updated', cls);
+                return oClass;
+            } else {
+                let saveDirectory = `${pkg.definition.dir}/models/${cls.name.replace(/\s/g, '')}`;
+                cls.dir = saveDirectory;
+                let retval = _save({definition: cls});
+                AEvent.emit('class.created', retval);
+                return _load(pkg, cls.dir);
+            }
+        }
+        catch(e) {
+            console.error(e);
+            
+        }
+    },
+    load: (pkg, dir) => {
+
+        _load(pkg, dir);
     },
     save: (cls) => {
         return _save(cls);
@@ -327,9 +371,54 @@ class ${cls.definition.name} {
 }
 module.exports = ${cls.definition.name};
 `
+    // Make sure the directory exits.
+    fs.mkdirSync(cls.definition.dir, {recursive: true});
     fs.writeFileSync(cfile, output);
     console.log("Saving Class to file ", cfile);
-    return true;
+    return cls;
 }
 
+const isDirectory = source => fs.existsSync(source) && fs.lstatSync(source).isDirectory();
+const isFile = source => fs.existsSync(source) && !fs.lstatSync(source).isDirectory();
+const getDirectories = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
+const getFiles = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isFile);
 
+
+function loadClassMethods(mClass, mDir) {
+    let files = getFiles(mDir);
+    mClass.definition.methods = {};
+    for (let i in files) {
+        let file = files[i].replace(/\\/g, '/');
+        let methodname = path.basename(file).replace('.js', '');
+        if (methodname !== 'index') {
+            mClass.definition.methods[methodname] = require(file);
+            mClass.definition.methods[methodname].name = methodname;
+            mClass.prototype[methodname] = function (inputs) {
+                return funcHandler.run(mClass.definition.methods[methodname], this, inputs);
+            }
+        }
+    }
+};
+
+async function loadDocs(pkg, dir) {
+    const {default: ADocumentation} = await import("ailtire/src/Server/ADocumentation.mjs");
+    ADocumentation.load(pkg, dir);
+}
+function _load(pkg, dir) {
+    const classProxy = require("ailtire/src/Proxy/ClassProxy");
+    
+    let myClass = require(dir + '/index.js');
+
+    myClass.package = pkg;
+    myClass.dir = dir;
+    let myProxy = new Proxy(myClass, classProxy);
+    // set the owners array for persistence.
+    myClass.definition.owners = new Array();
+    myClass.definition.dir = dir;
+    pkg.classes[myClass.definition.name] = myProxy;
+    global.classes[myClass.definition.name] = myProxy;
+    global[myClass.definition.name] = myProxy;
+    loadClassMethods(myClass, dir);
+    loadDocs(myClass, dir + '/doc');
+    return myProxy;
+}

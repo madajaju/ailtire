@@ -3,10 +3,53 @@ const APackage = require("ailtire/src/Server/APackage");
 const AMethod = require("ailtire/src/Server/AMethod");
 const path = require("path");
 const fs = require("fs");
+const api = require('../Documentation/api.js');
+
+const isDirectory = source => fs.existsSync(source) && fs.lstatSync(source).isDirectory();
+const isFile = source => fs.existsSync(source) && !fs.lstatSync(source).isDirectory();
+const getDirectories = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
+const getFiles = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isFile);
 
 module.exports = {
     save: (cls) => {
         return _save(cls);
+    },
+    create: (actor) => {
+        // Check to see if actor already exists.
+        let actorObject = _getActor(actor.name);
+        // If the actor exists then update it with the input.
+        if (actorObject) {
+            for (let cname in actor) {
+                actorObject[cname] = actor[cname]
+            }
+            _save(actorObject);
+            AEvent.emit('actor.updated', actor);
+        } else {
+            if (!actor.dir) {
+                actor.dir = `./actors/${actor.name.replace(/\s/g, '')}`;
+            }
+            _save(actor);
+            AEvent.emit('actor.created', actor);
+        }
+        // Now load this in the global memory space.
+        _load(actor.dir);
+        return actor;
+    },
+    load: (actor) => {
+        _load(actor);
+    },
+    loadAll: (dir) => {
+        let actors = getDirectories(dir);
+        // Initialize the global actors.
+        if (!global.hasOwnProperty('actors')) {
+            global.actors = {};
+        }
+        for (let i in actors) {
+            let actorDir = actors[i];
+            if (!actorDir.includes('\\doc') && !actorDir.includes('\/doc')) {
+                _load(actorDir);
+            }
+        }
     },
     get: (name) => {
         return _getActor(name);
@@ -17,8 +60,14 @@ module.exports = {
         let doc = _getDocumentation(actor);
 
         let messages = [];
-        messages.push({role: 'system', content: `Act as a use case system analyst. Use the following actor for analysis of the user prompt: ${json}`});
-        messages.push({ role: 'system', content: `Use the following as actor documentation for analysis of the user prompt: ${doc}`});
+        messages.push({
+            role: 'system',
+            content: `Act as a use case system analyst. Use the following actor for analysis of the user prompt: ${json}`
+        });
+        messages.push({
+            role: 'system',
+            content: `Use the following as actor documentation for analysis of the user prompt: ${doc}`
+        });
         // messages.push({ role: 'system', content: `Use the following as system documentation for analysis of the
         // user prompt: ${systemDoc}`});
         let items = ["usecases", "scenarios"];
@@ -50,7 +99,10 @@ module.exports = {
 
         let messages = [];
         messages.push({role: 'system', content: `Use the following actor for analysis of the user prompt: ${json}`});
-        messages.push({ role: 'system', content: `Use the following as actor documentation for analysis of the user prompt: ${doc}`});
+        messages.push({
+            role: 'system',
+            content: `Use the following as actor documentation for analysis of the user prompt: ${doc}`
+        });
         // messages.push({ role: 'system', content: `Use the following as system documentation for analysis of the
         // user prompt: ${systemDoc}`});
         let items = ["usecases", "scenarios"];
@@ -83,6 +135,7 @@ async function _askAI(messages) {
     });
     return completion.choices[0].message.content;
 }
+
 async function _askAIForCode(messages) {
     let response = await _askAI(messages);
     let valid = false;
@@ -122,28 +175,49 @@ function _getDocumentation(cls) {
     }
     return retval;
 }
+
 function _save(actor) {
-    let cfile = path.resolve(`${actor.dir}/index.js`);
-    let output =  `
-module.exports = {
-    "name": "${actor.name}",
-    "shortname": "${actor.shortname}",
-    "description": "${actor.description}"
-};`;
-    fs.writeFileSync(cfile, output);
-    console.log("Saving Actor to file ", cfile);
+    api.actor(actor, './actors');
     return true;
 }
 
 function _getActor(name) {
     let retval = null;
     retval = global.actors[name];
-    if(retval) { return retval; }
-    for(let i in global.actors) {
+    if (retval) {
+        return retval;
+    }
+    for (let i in global.actors) {
         let actor = global.actors[i];
-        if(actor.name === name || actor.shortname === name) {
+        if (actor.name === name || actor.shortname === name) {
             return actor;
         }
     }
     return null;
+}
+
+function _load(dir) {
+    let fname = path.resolve(dir + '/index.js');
+    let actor = require(fname);
+    global.actors[actor.name.replace(/\s/g, '')] = actor;
+    actor.dir = dir;
+    _loadDocs(actor, dir + '/doc');
+}
+
+const _loadDocs = (item, dir) => {
+    if (fs.existsSync(dir)) {
+        let files = getFiles(dir);
+        let nfiles = [];
+        let ndir = dir;
+        ndir = ndir.replace(/[\/\\]/g, '/');
+        for (let i in files) {
+            let file = files[i];
+            let nfile = file.replace(/[\/\\]/g, '/');
+            nfiles.push(nfile.replace(ndir, ''));
+        }
+        item.doc = {basedir: dir, files: nfiles};
+    } else {
+        fs.mkdirSync(dir);
+        item.doc = {basedir: dir, files: []};
+    }
 }

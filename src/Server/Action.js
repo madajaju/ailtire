@@ -41,9 +41,15 @@ module.exports = {
             let action = find(config.routes[i]);
             if (action) {
                 console.log("Route:", route);
-                server.all(route, (req, res) => {
-                    execute(action, req.query, {req: req, res: res});
-                });
+                if(route.includes('/upload')) {
+                    server.post(route, global.upload.single('file-to-upload'), (req, res) => {
+                        execute(action, req.query, {req: req, res: res});
+                    });   
+                } else {
+                    server.all(route, (req, res) => {
+                        execute(action, req.query, {req: req, res: res});
+                    });
+                }
             } else {
                 console.error("Could not find the route: ", i, config.routes[i]);
             }
@@ -232,27 +238,40 @@ const mapToServer = (server, config) => {
             i = '/' + i;
         }
         let normalizedName = i.replace('/' + global.topPackage.shortname, '');
-
-        server.post('*' + normalizedName, (req, res) => {
-            req.url = req.url.replace(config.urlPrefix, '');
-            execute(gaction, req.query, {req: req, res: res});
-        });
-        server.all('*' + normalizedName, (req, res) => {
-            req.url = req.url.replace(config.urlPrefix, '');
-            execute(gaction, req.query, {req: req, res: res});
-        });
+        if(normalizedName.includes('/upload')) {
+            server.post('*' + normalizedName, (req, res) => {
+                req.url = req.url.replace(config.urlPrefix, '');
+                upload(gaction, req.query, {req: req, res: res});
+            });   
+        } else {
+            server.post('*' + normalizedName, (req, res) => {
+                req.url = req.url.replace(config.urlPrefix, '');
+                execute(gaction, req.query, {req: req, res: res});
+            });
+            server.all('*' + normalizedName, (req, res) => {
+                req.url = req.url.replace(config.urlPrefix, '');
+                execute(gaction, req.query, {req: req, res: res});
+            });
+        }
         if (!config.hasOwnProperty('urlPrefix')) {
             config.urlPrefix = '';
         }
         normalizedName = config.urlPrefix + normalizedName;
-        server.post('*' + normalizedName, (req, res) => {
-            req.url = req.url.replace(config.urlPrefix, '');
-            execute(gaction, req.query, {req: req, res: res});
-        });
-        server.all('*' + normalizedName, (req, res) => {
-            req.url = req.url.replace(config.urlPrefix, '');
-            execute(gaction, req.query, {req: req, res: res});
-        });
+        if(normalizedName.includes('/upload')) {
+            server.post('*' + normalizedName, global.upload.single('file'), (req, res) => {
+                req.url = req.url.replace(config.urlPrefix, '');
+                upload(gaction, req.query, {req: req, res: res});
+            });
+        } else {
+            server.post('*' + normalizedName, (req, res) => {
+                req.url = req.url.replace(config.urlPrefix, '');
+                execute(gaction, req.query, {req: req, res: res});
+            });
+            server.all('*' + normalizedName, (req, res) => {
+                req.url = req.url.replace(config.urlPrefix, '');
+                execute(gaction, req.query, {req: req, res: res});
+            });
+        }
     }
 };
 
@@ -276,6 +295,43 @@ const mapToServices = () => {
         global.services = mergeMaps(global.services, service);
     }
 };
+const upload = (action, inputs, env) => {
+    let finputs = {};
+    for (let i in action.inputs) {
+        let input = action.inputs[i];
+        if (input.hasOwnProperty('required') && input.required) {
+            if (inputs.hasOwnProperty(i)) {
+                if (typeof inputs[i] === input.type) {
+                    finputs[i] = inputs[i];
+                } else {
+                    console.error("Error with action:", action.friendlyName, action.description);
+                    console.error("Type Mismatch for: ", i, "expecting", input.type, "got", typeof inputs[i]);
+                }
+            } else {
+                //  console.error("Required parameter does not exist:", i);
+            }
+        }
+    }
+    for (let i in inputs) {
+        if (action.inputs.hasOwnProperty(i)) {
+            if (typeof inputs[i] === action.inputs[i].type) {
+                finputs[i] = inputs[i];
+            } else {
+                console.warn("Warning with action:", action.friendlyName, action.description);
+                console.error("Type Mismatch for: ", i, "expecting", action.inputs[i].type, "got", typeof inputs[i]);
+                finputs[i] = inputs[i];
+            }
+        } else {
+            finputs[i] = inputs[i];
+            console.warn("Parameter:", i, " is not defined!");
+        }
+    }
+    finputs.buffer = Buffer.from(env.req.body)
+    // run the function
+    const retval = _executeFunction(action, finputs, env);
+    return retval;
+}
+
 const execute = (action, inputs, env) => {
     // check the iputs
     // Add the body of the env.req to the inputs.
@@ -332,10 +388,12 @@ const _processReturn = (action, retval, env) => {
         if (retval) {
             try {
                 if (env && env.res) {
-                    if (action.exits.hasOwnProperty('json') && typeof action.exits.json === 'function') {
-                        env.res.json(action.exits.json(retval));
-                    } else if (action.exits.hasOwnProperty('json')) { // default return json in retval.
-                        env.res.json(retval);
+                    if (!env.res.headersSent) {
+                        if (action.exits.hasOwnProperty('json') && typeof action.exits.json === 'function') {
+                            env.res.json(action.exits.json(retval));
+                        } else if (action.exits.hasOwnProperty('json')) { // default return json in retval.
+                            env.res.json(retval);
+                        }
                     }
                 }
             } catch (e) {

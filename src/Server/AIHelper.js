@@ -34,7 +34,7 @@ async function _askForCode(messages) {
             valid = true;
             tries++;
         } catch (e) {
-            console.warn("Fixing the response:", response);
+            console.warn("Fixing the response:");
             let nMessages = [
                 {
                     role: 'system', content: "Given the following error from evaluting this string with" +
@@ -59,7 +59,7 @@ async function _askForCode(messages) {
 
 async function _ask(messages) {
     const completion = await global.openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: messages
     });
     return completion.choices[0].message.content;
