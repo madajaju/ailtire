@@ -509,10 +509,13 @@ function _createNoteItemDetails(record) {
                 let subtitle = subkey;
                 formHtml += `<div class="nested-field w2ui-field" style="padding-left: ${level * 20}px;">
                             <label>${subtitle.charAt(0).toUpperCase() + subtitle.slice(1)}</label>
-                            <div>
-                                <input name="${key}.${subkey}" type="${typeof value === 'number' ? 'number' : 'textarea'}" value="${value}" />
-                            </div>
-                        </div>`;
+                            <div>`;
+                            if(value.length > 50) {
+                                formHtml += `<textarea name="${key}.${subkey}" cols="50" rows="${Math.floor(value.length/50) + 1}">${value}</textarea>`;
+                            } else {
+                                formHtml += `<input name="${key}.${subkey}" type="${typeof value === 'number' ? 'number' : 'textarea'}" value="${value}" size="50"/>`;
+                            }
+                            formHtml += ` </div> </div>`;
             }
         }
         if(key.length > 0) {

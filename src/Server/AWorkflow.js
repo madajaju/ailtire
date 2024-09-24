@@ -119,8 +119,8 @@ module.exports = {
         return _workflowInstances[workflow.name];
     },
     create: (workflow) => {
-        const AEvent = require("ailtire/src/Server/AEvent");
-        const APackage = require("ailtire/src/Server/APackage");
+        const AEvent = require("./AEvent");
+        const APackage = require("./APackage");
         let wfObj = _get(workflow.name);
         if(!wfObj) {
             _save(workflow, global.topPackage);

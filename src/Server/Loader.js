@@ -8,7 +8,7 @@ const YAML = require('yamljs');
 const AClass = require('./AClass');
 const AActor = require('./AActor');
 const AHandler = require('./AHandler');
-const AActivityInstance = require("ailtire/src/Server/AActivityInstance");
+const AActivityInstance = require("./AActivityInstance");
 
 module.exports = {
     analyze: (pkg) => {
@@ -38,7 +38,7 @@ module.exports = {
 };
 
 const _loadNotes = async () => {
-    const { default: ANote } = await import("ailtire/src/Server/ANote.mjs");
+    const { default: ANote } = await import("./ANote.mjs");
     await ANote.loadDirectory(path.resolve('./.notes'));
 }
 
@@ -237,7 +237,7 @@ const loadWorkflows = (pkg, prefix, dir) => {
     }
 };
 const loadDocs = async (pkg, dir) => {
-    const { default: ADocumentation } = await import("ailtire/src/Server/ADocumentation.mjs");
+    const { default: ADocumentation } = await import("./ADocumentation.mjs");
     ADocumentation.load(pkg, dir);
    /* 
     if (fs.existsSync(dir)) {

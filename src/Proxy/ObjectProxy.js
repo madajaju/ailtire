@@ -5,7 +5,7 @@ const clearRegex = /^clear/;
 const funcHandler = require('./MethodProxy');
 const stateNetHandler = require('./StateNetProxy');
 const AClass = require('../Server/AClass');
-const AEvent = require("ailtire/src/Server/AEvent");
+const AEvent = require("../Server/AEvent");
 
 let toJSONDepth = 10;
 

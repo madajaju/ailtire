@@ -1,5 +1,5 @@
-const APackage = require('ailtire/src/Server/APackage');
-const generator = require('ailtire/src/Documentation/puml');
+const APackage = require('../../src/Server/APackage');
+const generator = require('../../src/Documentation/puml');
 
 module.exports = {
     friendlyName: 'uml',

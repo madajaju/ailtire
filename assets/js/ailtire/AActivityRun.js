@@ -19,35 +19,43 @@ const scolor = {
 };
 
 export default class AActivityRun {
-    constructor(activity) {
+    constructor(activity, data, bounds) {
         // Load up the attributes from the activity
         for(let iname in activity) {
             this[iname] = activity[iname];
         }
-        let data = {nodes: {}, links: []};
+        data = data || {nodes: {}, links: []};
         let aid = "AAI" + activity.id;
-        let color = scolor['created'];
+        let color = scolor[activity.state];
         // The depth of the activity has to do with activities that are workflows.
         // There are two numbers for each depth in the id. 0.1 is level 1, 0.1.2.3 is level 2.
-        let depth = -(Math.floor(activity.id.split('.').length / 2) - 1)*200;
+        let depthFactor = 1000 / bounds.duration;
+        let startTime = new Date(activity.startTime)
+        let displacement = depthFactor * Math.abs(bounds.startTime - startTime);
+        let depth = 10;
+        if(activity.finishedTime) {
+            let finishedTime = new Date(activity.finishedTime);
+            let duration = Math.abs(finishedTime - startTime);
+            depth = duration * depthFactor;
+        } else {
+            depth = 1000 - displacement;
+            console.log("Depth:", depth);
+        }
         let bbox = {
-            x: { min: depth, max: depth},
-            y: { min: -1000, max: 300 },
-            z: { max: -200 }
+            z: { min: -(displacement+(depth)), max: -(displacement+(depth)) }
         };
-
         if(activity.name === "Init") {
             // fix the location to the upper left hand corner.
             bbox = {
-                x: { min: depth, max: depth},
-                y: { min: 300, max: 300 },
-                z: { min: -200, max: -200 }
+                z: { min: -0, max: -0 }
             };
+            
             // Set the parent link for the init.
             // This will prevent all of the states being connected to the parent activity.
             // Although that is correct, the graph becomes too confusing.
             // The parent activity is the id minus the last number. The last number represents the workflow id.
             // Which is not shown in the graph.
+            /*
             if(activity.parent && typeof activity.parent === 'string') {
                 let ids = activity.parent.split('.');
                 ids.pop();
@@ -61,20 +69,18 @@ export default class AActivityRun {
                     });
                 }
             }
+             */
         }
         this.node = {
             id: aid,
-            state: "created",
+            state: activity.state || "created",
             name: activity.name,
             details: activity.description,
             view: AActivityRun.view3D,
             activity: activity,
             color: color,
+            depth: depth,
             bbox: bbox,
-            rotate: {
-                y:  Math.PI/2 // Rotate to the right side
-            },
-            orientation: { x: 1, y: 0, z: 0 }
         };
         // Set up the detail popup for the user activity if the activity requires user input.
         // If the actor is set on the activity it requires user input.
@@ -89,9 +95,9 @@ export default class AActivityRun {
             }
         }
         // This is the link to the AActivity.
-        data.links.push({target: aid, source: activity.name.replaceAll(/\s/g,''), value: 0, width: 0.1});
-        window.graph.addData(data.nodes, data.links);
+        // data.links.push({target: aid, source: activity.name.replaceAll(/\s/g,''), value: 0, width: 0.1});
         AActivityRun._instances[activity.id] = this;
+        return this;
     }
     static _instances = {};
 
@@ -182,19 +188,19 @@ export default class AActivityRun {
     static view3D(node, type) {
         node.object = node.activity;
         let size = AActivityRun.calculateBox(node);
+        size.d = Math.max(size.d, node.depth);
         // This is the rounded cube
         let width = size.w;
         let height = size.h
         let halfWidth = width / 2;
         let halfHeight = height / 2;
         let depth = size.d;
-        let radius0 = node.radius || (Math.min(Math.min(width, height), depth) * .25);
+        let radius0 = node.radius || (Math.min(Math.min(width, height), AActivityRun.default.depth) * .25);
         let smoothness = Math.max(3, Math.floor(node.smoothness) || 3);
-
-
         let shape = new THREE.Shape();
         let eps = AActivityRun.default.corner;
         let radius = radius0 - 1;
+        
 
         shape.absarc(-halfWidth + eps, -halfHeight + eps, eps, -Math.PI / 2, -Math.PI, true);
         shape.absarc(-halfWidth + eps, halfHeight - radius * 2, eps, Math.PI, Math.PI / 2, true);
@@ -206,6 +212,15 @@ export default class AActivityRun {
             node.description += node.message;
         }
         node.description += `\n${node.detail}\n`;
+        let startTime = new Date(node.object.startTime);
+        
+        node.description += `Start Time: ${_getCommonDateString(startTime)}\n`;
+        if(node.object.finishedTime) {
+            let finishedTime = new Date(node.object.finishedTime);
+            let duration = finishedTime - startTime;
+            node.description += `Finished Time: ${_getCommonDateString(finishedTime)}\n`;
+            node.description += `Duration: ${_getCommonDurationString(duration)}\n`;
+        }
         // This is the rounded cube
         let geometry = new THREE.ExtrudeBufferGeometry(shape, {
             depth: depth,
@@ -489,7 +504,9 @@ export default class AActivityRun {
             });
             // Handle the graphical elements
             // Create an AActivityRun
-            let node = new AActivityRun(activity);
+            let data = {nodes: {}, links: []};
+            let node = new AActivityRun(activity,data);
+            window.graph.addData(data.nodes, data.links);
         } else {
             // Find the appropriate node.
             let record = records["AAI" + activity.id];
@@ -554,3 +571,26 @@ export default class AActivityRun {
     }
 }
 
+function _getCommonDateString(date) {
+    let time = ('0' + date.getHours()).slice(-2) + ':' +
+        ('0' + date.getMinutes()).slice(-2) + ':' +
+        ('0' + date.getSeconds()).slice(-2);
+    let d = ('0' + date.getDate()).slice(-2) + '/' +
+        ('0' + (date.getMonth() + 1)).slice(-2) + '/' +
+        date.getFullYear();
+    return time + ' ' + d;
+}
+function _getCommonDurationString(time) {
+    if( time < 5 * 60 * 1000) { // 5 minutes
+        return `0:0:${time/1000}`;
+    } else if( time < 120 * 60 * 1000) { // 2 hours
+        let minutes = Math.floor( time / (60 *1000));
+        let seconds = (time - (( minutes * 60 * 1000))) / 1000;
+        return `0:${minutes}:${secs}`;
+    } else {
+        let hours = Math.floor(time / ( 60 * 60 * 1000));
+        let minutes = Math.floor(time - (hours * 60 * 60 * 1000)) / (60 *1000);
+        let seconds = (time - (( hours * 60 * 60 * 1000) + (minutes * 60 * 1000))) / 1000;
+        return `${hours}:${minutes}:${seconds}`;
+    }
+}

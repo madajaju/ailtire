@@ -7,7 +7,6 @@ import {
     AFlowCondition,
     AScenario,
     AUsecase,
-    AWorkFlowInstance,
 } from './index.js';
 
 const scolor = {
@@ -28,7 +27,7 @@ const scolor = {
     evaluated: "#ffff00",
 };
 
-export default class AWorkFlow {
+export default class AWorkFlowInstance {
     constructor(config) {
         this.config = config;
     }
@@ -49,9 +48,9 @@ export default class AWorkFlow {
             return Math.max(a, b);
         }, -Infinity);
 
-        let height = nameArray.length * AWorkFlow.default.fontSize * 2;
-        let width = maxLetters * (AWorkFlow.default.fontSize / 1.5);
-        let depth = AWorkFlow.default.depth;
+        let height = nameArray.length * AWorkFlowInstance.default.fontSize * 2;
+        let width = maxLetters * (AWorkFlowInstance.default.fontSize / 1.5);
+        let depth = AWorkFlowInstance.default.depth;
         let radius = Math.max(Math.sqrt(width * width + height * height), Math.sqrt(height * height + depth * depth), Math.sqrt(width * width + depth * depth)) / 2;
         return {w: width, h: height, d: depth, r: radius};
     }
@@ -75,7 +74,7 @@ export default class AWorkFlow {
         } else if (type === 'Sourced') {
             color = "green";
         }
-        const size = AWorkFlow.calculateBox(node);
+        const size = AWorkFlowInstance.calculateBox(node);
         const theta = Math.PI / 2;
         const group = new THREE.Group();
         const material = new THREE.MeshPhysicalMaterial({
@@ -119,8 +118,8 @@ export default class AWorkFlow {
         group.aid = node.id;
         node.box = size.r;
         node.expandLink = `statenet/get?id=${node.id}`;
-        node.expandView = AWorkFlow.handle;
-        node.getDetail = AWorkFlow.getDetail;
+        node.expandView = AWorkFlowInstance.handle;
+        node.getDetail = AWorkFlowInstance.getDetail;
 
         return group;
     }
@@ -129,7 +128,7 @@ export default class AWorkFlow {
         $.ajax({
             url: node.expandLink,
             success: (results) => {
-                AWorkFlow.showDetail(results);
+                AWorkFlowInstance.showDetail(results);
             }
         });
     }
@@ -146,10 +145,10 @@ export default class AWorkFlow {
         // The name is the same as the id on workflows.
         // It needs to be set.
         results.id = results.name;
-        AWorkFlow.viewDeep3D(results, config);
-        AWorkFlow.showDetail(results);
+        AWorkFlowInstance.viewDeep3D(results, config);
+        AWorkFlowInstance.showDetail(results);
         AMainWindow.currentView = "workflow";
-        let form = AWorkFlow._simulationForm(results);
+        let form = AWorkFlowInstance._simulationForm(results);
         w2ui['bottomLayout'].html('main', form);
         setTimeout(function () {
             form.refreshBody();
@@ -177,7 +176,7 @@ export default class AWorkFlow {
             },
             {
                 type: 'button', id: 'explode', text: 'Explode', img: 'w2ui-icon-search', onClick: (event) => {
-                    AWorkFlow.viewDeep3D(results, {mode: 'explode'});
+                    AWorkFlowInstance.viewDeep3D(results, {mode: 'explode'});
                 }
             }
         ]);
@@ -263,7 +262,13 @@ export default class AWorkFlow {
                         render: function (record) {
                             if (record.startTime) {
                                 let date = new Date(record.startTime);
-                                return _getCommonDateString(date);
+                                let time = ('0' + date.getHours()).slice(-2) + ':' +
+                                    ('0' + date.getMinutes()).slice(-2) + ':' +
+                                    ('0' + date.getSeconds()).slice(-2);
+                                let d = ('0' + date.getDate()).slice(-2) + '/' +
+                                    ('0' + (date.getMonth() + 1)).slice(-2) + '/' +
+                                    date.getFullYear();
+                                return time + ' ' + d;
                             } else {
                                 return "";
                             }
@@ -276,7 +281,13 @@ export default class AWorkFlow {
                         render: function (record) {
                             if (record.finishedTime) {
                                 let date = new Date(record.finishedTime);
-                                return _getCommonDateString(date);
+                                let time = ('0' + date.getHours()).slice(-2) + ':' +
+                                    ('0' + date.getMinutes()).slice(-2) + ':' +
+                                    ('0' + date.getSeconds()).slice(-2);
+                                let d = ('0' + date.getDate()).slice(-2) + '/' +
+                                    ('0' + (date.getMonth() + 1)).slice(-2) + '/' +
+                                    date.getFullYear();
+                                return time + ' ' + d;
                             }
                             return '';
                         }
@@ -301,15 +312,17 @@ export default class AWorkFlow {
                     let workflow = w2ui['WorkflowSimulation'].workflow;
                     let instance = w2ui['WorkflowSimulation'].workflowInstance;
                     // Select the Activity if the Activity Run
-                    let records = w2ui['WorkflowSimulation'].records;
-                    for (let i in records) {
-                        let record = records[i];
-                        if (record.recid == event.recid) {
-                            let aid = "AAI" + record.id;
-                            window.graph.selectNodeByID(aid);
-                            AActivityRun.selectNode(event.recid);
-                            break;
+                    if (event.column === 1) {
+                        let records = w2ui['WorkflowSimulation'].records;
+                        for (let i in records) {
+                            let record = records[i];
+                            if (record.recid === event.recid) {
+                                window.graph.selectNodeByID(record.name.replaceAll(/\s/g, ''));
+                                break;
+                            }
                         }
+                    } else {
+                        AActivityRun.selectNode(event.recid);
                     }
                     $.ajax({
                         url: `workflow/instance?id=${workflow.id}`,
@@ -319,7 +332,7 @@ export default class AWorkFlow {
                                 instance = result.length - 1;
                             }
                             let text = result[instance].activities[event.recid];
-                            AWorkFlow.popup(text);
+                            AWorkFlowInstance.popup(text);
                         }
                     })
                 },
@@ -351,7 +364,7 @@ export default class AWorkFlow {
                             } else {
                                 // create a simple dialog with the inputs and the onClick should call the scenario
                                 // With the parametersEdit
-                                AWorkFlow.inputPopup(workflow, workflow.activities.Init);
+                                AWorkFlowInstance.inputPopup(workflow, workflow.activities.Init);
                                 // Clear out the WorkflowSimulation
                                 w2ui['WorkflowSimulation'].clear();
                                 AActivityRun.clear();
@@ -413,8 +426,8 @@ export default class AWorkFlow {
     }
 
     static handleList(result) {
-        AWorkFlow.viewList3D(result, 'new');
-        AWorkFlow.showListDetail(result);
+        AWorkFlowInstance.viewList3D(result, 'new');
+        AWorkFlowInstance.showListDetail(result);
     }
 
     static viewList3D(result) {
@@ -426,7 +439,7 @@ export default class AWorkFlow {
                 id: wname,
                 name: item.name,
                 description: item.description,
-                view: AWorkFlow.view3D
+                view: AWorkFlowInstance.view3D
             }
             for (let aname in item.activities) {
                 let activity = item.activities[aname];
@@ -553,116 +566,39 @@ export default class AWorkFlow {
     static viewDeep3D(workflow, opts, parent) {
         let initNode = undefined;
         let data = {nodes: {}, links: []};
-        let swimlanes = {};
         let cindex = 0;
         let idprefix = "";
         if (parent) {
             idprefix = `${parent.id}.`;
         }
+        // First create a book that has the workflowinstance with the name and id on it.
+        // Next add the inputs to it.
+        // Then add the activities as AActivityRun (object)
+        // The duration of the workflowinstance should be normalized to 1000.
+        let startTime = new Date(workflow.startTime);
+        let duration = 0;
+        if (workflow.finishedTime) {
+            let finishedTime = new Date(workflow.finishedTime);
+            duration = finishedTime - startTime;
 
-        for (let aname in workflow.activities) {
-            let activity = workflow.activities[aname];
-            activity.name = aname;
-            let containerID = undefined;
-            // Add the swimlane Nodes.
-            // The map prevents the swimlane from being added more than once.
-            if (activity.package) {
-                containerID = idprefix + activity.package;
-                data.nodes[containerID] = {
-                    id: containerID,
-                    name: activity.package,
-                    description: `Package: ${activity.package}`,
-                    type: 'package',
-                    view: ASwimlane.view3D
-                }
-            } else if (activity.actor) {
-                containerID = idprefix + activity.actor;
-                data.nodes[containerID] = {
-                    id: containerID,
-                    name: activity.actor,
-                    description: `Actor: ${activity.actor}`,
-                    type: 'actor',
-                    view: ASwimlane.view3D
-                }
-            } else {
-                containerID = idprefix + "_CatchAllSwimlane";
-                data.nodes[containerID] = {
-                    id: containerID,
-                    name: "Undefined",
-                    description: "",
-                    view: ASwimlane.view3D
-                }
-            }
-            // Add the activity Node.
-            let aid = idprefix + aname.replace(/\s/g, '');
-            data.nodes[aid] = {
-                id: aid,
-                name: aname,
-                detail: activity.description,
-                view: AActivity.view3D,
-                object: activity,
-                rbox: {
-                    parent: containerID,
-                },
-            }
-            // Store the activity in a swimlane map so we can orient the nodes later.
-            if (!swimlanes.hasOwnProperty(containerID)) {
-                swimlanes[containerID] = {
-                    color: AWorkFlow.colors[cindex++],
-                    size: {},
-                    children: new Array()
-                }
-            }
-            swimlanes[containerID].children.push(data.nodes[aid]);
-            // If next is empty then this is a terminal state.
-            // Connect to the parent node.
-            if (!activity.next && parent) {
-                data.links.push({source: aid, target: parent.id, width: 1, value: 40, color: "#aaffff"});
-            }
-
-            // Now get the next activity to determine the Kind of link.
-            for (let nname in activity.next) {
-                let next = activity.next[nname];
-                let nid = idprefix + nname.replace(/\s/g, '');
-                if (next.condition) {
-                    let cid = idprefix + next.condition.test.replace(/\s/g, '');
-                    if (!data.nodes.hasOwnProperty(cid)) {
-                        data.nodes[cid] = {
-                            id: cid,
-                            name: next.condition.test,
-                            description: next.condition.test,
-                            view: AFlowCondition.view3D,
-                        };
-                        swimlanes[containerID].children.push(data.nodes[cid]);
-
-                        data.links.push({
-                            target: cid,
-                            source: aid,
-                            value: 1,
-                            width: 2,
-                            relpos: 1,
-                            arrow: 30,
-                        });
+        } else { // Figure the scale based on the activities.
+            for (let aname in workflow.activities) {
+                let activities = workflow.activities[aname];
+                for (let i in activities) {
+                    let activity = activities[i];
+                    if (activity.finishedTime) {
+                        let finishTime = new Date(activity.finishedTime);
+                        let myDuration = Math.abs(finishTime - startTime);
+                        duration = Math.max(duration, myDuration);
                     }
-                    data.links.push({
-                        target: nid,
-                        source: cid,
-                        value: 10,
-                        width: 2,
-                        name: `[${next.condition.value}]`,
-                        relpos: 1,
-                        arrow: 30,
-                    });
-                } else {
-                    data.links.push({
-                        target: nid,
-                        source: aid,
-                        value: 10,
-                        width: 2,
-                        relpos: 1,
-                        arrow: 30,
-                    });
                 }
+            }
+        }
+        for (let aname in workflow.activities) {
+            let activities = workflow.activities[aname];
+            for (let i in activities) {
+                let activity = activities[i];
+                let node = new AActivityRun(activity, data, {startTime: startTime, duration: duration});
             }
         }
         if (data.nodes.hasOwnProperty(idprefix + "Init") && parent) {
@@ -671,80 +607,6 @@ export default class AWorkFlow {
         // Now calculate the width of the swimlanes based on the number of items
         let yoffset = 0; // Object.keys(swimlanes).length/2 * ;
         let maxSize = {w: 0, h: 0, d: 0};
-        for (let sname in swimlanes) {
-            let swimlane = swimlanes[sname];
-            let children = swimlane.children;
-            let size = ASwimlane.calculateBox({name: sname, children: children});
-            swimlane.size = size;
-            maxSize.w = Math.max(maxSize.w, size.w);
-            maxSize.h = Math.max(maxSize.h, size.h);
-            maxSize.d = Math.max(maxSize.d, size.d);
-        }
-        for (let sname in swimlanes) {
-            let swimlane = swimlanes[sname];
-            let children = swimlane.children;
-            data.nodes[sname].color = swimlane.color;
-            data.nodes[sname].w = maxSize.w;
-            data.nodes[sname].d = maxSize.d;
-            data.nodes[sname].h = maxSize.h;
-            data.nodes[sname].children = children;
-            if (parent) {
-                data.nodes[sname].rbox = {
-                    parent: parent.id,
-                    fx: -maxSize.w / 2,
-                    fy: yoffset,
-                    fz: -600,
-                };
-            } else {
-                data.nodes[sname].fx = -maxSize.w / 2;
-                data.nodes[sname].fy = yoffset;
-                data.nodes[sname].fz = 0;
-            }
-            swimlane.size = maxSize;
-            let size = swimlane.size;
-            for (let i in children) {
-                let cnode = children[i];
-                let csize = AActivity.calculateBox(cnode);
-                if (cnode.name === 'Init') { // This is a starting node.
-                    initNode = cnode;
-                    cnode.rbox = {
-                        parent: sname,
-                        // Need to add some buffer for the title on the min side of x.
-                        fx: -(size.w / 2 - csize.w / 2 - ASwimlane.default.fontSize * 4),
-                        fy: size.h / 2 - csize.h / 2,
-                        // z: {min: -(size.d/2 - csize.d/2), max: (size.d/2 -csize.d/2)},
-                        fz: size.d / 2 + csize.d / 2
-                    }
-                } else if (cnode.object && !cnode.object.next) { // This is a terminal node.
-                    cnode.rbox = {
-                        parent: sname,
-                        // Need to add some buffer for the title on the min side of x.
-                        x: {
-                            min: 0,
-                            max: (size.w / 2 - csize.w / 2)
-                        },
-                        y: {min: -(size.h / 2 - csize.h / 2), max: 0},
-                        // z: {min: -(size.d/2 - csize.d/2), max: (size.d/2 -csize.d/2)},
-                        fz: size.d / 2 + csize.d / 2
-                    }
-                } else {
-                    cnode.rbox = {
-                        parent: sname,
-                        // Need to add some buffer for the title on the min side of x.
-                        x: {
-                            min: -(size.w / 2 - csize.w / 2 - ASwimlane.default.fontSize * 4),
-                            max: (size.w / 2 - csize.w / 2)
-                        },
-                        y: {min: -(size.h / 2 - csize.h / 2), max: (size.h / 2 - csize.h / 2)},
-                        // z: {min: -(size.d/2 - csize.d/2), max: (size.d/2 -csize.d/2)},
-                        fz: size.d / 2 + csize.d / 2
-                    }
-                }
-            }
-            yoffset -= maxSize.h + 10;
-        }
-        // Find the middle and change all of the fx, fy,fz to ad
-
 
         if (opts.mode === 'new') {
             window.graph.setData(data.nodes, data.links);
@@ -784,7 +646,7 @@ export default class AWorkFlow {
                     $.ajax({
                         url: `workflow/get?id=${activity.name}`,
                         success: (results) => {
-                            AWorkFlow.viewDeep3D(results, {mode: "explode"}, data.nodes[aid]);
+                            AWorkFlowInstance.viewDeep3D(results, {mode: "explode"}, data.nodes[aid]);
                         }
                     });
                 }
@@ -936,7 +798,7 @@ export default class AWorkFlow {
     }
 
     static inputPopup(workflow, activity) {
-        let myForm = AWorkFlow.inputForm(workflow, activity);
+        let myForm = AWorkFlowInstance.inputForm(workflow, activity);
 
         $().w2popup('open', {
             title: 'Workflow Inputs',
@@ -1259,7 +1121,13 @@ function _showWorkInstanceList(instances) {
                     render: function (record) {
                         if (record.startTime) {
                             let date = new Date(record.startTime);
-                            return _getCommonDateString(date);
+                            let time = ('0' + date.getHours()).slice(-2) + ':' +
+                                ('0' + date.getMinutes()).slice(-2) + ':' +
+                                ('0' + date.getSeconds()).slice(-2);
+                            let d = ('0' + date.getDate()).slice(-2) + '/' +
+                                ('0' + (date.getMonth() + 1)).slice(-2) + '/' +
+                                date.getFullYear();
+                            return time + ' ' + d;
                         } else {
                             return "";
                         }
@@ -1272,7 +1140,13 @@ function _showWorkInstanceList(instances) {
                     render: function (record) {
                         if (record.finishedTime) {
                             let date = new Date(record.finishedTime);
-                            return _getCommonDateString(date); 
+                            let time = ('0' + date.getHours()).slice(-2) + ':' +
+                                ('0' + date.getMinutes()).slice(-2) + ':' +
+                                ('0' + date.getSeconds()).slice(-2);
+                            let d = ('0' + date.getDate()).slice(-2) + '/' +
+                                ('0' + (date.getMonth() + 1)).slice(-2) + '/' +
+                                date.getFullYear();
+                            return time + ' ' + d;
                         }
                         return '';
                     }
@@ -1286,7 +1160,7 @@ function _showWorkInstanceList(instances) {
                             let date = new Date(record.finishedTime);
 
                             let startTime = new Date(record.startTime);
-                            return _getCommonDurationString(Math.abs(date-startTime));
+                            return `${(date - startTime) / 1000}s`;
                         } else {
                             return "";
                         }
@@ -1296,12 +1170,12 @@ function _showWorkInstanceList(instances) {
             onClick(event) {
                 // Get the instance
                 let record = this.get(event.recid);
-                let form = AWorkFlow._simulationForm(record.instance);
+                let form = AWorkFlowInstance._simulationForm(record.instance);
                 w2ui['bottomLayout'].html('main', form);
                 setTimeout(function () {
                     form.refreshBody();
                 }, 10);
-                AWorkFlowInstance.viewDeep3D(record.instance, {mode: 'new'}); 
+                AWorkFlowInstance.viewDeep3D(record.instance, {mode: 'new'});
             }
         });
     }
@@ -1520,29 +1394,5 @@ function _processCategoryList(parent, workflows, subcategories) {
         };
         parent.push(pnode);
         _processCategoryList(pnode.nodes, subcat.workflows, subcat.subcategories);
-    }
-}
-
-function _getCommonDateString(date) {
-    let time = ('0' + date.getHours()).slice(-2) + ':' +
-        ('0' + date.getMinutes()).slice(-2) + ':' +
-        ('0' + date.getSeconds()).slice(-2);
-    let d = ('0' + date.getDate()).slice(-2) + '/' +
-        ('0' + (date.getMonth() + 1)).slice(-2) + '/' +
-        date.getFullYear();
-    return time + ' ' + d;
-}
-function _getCommonDurationString(time) {
-    if( time < 5 * 60 * 1000) { // 5 minutes
-        return `0:0:${time/1000}`;
-    } else if( time < 120 * 60 * 1000) { // 2 hours
-        let minutes = Math.floor( time / (60 *1000));
-        let seconds = (time - (( minutes * 60 * 1000))) / 1000;
-        return `0:${minutes}:${secs}`;
-    } else {
-        let hours = Math.floor(time / ( 60 * 60 * 1000));
-        let minutes = Math.floor(time - (hours * 60 * 60 * 1000)) / (60 *1000);
-        let seconds = (time - (( hours * 60 * 60 * 1000) + (minutes * 60 * 1000))) / 1000;
-        return `${hours}:${minutes}:${seconds}`;
     }
 }

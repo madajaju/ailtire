@@ -2,21 +2,16 @@ const path = require('path');
 const api = require('../../src/Documentation/api');
 module.exports = {
     friendlyName: 'create',
-    description: 'Create a Method in a Model',
+    description: 'Create an Workflow',
     static: true,
     inputs: {
         name: {
-            description: 'The name of the scenario',
+            description: 'The name of the usecase',
             type: 'string',
             required: true
         },
-        model: {
-            description: 'The name of the model',
-            type: 'string',
-            required: false
-        },
         package: {
-            description: 'The name of the package',
+            description: 'The name of the package for the workflow',
             type: 'string',
             required: false
         },
@@ -31,8 +26,8 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
-        api.method(inputs.package, inputs.model, inputs.name, '.');
-        return `Method: ${inputs.name} was created`;
+        api.workflow(inputs.package, inputs.name, '.');
+        return `Workflow: ${inputs.name} created`;
     }
 };
 

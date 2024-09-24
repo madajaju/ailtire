@@ -1,5 +1,5 @@
 const fs = require("fs");
-const APackage = require("ailtire/src/Server/APackage");
+const APackage = require("../../src/Server/APackage");
 
 module.exports = {
     friendlyName: 'set',

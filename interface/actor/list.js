@@ -4,11 +4,15 @@ module.exports = {
     friendlyName: 'list',
     description: 'List the Actors',
     inputs: {
+        
+    },
+    outputs: {
+        json: (obj) => { return obj; },
+        success: (obj) => { return obj; }
     },
 
     fn: function (inputs, env) {
-        env.res.json(global.actors);
-//        env.res.end(renderer.render('default', 'actor/list', {actors: global.actors, app: global.topPackage}));
+        return global.actors;
     }
 };
 

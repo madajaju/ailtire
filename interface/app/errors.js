@@ -1,6 +1,6 @@
 module.exports = {
     friendlyName: 'error',
-    description: 'Errors in an app',
+    description: 'Error an app',
     static: true,
     inputs: {
     },
@@ -14,10 +14,10 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
-        console.log(global.ailtire.error);
-        env.res.json(global.ailtire.error);
-        env.res.end();
-        return global.ailtire.errors;
+        if(env.res) {
+            env.res.json(ailtire.global.errors);
+        }
+        return ailtire.global.errors;
     }
 };
 

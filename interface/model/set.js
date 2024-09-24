@@ -1,5 +1,5 @@
 const fs = require("fs");
-const AClass = require("ailtire/src/Server/AClass");
+const AClass = require("../../src/Server/AClass");
 module.exports = {
     friendlyName: 'set',
     description: 'Set an UseCase documentation',

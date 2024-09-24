@@ -1,5 +1,5 @@
-const generator = require('ailtire/src/Documentation/puml');
-const AUseCase = require("ailtire/src/Server/AUseCase");
+const generator = require('../../src/Documentation/puml');
+const AUseCase = require("../../src/Server/AUseCase");
 
 module.exports = {
     friendlyName: 'uml',

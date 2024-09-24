@@ -1,10 +1,10 @@
-const AEvent = require("ailtire/src/Server/AEvent");
-const APackage = require("ailtire/src/Server/APackage");
-const AMethod = require("ailtire/src/Server/AMethod");
-const AIHelper = require("ailtire/src/Server/AIHelper");
+const AEvent = require("./AEvent");
+const APackage = require("./APackage");
+const AMethod = require("./AMethod");
+const AIHelper = require("./AIHelper");
 const path = require("path");
 const fs = require("fs");
-const funcHandler = require("ailtire/src/Proxy/MethodProxy");
+const funcHandler = require("../Proxy/MethodProxy");
 
 const associationFormat = `
     assocName1: {
@@ -401,11 +401,11 @@ function loadClassMethods(mClass, mDir) {
 };
 
 async function loadDocs(pkg, dir) {
-    const {default: ADocumentation} = await import("ailtire/src/Server/ADocumentation.mjs");
+    const {default: ADocumentation} = await import("./ADocumentation.mjs");
     ADocumentation.load(pkg, dir);
 }
 function _load(pkg, dir) {
-    const classProxy = require("ailtire/src/Proxy/ClassProxy");
+    const classProxy = require("../Proxy/ClassProxy");
     
     let myClass = require(dir + '/index.js');
 

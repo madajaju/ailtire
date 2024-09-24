@@ -1,6 +1,6 @@
-const AEvent = require("ailtire/src/Server/AEvent");
-const APackage = require("ailtire/src/Server/APackage");
-const AMethod = require("ailtire/src/Server/AMethod");
+const AEvent = require("./AEvent");
+const APackage = require("./APackage");
+const AMethod = require("./AMethod");
 const path = require("path");
 const fs = require("fs");
 const api = require('../Documentation/api.js');
@@ -53,6 +53,37 @@ module.exports = {
     },
     get: (name) => {
         return _getActor(name);
+    },
+    toPrompt: (actors) => {
+        let retval ={};
+        for(let aname in actors) {
+            let actor = actors[aname];
+            for (let i in actor) {
+                retval[i] = actor[i];
+                switch (i) {
+                    case "usecases":
+                        for(let iname in actor.usecases) {
+                            retval.usecases[iname] = {
+                                name: actor.usecases[iname].name,
+                                description: actor.usecases[iname].description, 
+                            };
+                        }
+                        break;
+                    case "scenarios":
+                        for(let iname in actor.scenarios) {
+                            retval.scenarios[iname] = {
+                                name: actor.scenarios[iname].name,
+                                description: actor.scenarios[iname].description,
+                            };
+                        }
+                        break;
+                    case "doc": 
+                        retval.doc = undefined;
+                        break;
+                }
+            }
+        }
+        return retval;
     },
     generateDocumentation: async (name) => {
         let actor = _getActor(name);

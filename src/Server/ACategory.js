@@ -4,7 +4,7 @@ const AService = require('../../src/Server/AService');
 const AIHelper = require('../../src/Server/AIHelper');
 const fs = require('fs');
 const path = require('path');
-const AWorkflow = require("ailtire/src/Server/AWorkflow");
+const AWorkflow = require("./AWorkflow");
 
 const workflowFormat = `
 {

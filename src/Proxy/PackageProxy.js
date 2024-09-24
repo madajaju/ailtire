@@ -1,6 +1,7 @@
 const handler = require('./ClassProxy');
 const funcHandler = require('./MethodProxy');
 const {parse, stringify, toJSON, fromJSON} = require('flatted');
+const util = require('util');
 
 module.exports = {
     get: (obj, prop) => {
@@ -12,7 +13,7 @@ module.exports = {
                 }
             }
         }
-        if(prop === 'definition') {
+        if (prop === 'definition') {
             return obj.definition;
         }
         /*if (obj.definition.methods.hasOwnProperty(prop)) {
@@ -30,7 +31,7 @@ module.exports = {
                 try {
                     let retval = _toJSON(obj.definition);
                     return retval;
-                } catch(e) {
+                } catch (e) {
                     console.error(e);
                 }
                 /* let retval = {};
@@ -60,7 +61,7 @@ module.exports = {
                  */
             }
         }
-        if(obj.definition.hasOwnProperty(prop)) {
+        if (obj.definition.hasOwnProperty(prop)) {
             return obj.definition[prop];
         } else {
             return obj[prop];
@@ -80,15 +81,58 @@ module.exports = {
     },
 };
 
+let _jsonCache = new WeakSet();
+
 function _toJSON(obj) {
-    let jsonCache = [];
-    let retval =  JSON.stringify(obj, (key, value) => {
-        if(typeof value === 'object' && value !== null) {
-            if(jsonCache.includes(value)) return;
-            jsonCache.push(value);
+    let retval = {};
+    for (let aname in obj) {
+        switch (aname) {
+            case "depends":
+                retval.depends = [];
+                for (let i in obj.depends) {
+                    retval.depends.push({
+                        shortname: obj.depends[i].shortname,
+                        name: obj.depends[i].name,
+                        description: obj.depends[i].description
+                    });
+                }
+                break;
+            case "subpackages":
+                retval.subpackages = {};
+                for (let i in obj.subpackages) {
+                    retval.subpackages[i] = {
+                        shortname: obj.subpackages[i].shortname,
+                        name: obj.subpackages[i].name,
+                        description: obj.subpackages[i].description
+                    };
+                }
+                break;
+                
+            case 'interface':
+                retval.interface = {};
+                for(let i in obj.interface) {
+                    retval.interface[i] = obj.interface[i];
+                    retval.interface[i].pkg = obj.interface[i].pkg.name;
+                }
+            default:
+                retval[aname] = obj[aname];
         }
-        return value;
-    });
-    jsonCache = null;
-    return retval
+    }
+    return retval;
+    /*    let retval =  JSON.stringify(obj, (key, value) => {
+            if(typeof value === 'object' && value !== null) {
+                if(_jsonCache.has(value)) {
+                    return;
+                }
+                _jsonCache.add(value);
+                if(util.types.isProxy(value)) {
+                    return value.definition;
+                }
+            }
+            return value;
+        });
+        _jsonCache = new WeakSet();
+        return retval
+        
+     */
 }

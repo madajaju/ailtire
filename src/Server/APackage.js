@@ -3,8 +3,8 @@ const path = require('path');
 const AUseCase = require('./AUseCase');
 const AClass = require('./AClass');
 const AWorkflow = require('./AWorkflow');
-const AMethod = require("ailtire/src/Server/AMethod");
-const AHandler = require("ailtire/src/Server/AHandler");
+const AMethod = require("./AMethod");
+const AHandler = require("./AHandler");
 
 const workflowFormat = `
 {

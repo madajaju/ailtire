@@ -1,5 +1,5 @@
-const AWorkflow = require('ailtire/src/Server/AWorkflow');
-const generator = require('ailtire/src/Documentation/puml');
+const AWorkflow = require('../../src/Server/AWorkflow');
+const generator = require('../../src/Documentation/puml');
 
 module.exports = {
     friendlyName: 'uml',

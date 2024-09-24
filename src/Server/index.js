@@ -1,5 +1,6 @@
-var server = require('express')();
-var http = require('http').createServer(server);
+const express = require('express');
+const server = express();
+const http = require('http').createServer(server);
 const path = require('path');
 const { Server } = require("socket.io");
 const sLoader = require('./Loader.js');
@@ -12,9 +13,9 @@ const bodyParser = require("body-parser");
 const upload = multer({dest: '.uploads/'});
 global.upload = upload;
 
-
 const htmlGenerator = require('../Documentation/html');
 const Renderer = require('../Documentation/Renderer');
+
 
 // Here we are configuring express to use body-parser as middle-ware.
 server.use(function(req, res, next) {
@@ -144,10 +145,6 @@ module.exports = {
         let apath = path.resolve(config.baseDir);
         let topPackage = sLoader.processPackage(apath);
         sLoader.analyze(topPackage);
-        /*if (config.hasOwnProperty('redis')) {
-            io.adapter(redis({host: config.redis.host, port: config.redis.port}));
-        }
-        */
         Action.defaults(server);
         let ailPath = __dirname + "/../../interface";
         Action.load(server, '', path.resolve(ailPath), config); // Load the ailtire defaults from the interface directory.
@@ -184,8 +181,8 @@ module.exports = {
             res.end(str);
         });
         server.all('*', (req, res) => {
-            // console.error(`Config: ${config.urlPrefix}`)
-            // console.error("Catch All", req.originalUrl);
+            console.error(`Config: ${config.urlPrefix}`)
+            console.error("Catch All", req.originalUrl);
             // Look in the views directly for items to load.
             let str = findPage(req.originalUrl, config);
             res.end(str);
@@ -312,6 +309,7 @@ module.exports = {
             let str = mainPage(config);
             res.end(str);
         });
+        /*
         server.get('/styles/*', (req, res) => {
             let apath = path.resolve('./assets' + req.url);
             let str = fs.readFileSync(apath, 'utf8');
@@ -327,6 +325,8 @@ module.exports = {
             let str = fs.readFileSync(apath, 'utf8');
             res.end(str);
         });
+        
+         */
     }
 }
 
@@ -355,19 +355,30 @@ function normalizeConfig(config) {
     config.instanceName = config.instanceName || process.env.AILTIRE_STACKNAME;
 }
 
+function findStaticFile(config, apath) {
+    config.staticPaths = config.staticPaths || [ path.resolve(`./views`), path.resolve(`./assets`) ];
+    let paths = config.staticPaths;
+    paths.push(path.resolve(`${__dirname}/../../assets`));
+    for(let i in paths) {
+        let checkPath = path.resolve(`${paths[i]}/${apath}`);
+        if(fs.existsSync(checkPath)) {
+            return checkPath    
+        }
+    }
+}
 function standardFileTypes(config,server) {
 
     server.get(`${config.urlPrefix}/styles/*`, (req, res) => {
-        let apath = path.resolve('./assets' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
+        let apath = findStaticFile(config, req._parsedUrl.pathname.replace(config.urlPrefix,''));
         // let str = fs.readFileSync(apath, 'utf8');
         res.sendFile(apath);
     });
     server.get(`${config.urlPrefix}/js/*`, (req, res) => {
-        let apath = path.resolve('./assets' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
+        let apath = findStaticFile(config, req._parsedUrl.pathname.replace(config.urlPrefix,''));
         res.sendFile(apath);
     });
     server.get(`${config.urlPrefix}/views/*`, (req, res) => {
-        let apath = path.resolve('./' + req._parsedUrl.pathname.replace(config.urlPrefix,''));
+        let apath = findStaticFile(config, req._parsedUrl.pathname.replace(config.urlPrefix,''));
         res.sendFile(apath);
     });
     server.get('*.html', (req, res) => {

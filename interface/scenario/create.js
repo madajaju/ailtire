@@ -2,7 +2,7 @@ const path = require('path');
 const api = require('../../src/Documentation/api');
 module.exports = {
     friendlyName: 'create',
-    description: 'Create a Method in a Model',
+    description: 'Create an Scenario in a UseCase',
     static: true,
     inputs: {
         name: {
@@ -10,10 +10,10 @@ module.exports = {
             type: 'string',
             required: true
         },
-        model: {
-            description: 'The name of the model',
+        usecase: {
+            description: 'The name of the usecase',
             type: 'string',
-            required: false
+            required: true
         },
         package: {
             description: 'The name of the package',
@@ -31,8 +31,8 @@ module.exports = {
     },
 
     fn: function (inputs, env) {
-        api.method(inputs.package, inputs.model, inputs.name, '.');
-        return `Method: ${inputs.name} was created`;
+        api.scenario(inputs.package, inputs.usecase, inputs.name, '.');
+        return `Scenario: ${inputs.name} was created`;
     }
 };
 

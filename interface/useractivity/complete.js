@@ -12,12 +12,6 @@ module.exports = {
     },
 
     exits: {
-        success: {},
-        json: {
-        },
-        notFound: {
-            description: 'No item with the specified ID was found in the database.',
-        }
     },
 
     fn: function (inputs, env) {
@@ -26,8 +20,12 @@ module.exports = {
             inputs.id = inputs.id[0];
         }
         let uact = UserActivity.getInstance(inputs.id);
-        uact.complete(inputs);
-        return;
+        if(uact) {
+            uact.complete(inputs);
+            return uact;
+        } else {
+            return "No UserActivity found with id: " + inputs.id;
+        }
     }
 };
 

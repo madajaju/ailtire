@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const AEvent = require("ailtire/src/Server/AEvent");
+const AEvent = require("./AEvent");
 
 let _activityInstances = {};
 

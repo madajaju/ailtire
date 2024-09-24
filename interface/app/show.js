@@ -1,6 +1,6 @@
-// const rst = require('../../src/Documentation/rst.js');
+// const rst = require('../../src/src/Documentation/rst.js');
 // const path = require('path');
-const renderer = require('../../src/Documentation/Renderer.js');
+const renderer = require('../../src/src/Documentation/Renderer.js');
 
 module.exports = {
     friendlyName: 'show',

@@ -1,5 +1,5 @@
-const AIHelper = require("ailtire/src/Server/AIHelper");
-const AScenario = require("ailtire/src/Server/AScenario");
+const AIHelper = require("./AIHelper");
+const AScenario = require("./AScenario");
 const path = require("path");
 const fs = require("fs");
 
@@ -11,8 +11,8 @@ module.exports = {
         return _getUseCase(name);
     },
     create: (usecase) => {
-        const AEvent = require("ailtire/src/Server/AEvent");
-        const APackage = require("ailtire/src/Server/APackage");
+        const AEvent = require("./AEvent");
+        const APackage = require("./APackage");
         let ucObject = _getUseCase(usecase.name);
         if (!ucObject) {
             let pkg = APackage.get(usecase.package);
@@ -32,6 +32,9 @@ module.exports = {
     },
     save: (usecase) => {
         return _save(usecase);
+    },
+    toPrompt: (usecases) => {
+        return usecases;
     },
     generateDocumentation: async (uname) => {
         let usecase = _getUseCase(uname);

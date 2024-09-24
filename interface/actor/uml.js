@@ -1,5 +1,5 @@
-const AActor = require('ailtire/src/Server/AActor');
-const generator = require('ailtire/src/Documentation/puml');
+const AActor = require('../../src/Server/AActor');
+const generator = require('../../src/Documentation/puml');
 
 module.exports = {
     friendlyName: 'uml',

@@ -20,7 +20,7 @@ module.exports = {
     },
 
     fn: async function (inputs, env) {
-        const { default: ANote } = await import("ailtire/src/Server/ANote.mjs");
+        const { default: ANote } = await import("../../src/Server/ANote.mjs");
         
         let note =  ANote.get(inputs.note);
         if(note) {

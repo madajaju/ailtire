@@ -5,8 +5,8 @@ const proc = require('child_process').exec;
 const plantuml = require('node-plantuml');
 const {PassThrough} = require('stream');
 const streamBuffers = require('stream-buffers');
-const Action = require("ailtire/src/Server/Action");
-const APackage = require("ailtire/src/Server/APackage");
+const Action = require("../../src/Server/Action");
+const APackage = require("../../src/Server/APackage");
 
 // const glob = require('glob');
 // const plantuml = require('node-plantuml');

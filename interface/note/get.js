@@ -16,7 +16,7 @@ module.exports = {
     },
 
     fn: async function (inputs, env) {
-        const { default: ANote } = await import("ailtire/src/Server/ANote.mjs");
+        const { default: ANote } = await import("../../src/Server/ANote.mjs");
         let retval = ANote.get(inputs.id);
         if(env.res) {
             env.res.json(retval);

@@ -1,4 +1,4 @@
-const AEvent = require("ailtire/src/Server/AEvent");
+const AEvent = require("./AEvent");
 const path = require("path");
 const fs = require("fs");
 

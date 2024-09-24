@@ -1,5 +1,5 @@
-const generator = require('ailtire/src/Documentation/puml');
-const AScenario = require("ailtire/src/Server/AScenario");
+const generator = require('../../src/Documentation/puml');
+const AScenario = require("../../src/Server/AScenario");
 
 module.exports = {
     friendlyName: 'uml',

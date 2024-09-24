@@ -1,36 +1,99 @@
-const AClass = require("ailtire/src/Server/AClass");
+const AClass = require("./AClass");
 
 const path = require("path");
 const fs = require("fs");
 const AIHelper = require(`./AIHelper`);
-const AEvent = require("ailtire/src/Server/AEvent");
+const AEvent = require("./AEvent");
+const AActor = require("./AActor");
+const AUseCase = require("./AUseCase");
 
 
 module.exports = {
     generateItems: async (notes, env) => {
-        const {default: ANote} = await import("ailtire/src/Server/ANote.mjs");
+        const {default: ANote} = await import("./ANote.mjs");
         let newNote = new ANote({text: notes});
         newNote.save();
         if (env && env.res) {
             env.res.json(newNote);
         }
+        // Action Items
+        await _generateActionItems(newNote);
         // Actors
-        await _generateActors(newNote);
+        // await _generateActors(newNote);
         // Use Cases
-        await _generateUseCases(newNote);
+        // await _generateUseCases(newNote);
         //Scenarios
-        await _generateScenarios(newNote);
+        // await _generateScenarios(newNote);
         // Workflows
-        await _generateWorkflows(newNote);
+        // await _generateWorkflows(newNote);
         // Packages
         // await _generatePackages(newNote);
         // Models
-        await _generateModels(newNote);
+        // await _generateModels(newNote);
         // Interfaces Do not add this at this time. Let the use cases, workflows and scenarios dictate the interface.
         // await _generateInterfaces(newNote);
         return;
     },
 };
+
+async function _generateActionItems(notes) {
+    let notesArray = notes.text.split('\n');
+    let chunks = [""];
+    let chunkIndex = 0;
+    for(let i in notesArray) {
+        if(chunks[chunkIndex].length > 20000) {
+           chunkIndex++;
+           chunks[chunkIndex] = "";
+        }
+        chunks[chunkIndex] += notesArray[i] + '\n';
+    }
+    // Create action items from the note coming in.
+    // First look at the action items in the current UserActivities
+    const actionItemFormat = `
+    {
+        name: "Action Item Name",
+        summary: "Summary of the Action Item",
+        description: "Details of the Action Item",
+        assignee: "The person who the action item is assigned.",
+        reporter: "Who identified the action item.",
+        dueDate: "When should the action item be completed.",
+    }
+    `
+    AEvent.emit("generate.actionItems.started", { message: "Generating Action Items from Notes"});
+    let actionItemList = [];
+    for(let i in chunks) {
+        AEvent.emit("generate.actionItems.inprogress", { message: `Finding Action Items from Notes: ${(i/chunks.length)*100}%`});
+        let messages = [];
+        messages.push({
+            role: "system",
+            content: `For the user prompt identify all of the action items, the due date and who is responsible. Use the following json format: ${actionItemFormat}`
+        });
+        messages.push({
+            role: "system",
+            content: `For the dueDate identify a real date or two weeks from ${new Date()}.`
+        });
+        messages.push({role: 'user', content: chunks[i]});
+        let actionItems = await AIHelper.askForCode(messages);
+        for (let i in actionItems) {
+            notes.addItem('AActionItem', actionItems[i]);
+        }
+    }
+    /*
+    let messages = [];
+    messages.push({ role:'system',content: 'Find duplicates and merge their descriptions from the list of action items in the user prompt.'});
+    messages.push({ role:'system',content: `Use the following json format: ${actionItemFormat}`});
+    messages.push({ role:'user',content: `Here is the list of actionItems: ${JSON.stringify(actionItemList)}`});
+
+    AEvent.emit("generate.actionItems.inprogress", { message: `Finding Action Items from Notes: 90%`});
+    
+    let actionItems = await AIHelper.askForCode(messages);
+    for(let i in actionItems) {
+        notes.addItem('AActionItem', actionItems[i]);
+    }
+     */
+    AEvent.emit("generate.actionItems.completed", {message: `Generating ${notes.items.length} ActionItems from Notes`});
+    notes.save();
+}
 
 function _getPackage(pkgName) {
     pkgName = pkgName.replace(/\s/g, '');
@@ -57,8 +120,8 @@ async function _generateScenarios(notes) {
     let package = global.topPackage;
     AEvent.emit("generate.scenarios.started", {message: `Generating Scenarios from Notes`});
     let pjson = JSON.stringify(package);
-    let ajson = JSON.stringify(global.actors);
-    let ujson = JSON.stringify(global.usecases);
+    let ajson = JSON.stringify(AActor.toPrompt(global.actors));
+    let ujson = JSON.stringify(AUseCase.toPrompt(global.usecases));
     let messages = [];
     messages.push({role: 'system', content: `Use the following usecases for analysis of the user prompt: ${ujson}`});
     messages.push({role: 'system', content: `Use the following actors for analysis of the user prompt: ${ajson}`});
@@ -94,8 +157,8 @@ async function _generateScenarios(notes) {
 
 async function _generateActors(notes) {
     let package = global.topPackage;
-    let pjson = JSON.stringify(package);
-    let ajson = JSON.stringify(global.actors);
+    let pjson = JSON.stringify(package.toJSON());
+    let ajson = JSON.stringify(AActor.toPrompt(global.actors));
     let messages = [];
     AEvent.emit("generate.started", {message: "Generating Actors from Notes"});
     messages.push({role: 'system', content: `Use the following actors for analysis of the user prompt: ${ajson}`});
@@ -125,7 +188,7 @@ async function _generateActors(notes) {
 }
 
 async function _generateWorkflows(notes) {
-    const AWorkflow = require("ailtire/src/Server/AWorkflow");
+    const AWorkflow = require("./AWorkflow");
     AEvent.emit("generate.started", {message: "Generating Workflows from Notes"});
     const workflowFormat = `
 {
@@ -399,7 +462,7 @@ async function _generateInterfaces(notes) {
 }
 
 async function _generateUseCases(notes) {
-    const AUseCase = require("ailtire/src/Server/AUseCase");
+    const AUseCase = require("./AUseCase");
     AEvent.emit("generate.started", {message: `Generating UseCases from Notes`});
     const usecaseFormat = `
     {

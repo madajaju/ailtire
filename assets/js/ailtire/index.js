@@ -30,6 +30,7 @@ import AMainWindow from "./AMainWindow.js";
 import AActivity from "./AActivity.js";
 import AActivityRun from "./AActivityRun.js";
 import AWorkFlow from "./AWorkFlow.js";
+import AWorkFlowInstance from "./AWorkFlowInstance.js";
 import AFlowCondition from "./AFlowCondition.js";
 import ASwimlane from "./ASwimlane.js";
 import AUserActivity from "./AUserActivity.js";
@@ -80,5 +81,6 @@ export {
     AGenerativeAI,
     ACategory,
     AEvent,
-    ANote
+    ANote,
+    AWorkFlowInstance
 };

@@ -15,13 +15,22 @@ global.openai = new OpenAI({
     apiKey: process.env.OPENAI_KEY
 });
 
+let config = {};
+if(fs.existsSync('.ailtire.js')) {
+    config = require('./.ailtire.js');
+} else {
+    config.host = host;
+    config.port = port;
+    let outputString = `module.exports = ${JSON.stringify(config)};`;
+    fs.writeFileSync('.ailtire.js', outputString, 'utf8');
+}
 
 server.listen( {
     baseDir: '.',
     prefix: '',
-    host: host,
+    host: config.host,
     urlPrefix: urlPrefix,
-    listenPort: port,
+    listenPort: config.port,
     internalURL: `${host}:${port}${urlPrefix}`,
     routes: {
     },

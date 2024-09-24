@@ -1,13 +1,14 @@
-import AIHelper from "ailtire/src/Server/AIHelper.js";
+import AIHelper from "./AIHelper.js";
 import path from 'path';
 import fs from 'fs';
-import AActor from "ailtire/src/Server/AActor.js";
-import AClass from "ailtire/src/Server/AClass.js";
-import AScenario from "ailtire/src/Server/AScenario.js";
-import AUseCase from "ailtire/src/Server/AUseCase.js";
-import AWorkflow from "ailtire/src/Server/AWorkflow.js";
+import AActor from "./AActor.js";
+import AClass from "./AClass.js";
+import AScenario from "./AScenario.js";
+import AUseCase from "./AUseCase.js";
+import AWorkflow from "./AWorkflow.js";
+import AActionItem from "./AActionItem.mjs";
 import { pathToFileURL } from 'url';
-import AEvent from "ailtire/src/Server/AEvent.js";
+import AEvent from "./AEvent.js";
 
 export default class ANote {
     static _instances = [];
@@ -100,7 +101,7 @@ export default class ANote {
         }
     }
 
-    generateItem(item) {
+    async generateItem(item) {
         try {
             // This is a factory pattern that will generate the appropriate artifact based on the type of the item.
             switch (item.type) {
@@ -127,6 +128,15 @@ export default class ANote {
                     }
                     item.objectID = model.name;
                     break;
+                case 'AActionItem':
+                       let action = new AActionItem(item.json);
+                       if(!action) {
+                           console.error("Action Item error: ", item.json);
+                       }
+                       item.objectID = action.name;
+                       let retval = await action.save();
+                       console.log(retval);
+                       break; 
             }
             item.state = "Generated";
             this.save();
