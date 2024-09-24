@@ -1,6 +1,6 @@
 const path = require('path');
 const spawn = require('child_process').spawnSync;
-const server = require('../Server/doc-md');
+const server = require('../../src/Server/doc-md');
 
 module.exports = {
     friendlyName: 'docs',

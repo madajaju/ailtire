@@ -375,7 +375,11 @@ function standardFileTypes(config,server) {
     });
     server.get(`${config.urlPrefix}/js/*`, (req, res) => {
         let apath = findStaticFile(config, req._parsedUrl.pathname.replace(config.urlPrefix,''));
-        res.sendFile(apath);
+        if(apath) {
+            res.sendFile(apath);
+        } else {
+            console.log(req._parsedUrl.pathname, "Not found!");
+        }
     });
     server.get(`${config.urlPrefix}/views/*`, (req, res) => {
         let apath = findStaticFile(config, req._parsedUrl.pathname.replace(config.urlPrefix,''));

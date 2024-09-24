@@ -1,5 +1,5 @@
 const path = require('path');
-const api = require('../../Documentation/api');
+const api = require('../../src/Documentation/api');
 module.exports = {
     friendlyName: 'create',
     description: 'Create an actor',

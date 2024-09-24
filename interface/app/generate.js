@@ -1,5 +1,5 @@
 const fs = require("fs");
-const AApplication = require("../../src/src/Server/AApplication");
+const AApplication = require("../../src/Server/AApplication");
 module.exports = {
     friendlyName: 'generate',
     description: 'Generate Items in the architecture',

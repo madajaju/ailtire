@@ -24,7 +24,7 @@ export default class AImage {
     }
     static showList(panel, parent) {
         $.ajax({
-            url: 'implementation/images',
+            url: 'implementation/image',
             success: function (results) {
                 // Set up the links to parent child tree
                 for(let name in results) {

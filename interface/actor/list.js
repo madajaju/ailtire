@@ -6,7 +6,7 @@ module.exports = {
     inputs: {
         
     },
-    outputs: {
+    exits: {
         json: (obj) => { return obj; },
         success: (obj) => { return obj; }
     },

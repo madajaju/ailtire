@@ -37,7 +37,6 @@ module.exports = {
                 global.handlers[event].sockets = {};
             }
             if (!global.handlers[event].sockets[socket.id]) {
-                console.log("Install Handle Event:", event);
                 global.handlers[event].sockets[socket.id] = true;
                 socket.on(event, function (data) {
                     callActions(event, data);
