@@ -18,7 +18,7 @@ module.exports = {
 
     fn: async function (inputs, env) {
         // Find the scenario from the usecase.
-        let retval = await AApplication.generateItems(inputs.prompt);
+        let retval = await AApplication.generateItems(inputs.prompt, inputs.filters, inputs.id, env);
         return retval;
     }
 };

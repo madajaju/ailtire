@@ -16,7 +16,7 @@ export default class AGenerativeAI {
         let myForm = AGenerativeAI.inputForm(url);
 
         $().w2popup('open', {
-            title: 'Generative AI Prompt',
+            title: 'GenAI Helper',
             body: '<div id="WorkflowPopup" style="width: 100%; height: 100%;"></div>',
             style: 'padding: 15px 0px 0px 0px',
             width: 800,
@@ -38,28 +38,42 @@ export default class AGenerativeAI {
             }
         });
     }
+
     static inputForm(saveURL) {
         let fields = [];
-        let record = { url: saveURL };
+        let record = {url: saveURL};
+
         fields.push({
             field: 'prompt',
             type: 'textarea',
             required: true,
-            html: {label: 'Prompt', attr: `style="width:500px; height:700px"`}
+            html: {caption: 'Notes', attr: `style="width:500px; height:700px"`}
         });
-        if(!w2ui['GenerativeAI']) {
+        if (!w2ui['GenerativeAI']) {
             $().w2form({
                 name: 'GenerativeAI',
                 style: 'border: 0px; background-color: transparent;',
                 fields: fields,
                 actions: {
                     Save: {
-                        caption: "Ask GenAI", style: "background: #aaffaa",
+                        caption: "Ask GenAI", style: "background: #88ff88",
                         onClick(event) {
                             let url = w2ui['GenerativeAI'].record.url;
                             let prompt = w2ui['GenerativeAI'].record.prompt;
                             w2ui.GenerativeAI.lock('Asking GenAI. Generating...', true);
-                            let data = { prompt: prompt };
+                            let data = {prompt: prompt, filters:{}};
+                            let filterSelected = false;
+                            for(let i in w2ui.GenerativeAI.toolbar.items) {
+                                let item = w2ui.GenerativeAI.toolbar.items[i];
+                                if(item.checked && item.id !== "selectAll") {
+                                   data.filters[item.id] = true;
+                                }
+                                filterSelected =true;
+                            }
+                            if(!filterSelected) {
+                                w2alert('Please select at least one generator');
+                                return;
+                            }
                             $.ajax({
                                 url: url,
                                 type: "POST",
@@ -68,7 +82,7 @@ export default class AGenerativeAI {
                                 success: function (result) {
                                     w2ui.GenerativeAI.unlock();
                                     w2popup.close();
-                                    ANote.editDocs(result,"","Items");
+                                    ANote.editDocs(result, `note/update?id=${result.id}`, "Items");
                                 }
                             });
                         }
@@ -77,6 +91,42 @@ export default class AGenerativeAI {
                         caption: "Close", style: 'background: pink;',
                         onClick(event) {
                             w2popup.close();
+                        }
+                    }
+                },
+                toolbar: {
+                    items: [
+                        {type: 'check', id: 'selectAll', text: 'Select All', checked: false},
+                        {type: 'check', id: 'actionItems', text: 'Action Items', checked: false},
+                        {type: 'check', id: 'actors', text: 'Actors', checked: false},
+                        {type: 'check', id: 'classes', text: 'Classes', checked: false},
+                        {type: 'check', id: 'interfaces', text: 'Interfaces', checked: false},
+                        {type: 'check', id: 'packages', text: 'Packages', checked: false},
+                        {type: 'check', id: 'scenarios', text: 'Scenarios', checked: false},
+                        {type: 'check', id: 'useCases', text: 'Use Cases', checked: false},
+                        {type: 'check', id: 'workflows', text: 'Workflows', checked: false},
+                    ],
+                    onClick: function (event) {
+                        var toolbar = this;
+                        let form = w2ui.infoForm;
+
+                        if (event.target === 'selectAll') {
+                            let selectAllChecked = !toolbar.get('selectAll').checked;
+
+                            // Set all toolbar check item states to match 'selectAll' value
+                            toolbar.set('classes', {checked: selectAllChecked});
+                            toolbar.set('actionItems', {checked: selectAllChecked});
+                            toolbar.set('packages', {checked: selectAllChecked});
+                            toolbar.set('workflows', {checked: selectAllChecked});
+                            toolbar.set('useCases', {checked: selectAllChecked});
+                            toolbar.set('scenarios', {checked: selectAllChecked});
+                            toolbar.set('interfaces', {checked: selectAllChecked});
+                            toolbar.set('actors', {checked: selectAllChecked});
+                        } else {
+                            // Uncheck 'selectAll' if any individual checkbox is unchecked
+                            if (!toolbar.get(event.target).checked) {
+                                toolbar.set('selectAll', {checked: true});
+                            }
                         }
                     }
                 }

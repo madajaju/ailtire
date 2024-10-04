@@ -10,28 +10,26 @@ const OpenAI = require('openai');
 let host = process.env.AILTIRE_HOST || 'localhost';
 let port = process.env.AILTIRE_PORT || 80;
 let urlPrefix = process.env.AITIRE_BASEURL || '/web';
+let config = {
+    baseDir: '.',
+    host: host,
+    urlPrefix: urlPrefix,
+    listenPort: port,
+    internalURL: `${host}:${port}${urlPrefix}`,
+    routes: {},
+};
+if(fs.existsSync('.ailtire.js')) {
+    let overConfig = require('./.ailtire.js');
+    for(let i in overConfig) {
+        config[i] = overConfig[i];
+    }
+} else {
+    let outputString = `module.exports = ${JSON.stringify(config)};`;
+    fs.writeFileSync('.ailtire.js', outputString, 'utf8');
+}
 
 global.openai = new OpenAI({
     apiKey: process.env.OPENAI_KEY
 });
 
-let config = {};
-if(fs.existsSync('.ailtire.js')) {
-    config = require('./.ailtire.js');
-} else {
-    config.host = host;
-    config.port = port;
-    let outputString = `module.exports = ${JSON.stringify(config)};`;
-    fs.writeFileSync('.ailtire.js', outputString, 'utf8');
-}
-
-server.listen( {
-    baseDir: '.',
-    prefix: '',
-    host: config.host,
-    urlPrefix: urlPrefix,
-    listenPort: config.port,
-    internalURL: `${host}:${port}${urlPrefix}`,
-    routes: {
-    },
-});
+server.listen( config);

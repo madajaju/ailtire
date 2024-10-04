@@ -64,3 +64,24 @@ async function _ask(messages) {
     });
     return completion.choices[0].message.content;
 }
+
+function _limitMessages(messages) {
+    let totalLength = 0;
+    let numOfMessages = 0;
+    for(let i in messages) {
+        totalLength += messages[i].content.length;
+        if(messages[i].role === 'system') {
+            numOfSystems++;
+        }
+    }
+    if(totalLength > 100000) {
+        // Find the longest system prompt and cut the end off?
+        let cutNumber = Math.floor((totalLength - 100000)/numOfSystems);
+        for(let i in messages) {
+            if(messages[i].role === 'system') {
+               messages[i].content = messages[i].content.substring(0, messages[i].content.length - cutNumber);
+            }
+        }
+    }
+    return messages;
+}

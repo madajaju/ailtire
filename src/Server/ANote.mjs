@@ -16,7 +16,8 @@ export default class ANote {
     constructor(params) {
         this.id = params.id || ANote._instances.length;
         this.text = params.text || "";
-        this.createdDate = params.createdDate || new Date();
+        this.createdDate = params.createdDate || String(new Date());
+        this.summary = params.summary || "";
         this.items = [];
         for (let i in params.items) {
             this.items.push(params.items[i]);
@@ -32,7 +33,6 @@ export default class ANote {
         let fname = path.resolve(`${dname}/Note-${this.id}.json`);
         fs.writeFileSync(fname, retString);
     }
-
     addItem(type, json) {
         let newItem = {
             id: this.items.length,

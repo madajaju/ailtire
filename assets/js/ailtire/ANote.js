@@ -372,6 +372,15 @@ export default class ANote {
                     }
                 }
             }
+            if (event.includes('note.summary.completed')) {
+                if (w2ui["NoteEditDoc"]) {
+                    let noteRec = w2ui['NoteEditDoc'].record;
+                    if (noteRec.id == message.id) {
+                        noteRec.summary = message.summary;
+                        w2ui.NoteEditDoc.refresh();
+                    }
+                }
+            }
         }
         if (event.includes('generate')) {
             w2ui.NoteEditItems.header = message.message;
@@ -494,31 +503,32 @@ function _createNoteItemDetails(record) {
         }
         return result;
     }
+
     function __generateJSONForm(key, object, level) {
         let formHtml = "";
         let title = key.split('.').at(-1);
-        if(key.length > 0) {
+        if (key.length > 0) {
             formHtml += `<details class="section-container" style="padding-left: ${level * 20}px;">
                         <summary class="section-header">${title.charAt(0).toUpperCase() + title.slice(1)}</summary>`;
         }
-        for(let subkey in object) {
+        for (let subkey in object) {
             let value = object[subkey];
-            if(typeof value === 'object' && !Array.isArray(value))  {
-                formHtml += __generateJSONForm(`${key}.${subkey}`,value,level+1);
+            if (typeof value === 'object' && !Array.isArray(value)) {
+                formHtml += __generateJSONForm(`${key}.${subkey}`, value, level + 1);
             } else {
                 let subtitle = subkey;
                 formHtml += `<div class="nested-field w2ui-field" style="padding-left: ${level * 20}px;">
                             <label>${subtitle.charAt(0).toUpperCase() + subtitle.slice(1)}</label>
                             <div>`;
-                            if(value.length > 50) {
-                                formHtml += `<textarea name="${key}.${subkey}" cols="50" rows="${Math.floor(value.length/50) + 1}">${value}</textarea>`;
-                            } else {
-                                formHtml += `<input name="${key}.${subkey}" type="${typeof value === 'number' ? 'number' : 'textarea'}" value="${value}" size="50"/>`;
-                            }
-                            formHtml += ` </div> </div>`;
+                if (value.length > 50) {
+                    formHtml += `<textarea name="${key}.${subkey}" cols="50" rows="${Math.floor(value.length / 50) + 1}">${value}</textarea>`;
+                } else {
+                    formHtml += `<input name="${key}.${subkey}" type="${typeof value === 'number' ? 'number' : 'textarea'}" value="${value}" size="50"/>`;
+                }
+                formHtml += ` </div> </div>`;
             }
         }
-        if(key.length > 0) {
+        if (key.length > 0) {
             formHtml += `</details>`;
         }
         return formHtml;
@@ -526,7 +536,7 @@ function _createNoteItemDetails(record) {
 
     let fields = [];
     let formHtml = '<div class="w2ui-page page-0"><div class="section-container">';
-    formHtml += __generateJSONForm("", record,0);
+    formHtml += __generateJSONForm("", record, 0);
     formHtml += '</div></div>';
     formHtml += '<div class="w2ui-buttons">' +
         '   <button class="w2ui-btn w2ui-btn-red" name="reset">Cancel</button>' +
@@ -649,11 +659,49 @@ function _createNoteEditItems(record, setURL) {
 }
 
 function _createNoteEditDoc(record, setURL) {
+    let generateURL = setURL.replace('update', 'generate')
+    record.generateURL = generateURL;
     if (!w2ui.NoteEditDoc) {
         $().w2form({
             name: 'NoteEditDoc',
             saveURL: setURL,
             style: 'border: 0px; background-color: transparent;overflow:hidden; ',
+            toolbar: {
+                items: [
+                    {type: 'check', id: 'selectAll', text: 'Select All', checked: false},
+                    {type: 'check', id: 'actionItems', text: 'Action Items', checked: false},
+                    {type: 'check', id: 'actors', text: 'Actors', checked: false},
+                    {type: 'check', id: 'classes', text: 'Classes', checked: false},
+                    {type: 'check', id: 'interfaces', text: 'Interfaces', checked: false},
+                    {type: 'check', id: 'packages', text: 'Packages', checked: false},
+                    {type: 'check', id: 'scenarios', text: 'Scenarios', checked: false},
+                    {type: 'check', id: 'useCases', text: 'Use Cases', checked: false},
+                    {type: 'check', id: 'workflows', text: 'Workflows', checked: false},
+                ],
+                onClick: function (event) {
+                    var toolbar = this;
+                    let form = w2ui.infoForm;
+
+                    if (event.target === 'selectAll') {
+                        let selectAllChecked = !toolbar.get('selectAll').checked;
+
+                        // Set all toolbar check item states to match 'selectAll' value
+                        toolbar.set('classes', {checked: selectAllChecked});
+                        toolbar.set('actionItems', {checked: selectAllChecked});
+                        toolbar.set('packages', {checked: selectAllChecked});
+                        toolbar.set('workflows', {checked: selectAllChecked});
+                        toolbar.set('useCases', {checked: selectAllChecked});
+                        toolbar.set('scenarios', {checked: selectAllChecked});
+                        toolbar.set('interfaces', {checked: selectAllChecked});
+                        toolbar.set('actors', {checked: selectAllChecked});
+                    } else {
+                        // Uncheck 'selectAll' if any individual checkbox is unchecked
+                        if (!toolbar.get(event.target).checked) {
+                            toolbar.set('selectAll', {checked: true});
+                        }
+                    }
+                }
+            },
             fields: [
                 {
                     field: 'createdDate',
@@ -666,18 +714,58 @@ function _createNoteEditDoc(record, setURL) {
                     }
                 },
                 {
-                    caption: 'Notes',
+                    caption: 'Transcript',
                     field: 'text',
                     type: 'textarea',
                     html: {
-                        attr: 'style="width: 450px; height: 500px;"',
-                        caption: "Description",
+                        attr: 'style="width: 450px; height: 300px;"',
+                        caption: "Transcript",
+                    }
+                },
+                {
+                    caption: 'Summary',
+                    field: 'summary',
+                    type: 'textarea',
+                    html: {
+                        attr: 'style="width: 450px; height: 300px;"',
+                        caption: "Summary",
                     }
                 },
             ],
             onRender: (event) => {
             },
             actions: {
+                custom: {
+                    caption: "Generate Elements", style: "background: #66aa66; color:#ffffff",
+                    onClick(event) {
+                        let url = w2ui['NoteEditDoc'].record.generateURL;
+                        let prompt = w2ui['NoteEditDoc'].record.text;
+                        w2ui.NoteEditDoc.lock('Asking GenAI. Generating...', true);
+                        let data = {prompt: prompt, filters: {}};
+                        let filterSelected = false;
+                        for (let i in w2ui.NoteEditDoc.toolbar.items) {
+                            let item = w2ui.NoteEditDoc.toolbar.items[i];
+                            if (item.checked && item.id !== "selectAll") {
+                                data.filters[item.id] = true;
+                            }
+                            filterSelected = true;
+                        }
+                        if (!filterSelected) {
+                            w2alert('Please select at least one generator');
+                            return;
+                        }
+                        $.ajax({
+                            url: url,
+                            type: "POST",
+                            data: JSON.stringify(data),
+                            contentType: "application/json",
+                            success: function (result) {
+                                w2alert('Generating Items');
+                                w2ui.NoteEditDoc.unlock();
+                            }
+                        });
+                    }
+                },
                 Save: function () {
                     let url = this.saveURL;
                     let newRecord = {};
@@ -814,18 +902,41 @@ function _createCharacteristicGrid(config) {
                 header: true,
                 columnHeaders: true,
                 toolbar: true,
-                toolbarSave: true,
-                toolbarAdd: true,
-                toolbarEdit: true,
-                toolbarDelete: true
+                toolbarSave: false,
+                toolbarAdd: false,
+                toolbarEdit: false,
+                toolbarDelete: false
             },
             toolbar: {
                 items: [
-                    {type: 'button', id: 'accept', caption: 'Accept', icon: 'fa fa-check'},
-                    {type: 'button', id: 'reject', caption: 'Reject', icon: 'fa fa-times'}
+                    {type: 'check', id: 'selectAll', caption: 'SelectAll', icon: 'fa fa-check'},
+                    {type: 'button', id: 'accept', caption: 'Accept', icon: 'fa fa-thumbs-up'},
+                    {type: 'button', id: 'reject', caption: 'Reject', icon: 'fa fa-thumbs-down'},
                 ],
                 onClick(event) {
                     const selected = w2ui[config.name].getSelection();
+                    if (event.target === 'selectAll') {
+                        var grid = w2ui[config.name];
+                        var allSelected = grid.records.length === grid.getSelection().length;
+
+                        // Toggle select all/deselect all
+                        if (allSelected) {
+                            grid.selectNone();
+                        } else {
+                            grid.selectAll();
+                        }
+
+                        // Optionally, change the button text/icon based on state
+                        if (allSelected) {
+                            event.item.text = 'Select All';
+                            event.item.icon = 'fa fa-check-square';
+                        } else {
+                            event.item.text = 'Deselect All';
+                            event.item.icon = 'fa fa-square';
+                        }
+                        grid.toolbar.refresh();
+                    }
+
                     const noteID = w2ui[config.name].record.id;
                     if (selected.length > 0) {
                         if (event.target === 'accept') {
@@ -870,51 +981,6 @@ function _createCharacteristicGrid(config) {
                     }
                 },
             },
-            onAdd: (event) => {
-            },
-            onSave: (event) => {
-                let changes = w2ui[config.name].getChanges();
-                let records = w2ui[config.name].records;
-                for (let i in changes) {
-                    let change = changes[i];
-                    let rec = null;
-                    for (let j in records) {
-                        if (records[j].recid === change.recid) {
-                            rec = records[j];
-                            break;
-                        }
-                    }
-                    // Just updating the episode
-                    if (rec.id) {
-                        let url = `${config.saveURL}?id=${rec.id}`;
-                        for (let i in change) {
-                            url += `&${i}=${change[i]}`;
-                        }
-                        $.ajax({
-                            url: url,
-                            success: function (results) {
-                                console.log("results", results);
-                            }
-                        });
-                    } else {
-                    }
-                }
-            },
-            onEdit: (event) => {
-                // Open the Item Edit Dialog
-                let records = w2ui[config.name].records;
-                let rec = null;
-                for (let j in records) {
-                    if (records[j].recid === event.recid) {
-                        rec = records[j];
-                        break;
-                    }
-                }
-            },
-            onDelete: (event) => {
-                let selected = w2ui[config.name].getSelection();
-                console.log("Delete", selected);
-            },
             onRender: (event) => {
                 let records = [];
                 let count = 0;
@@ -942,13 +1008,15 @@ function _createCharacteristicGrid(config) {
                 }, 10);
             },
             onSelect: (event) => {
-                let rec = w2ui[config.name].get(event.recid);
-                let note = w2ui['NoteEditGeneral'].record;
-                let record = note.items[rec.id];
-                _createNoteItemDetails(record.json);
-                w2ui['NoteEditGeneral'].html('bottom', w2ui.NoteItemDetails);
-                w2ui['NoteEditGeneral'].set('main', {size: 300});
-                w2ui['NoteEditGeneral'].set('bottom', {size: 300});
+                if (!event.all) {
+                    let rec = w2ui[config.name].get(event.recid);
+                    let note = w2ui['NoteEditGeneral'].record;
+                    let record = note.items[rec.id];
+                    _createNoteItemDetails(record.json);
+                    w2ui['NoteEditGeneral'].html('bottom', w2ui.NoteItemDetails);
+                    w2ui['NoteEditGeneral'].set('main', {size: 300});
+                    w2ui['NoteEditGeneral'].set('bottom', {size: 300});
+                }
             },
 
             columns: config.columns,

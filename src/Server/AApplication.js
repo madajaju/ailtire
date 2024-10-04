@@ -9,32 +9,103 @@ const AUseCase = require("./AUseCase");
 
 
 module.exports = {
-    generateItems: async (notes, env) => {
+    saveConfig: () => {
+        global.ailtire.config;
+        let configFile = path.resolve('./.ailtire.js');
+        fs.writeFileSync(configFile, `module.exports = ${JSON.stringify(global.ailtire.config)};`);
+    },
+    generateItems: async (notes, filters, id, env) => {
         const {default: ANote} = await import("./ANote.mjs");
-        let newNote = new ANote({text: notes});
-        newNote.save();
+        let newNote = null;
+        if(id) {
+           newNote = ANote.get(id);
+        }
+        if(!newNote) {
+            newNote = new ANote({text: notes});
+            newNote.save();
+        }
         if (env && env.res) {
             env.res.json(newNote);
         }
+        await _generateSummary(newNote);
+        // The order matters because primary findings will be used in higher order elements.
+        // First start with the action items.
         // Action Items
-        await _generateActionItems(newNote);
+        if(filters.actionItems) {
+            await _generateActionItems(newNote);
+        }
         // Actors
-        // await _generateActors(newNote);
+        if(filters.actors) {
+            await _generateActors(newNote);
+        }
         // Use Cases
-        // await _generateUseCases(newNote);
+        if(filters.useCases) {
+            await _generateUseCases(newNote);
+        }
         //Scenarios
-        // await _generateScenarios(newNote);
+        if(filters.scenarios) {
+           await _generateScenarios(newNote);
+        }
         // Workflows
-        // await _generateWorkflows(newNote);
+        if(filters.workflows) {
+            await _generateWorkflows(newNote);
+        }
         // Packages
-        // await _generatePackages(newNote);
+        if(filters.workflows) {
+            await _generatePackages(newNote);
+        }
         // Models
-        // await _generateModels(newNote);
+        if(filters.classes) {
+            await _generateModels(newNote);
+        }
         // Interfaces Do not add this at this time. Let the use cases, workflows and scenarios dictate the interface.
-        // await _generateInterfaces(newNote);
+        if(filters.interfaces) {
+            await _generateInterfaces(newNote);
+        }
         return;
     },
 };
+
+async function _generateSummary(notes) {
+    let notesArray = notes.text.split('\n');
+    let chunks = [""];
+    let chunkIndex = 0;
+    for(let i in notesArray) {
+        if(chunks[chunkIndex].length > 20000) {
+            chunkIndex++;
+            chunks[chunkIndex] = "";
+        }
+        chunks[chunkIndex] += notesArray[i] + '\n';
+    }
+    AEvent.emit("note.summary.started", { message: "Generating Summary from Notes"});
+    let summaries = [];
+    for(let i in chunks) {
+        AEvent.emit("note.summary.inprogress", { message: `Finding Action Items from Notes: ${(i/chunks.length)*100}%`});
+        let messages = [];
+        messages.push({
+            role: "system",
+            content: `For the user prompt generate a summary of the notes include Attendees and topics discussed`
+        });
+        messages.push({role: 'user', content: chunks[i]});
+        summaries.push(await AIHelper.ask(messages));
+    }
+    let summary = "";
+    if(summaries.length > 1) {
+        // Combine the summaries.
+        let messages = [];
+        messages.push({
+            role: "system",
+            content: `For the user prompt combine the summaries into one cohesive summary`
+        });
+        messages.push({role: 'user', content: summaries.join('\n-----------\n')});
+        summary = await AIHelper.ask(messages);
+    } else {
+        summary = summaries[0];
+    }
+    notes.summary = summary;
+    AEvent.emit("note.summary.completed", {obj: { id: notes.id, summary: summary}});
+    notes.save();
+}
 
 async function _generateActionItems(notes) {
     let notesArray = notes.text.split('\n');

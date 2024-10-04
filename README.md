@@ -61,8 +61,8 @@ the [getting started](https://madajaju.github.io/ailtire/getting-started) docume
 
 Ailtire uses common npm packages for most of the heavy lifting of the application development. The backend is built
 using
-[nodejs](http://nodejs.org), [express](http://expressjs.com), [socket.io](http://socket.io), [ejs](https://ejs.co/)
-and [commander](https://www.npmjs.com/package/commander) packages. The front end
+[nodejs](http://nodejs.org), [express](http://expressjs.com), [socket.io](http://socket.io), and [ejs](https://ejs.co/)
+ packages. The front end
 utilizes [socket.io-client](http://socket.io), [w2ui](http://w2ui.com),
 and [3d-force-graph](https://www.npmjs.com/package/3d-force-graph) for visualization and web ui elements.
 
