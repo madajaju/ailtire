@@ -1,5 +1,5 @@
-const bent = require('bent');
 const fs = require('fs');
+const axios = require('axios');
 const path = require('path');
 const Action = require('./Action.js');
 
@@ -28,16 +28,16 @@ module.exports = {
         } else {
             console.log("Could not find local Service:", actionName);
             console.log("Running via REST service!");
-            let url = 'https://' + global.ailtire.config.internalURL;
-            const post = bent(url, 'POST', 'string', 200);
-            const astring = actionName;
+
+            const url = `https://${global.ailtire.config.internalURL}/${actionName}`;
+
             (async () => {
                 try {
-                        return await post('/' + astring, opts);
-
+                    const response = await axios.post(url, opts);
+                    return response.data;
                 } catch (e) {
-                    console.error("POST: ", astring, opts);
-                    console.error("AServer call Response Error:", e);
+                    console.error("POST:", actionName, opts);
+                    console.error("Server call Response Error:", e);
                     // throw new Error(e);
                 }
             })();

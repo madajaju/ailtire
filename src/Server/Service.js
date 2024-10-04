@@ -1,4 +1,4 @@
-const bent = require('bent');
+const axios = require('axios');
 
 module.exports = {
     call: async (action, opts) => {
@@ -7,11 +7,13 @@ module.exports = {
         if (fn) {
             return fn(opts);
         } else {
-            let url = 'http://localhost/';
-            const post = bent(url, 'POST', 'string', 200);
+
+            const url = 'http://localhost/';
             const astring = action.replace(/\./g, '/');
+
             try {
-                return await post(astring, opts);
+                const response = await axios.post(`${url}${astring}`, opts);
+                return response.data;
             } catch (e) {
                 console.error("POST:", astring);
                 console.error("AService call Response Error:", e);

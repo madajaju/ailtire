@@ -1,10 +1,10 @@
 const express = require('express');
 const exec = require('child_process').spawnSync;
 const server = express();
-const bent = require('bent');
+const axios = require('axios');
 const bodyParser = require("body-parser");
 const http = require('http').createServer(server);
-const {Server} = require("socket.io");
+const { Server } = require("socket.io");
 const path = require('path');
 const ping = require('ping');
 const fs = require('fs');
@@ -25,7 +25,7 @@ let parentport = process.env.AILTIRE_PARENTPORT || '3000';
 let port = process.env.AILTIRE_STACKADMINPORT || '3000';
 let serviceName = process.env.AILTIRE_SERVICENAME || 'service';
 
-const io = new Server(http, {path: '/socket.io/'});
+const io = new Server(http, { path: '/socket.io/' });
 
 let currentStatus = {};
 
@@ -45,18 +45,18 @@ process.env.AILTIRE_PARENTHOST = process.env.HOSTNAME;
 })();
 
 function setupExpress() {
-    // Here we are configuring express to use body-parser as middle-ware.
+    // Here we are configuring express to use body-parser as middleware.
     server.use(function (req, res, next) {
         res.header("Access-Control-Allow-Origin", "*");
         res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
         next();
     });
-    server.use(bodyParser.urlencoded({extended: false}));
+    server.use(bodyParser.urlencoded({ extended: false }));
     server.use(bodyParser.json());
 
-    for(let tag in routes ) {
+    for (let tag in routes) {
         let options = routes[tag];
-        console.log(`Adding Proxy: ${tag} ->`,  options);
+        console.log(`Adding Proxy: ${tag} ->`, options);
         server.use(`${tag}`, createProxyMiddleware(`${tag}`, options));
     }
 
@@ -67,37 +67,36 @@ function setupExpress() {
         console.log("Update Stack definition:", req.body.composefile);
         res.end("Done");
     });
+
     server.use('/ping', (req, res) => {
         let host = req.query.host;
         console.log("HOST:", host);
-        ping.sys.probe(host, function(isAlive){
+        ping.sys.probe(host, function (isAlive) {
             var msg = isAlive ? 'host ' + host + ' is alive' : 'host ' + host + ' is dead';
             res.json(msg);
         });
     });
+
     server.use('/test', async (req, res) => {
         let host = req.query.host;
-        let url = `http://${host}`
-        const get = bent('GET', 'json');
-        let response;
+        let url = `http://${host}`;
         try {
-            let urlreq = `${url}`;
-            response = await get(urlreq, 'test');
-            console.log("Response:", response);
+            let response = await axios.get(`${url}/test`);
+            console.log("Response:", response.data);
             res.end("Made It");
         } catch (e) {
             console.error("Could not connect to Parent:", url);
-            console.error("Could not connect to Parent:", response);
             console.error("Could not connect to Parent:", e);
-        };
-    })
+        }
+    });
+
     server.use('/_admin/route/add', (req, res) => {
         let tag = req.query.interface;
         let target = req.query.target;
         let pathArray = req.query.path.split(',');
         let pathRewrite = {};
-        for(i in pathArray) {
-            [key, value] = pathArray[i].split(':');
+        for (let i in pathArray) {
+            const [key, value] = pathArray[i].split(':');
             pathRewrite[key] = value;
         }
         let options = {
@@ -108,23 +107,26 @@ function setupExpress() {
         routes[tag] = options;
         server.use(`${tag}`, createProxyMiddleware(`${tag}`, options));
     });
+
     server.get('/_admin/route/list', (req, res) => {
         res.json(routes);
         res.end();
     });
+
     server.get('/_admin/route/show', (req, res) => {
         let id = req.query.id;
-        if(routes.hasOwnProperty(id)) {
+        if (routes.hasOwnProperty(id)) {
             res.json(routes[id]);
             res.end();
         } else {
-            res.json({error:'Route not found!'});
+            res.json({ error: 'Route not found!' });
             res.end();
         }
     });
+
     server.get('/_admin/shutdown', (req, res) => {
         console.log("Shutdown");
-        let proc = exec('docker', ['stack', 'rm', stackName], {cwd: '.', stdio: 'pipe', env: process.env});
+        let proc = exec('docker', ['stack', 'rm', stackName], { cwd: '.', stdio: 'pipe', env: process.env });
         console.log("proc:", proc.stdout.toString('utf8'));
         res.end(proc.stdout.toString('utf8'));
         app.close(() => {
@@ -132,46 +134,54 @@ function setupExpress() {
         });
         process.exit();
     });
+
     server.get('/_admin/status', async (req, res) => {
         let status = getStats();
         res.json(status);
         res.end();
     });
+
     server.get('/_admin/register', (req, res) => {
         console.log("Register");
         console.log("Register", req.query);
-        if(req.query.name !== stackName) {
+        if (req.query.name !== stackName) {
             _children[req.query.name] = req.query;
         }
-        res.json({status: 'ok'});
-        res.end()
+        res.json({ status: 'ok' });
+        res.end();
     });
+
     server.get('/_admin/view', async (req, res) => {
         let apath = path.resolve('./views/main.ejs');
         let status = getStats();
-        let retval = renderPage('./views/main.ejs', {prefix: '', stats: status});
+        let retval = renderPage('./views/main.ejs', { prefix: '', stats: status });
         res.end(retval);
     });
+
     server.get('/_admin/log', async (req, res) => {
         let sname = req.query.name;
         let retval = getLogs(sname);
         res.json(retval);
         res.end();
     });
+
     server.get('*/js/*', async (req, res) => {
         let apath = path.resolve('./assets/js/' + req._parsedUrl.pathname.replace(/.*js\//, ''));
         res.sendFile(apath);
     });
+
     server.get('*/styles/*', async (req, res) => {
         let apath = path.resolve('./assets/styles/' + req._parsedUrl.pathname.replace(/.*styles\//, ''));
         res.sendFile(apath);
     });
+
     server.get('/', async (req, res) => {
         let apath = path.resolve('./views/main.ejs');
         let status = getStats();
-        let retval = renderPage('./views/main.ejs', {prefix: '', stats: status});
+        let retval = renderPage('./views/main.ejs', { prefix: '', stats: status });
         res.end(retval);
     });
+
     io.on('connection', (socket) => {
         console.log('a client connected');
         io.emit('status', currentStatus);
@@ -181,7 +191,7 @@ function setupExpress() {
 
     process.once('SIGINT', (code) => {
         console.log("SIGINT:", code);
-        let proc = exec('docker', ['stack', 'rm', stackName], {cwd: '.', stdio: 'pipe', env: process.env});
+        let proc = exec('docker', ['stack', 'rm', stackName], { cwd: '.', stdio: 'pipe', env: process.env });
         console.log("proc:", proc.stdout.toString('utf8'));
         process.exit();
     });
@@ -193,7 +203,7 @@ async function checkStatus() {
     // Add the routes to the status.
     currentStatus.interfaces = routes;
     currentStatus.service = stackName;
-    let proc = exec('docker', ['stack', 'ps', stackName], {cwd: '.', stdio: 'pipe', env: process.env});
+    let proc = exec('docker', ['stack', 'ps', stackName], { cwd: '.', stdio: 'pipe', env: process.env });
     if (proc.status !== 0) {
         console.error(proc.stderr.toString('utf8'));
         proc = exec('docker', ['stack', 'deploy', '-c', 'docker-compose.yml', stackName], {
@@ -213,17 +223,14 @@ async function checkStatus() {
 async function register() {
     if (parent) {
         let url = `http://${parent}:${parentport}`;
-        const get = bent('GET', 'json');
-        let response;
         try {
             let urlreq = `${url}/_admin/register?name=${stackName}&url=${hostname}:${port}&service=${serviceName}`;
-            response = await get(urlreq, 'test');
+            const response = await axios.get(`${urlreq}/test`);
         } catch (e) {
             console.error("Could not connect to Parent:", url);
-            console.error("Could not connect to Parent:", response);
             console.error("Could not connect to Parent:", e);
             setTimeout(register, 30000);
-        };
+        }
     } else {
         console.error("Parent not Defined!");
     }
@@ -236,20 +243,18 @@ async function deploy() {
 
 async function getStatus(children, status) {
     let retval = status;
-    const get = bent('GET', 'json');
     // Services
     for (let name in children) {
-        let response;
         try {
             let child = children[name];
             let urlreq = `http://${child.url}/_admin/status`;
             if (!retval.services.hasOwnProperty(name)) {
-                retval.services[name] = {type: 'stack'};
+                retval.services[name] = { type: 'stack' };
             }
             retval.services[name].name = name;
-            response = await get(urlreq, '');
+            const response = await axios.get(urlreq);
             retval.services[name].type = 'stack';
-            retval.services[name].services = response;
+            retval.services[name].services = response.data;
         } catch (err) {
             retval.services[name].status = "Network Error";
             retval.services[name].name = name;
@@ -266,7 +271,7 @@ function parseStatus(input) {
         let items = lines[line].split(/\s+/);
         if (items[1] && items[1] !== 'NAME' && items[1] !== "\\_") {
             let sName = items[1].replace(/\./g, '-');
-            let shortName = items[1].replace(/\..*$/,'').replace(stackName + '_','');
+            let shortName = items[1].replace(/\..*$/, '').replace(stackName + '_', '');
             retval.services[sName] = {
                 name: items[1],
                 shortName: shortName,
@@ -283,12 +288,12 @@ function parseStatus(input) {
 
 function getLogs(name) {
     let sname = name.replace(/-[0-9]+$/, '');
-    let proc = exec('docker', ['service', 'logs', sname], {cwd: '.', stdio: 'pipe', env: process.env});
+    let proc = exec('docker', ['service', 'logs', sname], { cwd: '.', stdio: 'pipe', env: process.env });
     if (proc.status != 0) {
         return proc.stderr.toString('utf8');
     }
     let logs = proc.stdout.toString('utf-8').split(/\n/);
-    let retval = {stdout: [], stderr: []};
+    let retval = { stdout: [], stderr: [] };
     for (let i in logs) {
         retval.stdout.push(logs[i].replace(/.+\|/, ''));
     }
@@ -312,8 +317,8 @@ const renderPage = (page, objects) => {
         let retval = ejs.render(str, objects);
         return retval;
     } catch (e) {
-        console.error("Renderering Error:", e);
-        console.error("Renderering Error:", page, "with", objects);
+        console.error("Rendering Error:", e);
+        console.error("Rendering Error:", page, "with", objects);
     }
     return "";
 };
