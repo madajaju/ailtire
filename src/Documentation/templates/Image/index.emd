@@ -5,16 +5,18 @@ permalink: image-<%= image.name %>
 parent: Images
 ---
 # <%- image.name %>
-<% if(image.base) { %>
+<% if(image.base) { 
+%>
 * Base image:  [<%= image.base %>](image-<%= image.base %>)
 <% } %>
 * Parent Package: [<%= package.name %>](package-<%= package.prefix.replace(/\//g, '-') %>)
 
 <% if(image.services && Object.keys(image.services).length > 1) { %>
+
 ## Services Using Image
 <% for(let sname in image.services) {
     let service = image.services[sname];
 -%>
-* <%= sname %>
+* <%= sname %> 
 <% } -%>
 <% } %>

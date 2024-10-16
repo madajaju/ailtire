@@ -21,26 +21,28 @@ server.use(bodyParser.json());
 
 module.exports = {
     docBuild: (config) => {
-        normalizeConfig(config);
-        global.ailtire = { config: config };
-        console.log("Config:", global.ailtire.config);
-        let apath = path.resolve(config.baseDir);
-        let topPackage = sLoader.processPackage(apath);
-        sLoader.analyze(topPackage);
+        try {
+            normalizeConfig(config);
+            global.ailtire = {config: config};
+            let apath = path.resolve(config.baseDir);
+            let topPackage = sLoader.processPackage(apath);
+            sLoader.analyze(topPackage);
 
-        Action.defaults(server);
-        //let ailPath = __dirname + "/../../interface";
-        // Action.load(server, '', path.resolve(ailPath)); // Load the ailtire defaults from the interface directory.
-        Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'), config);
-        // Action.mapRoutes(server, config.routes);
-        mdGenerator.index(config.prefix, apath + '/docs');
-        mdGenerator.package(global.topPackage, apath + '/docs');
-        mdGenerator.actors(global.actors, apath + '/docs');
-        mdGenerator.images(global.ailtire.implementation.images, apath + '/docs');
-        mdGenerator.environments(global.deploy.envs, apath + '/docs');
-        mdGenerator.workflows(global.workflows, apath + '/docs');
-        mdGenerator.categories(global.categories, apath + '/docs');
-        console.log("Built the Documentation");
+            Action.defaults(server);
+            Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'), config);
+            mdGenerator.package(global.topPackage, apath + '/docs');
+            mdGenerator.actors(global.actors, apath + '/docs');
+            mdGenerator.images(global.ailtire.implementation.images, apath + '/docs');
+            mdGenerator.environments(global.deploy.envs, apath + '/docs');
+            mdGenerator.workflows(global.workflows, apath + '/docs');
+            mdGenerator.categories(global.categories, apath + '/docs');
+            mdGenerator.index(config.prefix, apath + '/docs');
+            mdGenerator.notes(apath + '/docs');
+            mdGenerator.singleDoc(config.prefix, apath + '/docs');
+        }
+        catch(e) {
+            console.error(e);
+        }
     },
     doc: (config) => {
         console.log("Serving documenration");

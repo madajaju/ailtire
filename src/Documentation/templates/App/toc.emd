@@ -10,6 +10,7 @@ Version <%= version %>
 * [<%= appName %>](./<%= appName %>/index.md)
 
 ## Use Case View
+
 ### Actors
 * [All Actors](actors)
 <% for(let aname in actors) { -%>
@@ -49,6 +50,12 @@ for(let i in cnames) {
 <% } %>
 
 ## Process View
+<% let wnames = Object.keys(global.workflows).sort();
+for(let i in wnames) {
+    let wname = wnames[i];
+-%>
+* [<%= wname %>[(workflow-<%= wname %>)
+<% } %>
 
 ## Implementation View
 
@@ -58,9 +65,6 @@ External Dependencies of the application
 
 ### Container Images
 
-The architecture utilizes a micro-service design pattern for the deployment architecture. The following is a list of 
-the container images for the deployment of the solution.
-
 <% for(let iname in global.ailtire.implementation.images) {
     let image = global.ailtire.implementation.images[iname];
 %>
@@ -68,6 +72,14 @@ the container images for the deployment of the solution.
 <% } -%>
 
 ## Deployment View
+
+### Locations
+
+<% for(let ename in topPackage.physical.environments) {
+let env = topPackage.physical.environments[ename];
+-%>
+* [<%= ename %>](environment-<%= ename %>)
+<% } -%>
 
 ### Environments
 
@@ -78,9 +90,11 @@ let environ = global.deploy.envs[ename];
 <% } -%>
 
 ### Services
+
 <% for(let sname in services) {
     let service = services[sname]
     let links = Object.keys(service).map( e => { return `[${e}](environment-${e}-${sname})`; }).join(', ');
 -%>
 * <%= sname %> - <%= links %>
 <% } -%>
+

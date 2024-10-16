@@ -1,0 +1,47 @@
+---
+layout: default
+title: Note <%= noteName %>
+permalink: note-<%= noteName %>
+parent: Notes
+has_children: false
+---
+
+# <%= note.name %>
+
+<%= note.summary %>
+
+## Action Items
+| State  | Name   | Summary    | Assignee | Due Date |
+|-------:|:-------|:-----------|:---------|:---------|
+<% for(let i in note.items) {
+    let item = note.items[i];
+    if(item.type === 'AActionItem') {
+-%>
+| <%- item.state %> | <%- item.json.name %> | <%- item.json.summary %> | <%- item.json.assignee %> | <%- item.json.dueDate %> |
+<% }
+}
+%>
+
+## Proposed Architectural Items
+| State | Type | Name | Summary |
+|------:|:-----|:-----|:--------|
+<%
+for(let i in note.items) {
+    let item = note.items[i];
+    if(item.type !== 'AActionItem') {
+-%>
+| <%- item.state %> | <%- item.type %> | <%- item.json.name %> | <%- item.json.summary %> |
+<%
+    }
+}
+%>
+
+<sunmary>
+<details>
+<% if(note.text.match(/^#/)) { %>
+<%- note.text %>
+<% } else { %> 
+<%- note.text.replace(/\n/g, "\n\n") %>
+<% } %>
+</details>
+</sunmary>

@@ -44,7 +44,8 @@ let ucname = usecase.extends[i];
 %>
 ## Included Use Cases
 
-<% for(let ucname in usecase.included) {
+<% for(let i in usecase.included) {
+let ucname = usecase.included[i];
 -%>
 * [<%= ucname %>](usecase-<%= ucname %>)
 <% }
@@ -54,7 +55,8 @@ let ucname = usecase.extends[i];
 %>
 ## Includes Use Cases
 
-<% for(let ucname in usecase.includes) {
+<% for(let i in usecase.includes) {
+let ucname = usecase.includes[i];
 -%>
 * [<%= ucname %>](usecase-<%= ucname %>)
   <% }

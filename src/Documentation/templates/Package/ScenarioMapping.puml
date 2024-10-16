@@ -27,7 +27,11 @@ const getStates = (name) => {
         if(names[i].length > 0) {
             pkgname += names[i];
             if(package.shortname === names[i]) {
-                states += `package "${names[i]}" as ${pkgname} ${package.color} {\n`
+            let color = package.color;
+                if(color[0] !== '#') {
+                    color = `#${color}`;
+                }
+                states += `package "${names[i]}" as ${pkgname} ${color} {\n`
             } else {
                 states += `package "${names[i]}" as ${pkgname} {\n`
             }

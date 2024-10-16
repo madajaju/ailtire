@@ -15,7 +15,9 @@ module.exports = {
 
     fn: function (inputs, env) {
         if(env.res) {
-            env.res.json(ailtire.global.errors);
+            if(ailtire.global.errors) {
+                env.res.json(ailtire.global.errors);
+            }
         }
         return ailtire.global.errors;
     }

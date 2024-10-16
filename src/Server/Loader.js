@@ -38,8 +38,15 @@ module.exports = {
 };
 
 const _loadNotes = async () => {
-    const { default: ANote } = await import("./ANote.mjs");
-    await ANote.loadDirectory(path.resolve('./.notes'));
+    try {
+        const {default: ANote} = await import('./ANote.mjs');
+        ANote.loadDirectory(path.resolve('./.notes'));
+        global.notes = ANote.list();
+        return global.notes;
+    }
+    catch(e) {
+        console.error(e);
+    }
 }
 
 const analyzeApp = app => {
@@ -237,9 +244,10 @@ const loadWorkflows = (pkg, prefix, dir) => {
     }
 };
 const loadDocs = async (pkg, dir) => {
-    const { default: ADocumentation } = await import("./ADocumentation.mjs");
+   /* const { default: ADocumentation } = await import("./ADocumentation.mjs");
     ADocumentation.load(pkg, dir);
-   /* 
+    
+    */
     if (fs.existsSync(dir)) {
         let files = getFiles(dir);
         let nfiles = [];
@@ -255,7 +263,6 @@ const loadDocs = async (pkg, dir) => {
         fs.mkdirSync(dir);
         pkg.doc = {basedir: dir, files: []};
     }
-    */
 }
 
 const _loadPhysicalModules = (obj, prefix, dir, files) => {
@@ -272,6 +279,7 @@ const _loadPhysicalModules = (obj, prefix, dir, files) => {
             }
         }
     }
+    return obj;
 }
 
 const _loadEnvironments = (obj, prefix, dir, files) => {
@@ -560,7 +568,7 @@ const _loadPhysicalDefaults = () => {
 }
 const loadPhysical = (pkg, prefix, dir) => {
 
-    pkg.physical = {
+    let physical = {
         dir: dir,
         prefix: prefix,
         environments: {},
@@ -571,13 +579,14 @@ const loadPhysical = (pkg, prefix, dir) => {
     // first load the modules as they will be referenced in the environments.
     let mdir = path.resolve(dir + '/modules');
     let mfiles = fs.readdirSync(mdir);
-    _loadPhysicalModules(pkg.physical.modules, "", mdir, mfiles);
+    _loadPhysicalModules(physical.modules, "", mdir, mfiles);
 
     // Next load the environment files.
     mdir = path.resolve(dir + '/environments');
     mfiles = fs.readdirSync(mdir);
-    _loadEnvironments(pkg.physical.environments, "", mdir, mfiles);
-
+    
+    _loadEnvironments(physical.environments, "", mdir, mfiles);
+    pkg.physical = physical;
     // Now check the environment files for references to the modules, consistency in the configurations.
     _checkEnvironments(pkg);
 

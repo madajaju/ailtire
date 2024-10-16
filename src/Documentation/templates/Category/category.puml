@@ -13,7 +13,7 @@ package "<%= scat.name %>"
 for(let i in category.workflows) {
     let workflow = category.workflows[i];
     %>
-rectangle "<%= workflow.name.replace(/\s/g, '\n') %>" %>
+rectangle "<%= workflow.name.replace(/\s/g, '\\n') %>" %>
 <%
 }
 %>

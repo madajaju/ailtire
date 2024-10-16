@@ -25,11 +25,12 @@ grand_parent: <%= grandparent %>
 <% }
 }  %>
 
+![DataFlow Diagram](./<%= workflow.name.replace(/\s/g,'') %>Data.png)
+
 <%for(let aname in workflow.activities) {
   let activity = workflow.activities[aname];
 %>
 
-![DataFlow Diagram](./<%= workflow.name.replace(/\s/g,'') %>Data.png)
 
 ### <%- aname %>
 

@@ -7,7 +7,7 @@ import AScenario from "./AScenario.js";
 import AUseCase from "./AUseCase.js";
 import AWorkflow from "./AWorkflow.js";
 import AActionItem from "./AActionItem.mjs";
-import { pathToFileURL } from 'url';
+import {pathToFileURL} from 'url';
 import AEvent from "./AEvent.js";
 
 export default class ANote {
@@ -17,6 +17,7 @@ export default class ANote {
         this.id = params.id || ANote._instances.length;
         this.text = params.text || "";
         this.createdDate = params.createdDate || String(new Date());
+        this.name = params.name || this.createdDate;
         this.summary = params.summary || "";
         this.items = [];
         for (let i in params.items) {
@@ -26,34 +27,11 @@ export default class ANote {
         return this;
     }
 
-    save() {
-        let retString = JSON.stringify(this);
-        let dname = path.resolve('.notes');
-        fs.mkdirSync(dname, {recursive: true});
-        let fname = path.resolve(`${dname}/Note-${this.id}.json`);
-        fs.writeFileSync(fname, retString);
-    }
-    addItem(type, json) {
-        let newItem = {
-            id: this.items.length,
-            type: type,
-            state: "Suggested",
-            json: json
-        };
-        AEvent.emit(`noteItem.created`, {message:`Created ${type}`, note: this.id, item: newItem});
-        this.items.push(newItem);
-        this.save();
-    }
-
-    items() {
-        return this.items;
-    }
-
-    static async loadDirectory(mdir) {
-        fs.mkdirSync(mdir, {recursive:true});
+    static loadDirectory(mdir) {
+        fs.mkdirSync(mdir, {recursive: true});
         let notes = fs.readdirSync(mdir);
         for (let i in notes) {
-            await ANote.load(path.resolve(`${mdir}/${notes[i]}`));
+            ANote.load(path.resolve(`${mdir}/${notes[i]}`));
         }
     }
 
@@ -78,13 +56,40 @@ export default class ANote {
         return null;
     }
 
+    async save() {
+        let retString = JSON.stringify(this);
+        let dname = path.resolve('.notes');
+        fs.mkdirSync(dname, {recursive: true});
+        let fname = path.resolve(`${dname}/Note-${this.id}.json`);
+        fs.writeFileSync(fname, retString);
+        await this.#normalizeText();
+        let retString2 = JSON.stringify(this);
+        fs.writeFileSync(fname, retString2);
+    }
+
+    addItem(type, json) {
+        let newItem = {
+            id: this.items.length,
+            type: type,
+            state: "Suggested",
+            json: json
+        };
+        AEvent.emit(`noteItem.created`, {message: `Created ${type}`, note: this.id, item: newItem});
+        this.items.push(newItem);
+        this.save();
+    }
+
+    items() {
+        return this.items;
+    }
+
     async acceptItem(id) {
         for (let i in this.items) {
             let item = this.items[i];
             if (id == item.id) {
                 item.state = "Accepted";
                 this.save();
-                AEvent.emit("noteItem.accepted", {note:this.id, item:item.id});
+                AEvent.emit("noteItem.accepted", {note: this.id, item: item.id});
                 this.generateItem(item);
             }
         }
@@ -96,7 +101,7 @@ export default class ANote {
             if (id == item.id) {
                 item.state = "Rejected";
                 this.save();
-                AEvent.emit("noteItem.rejected", {note:this.id, item:item.id});
+                AEvent.emit("noteItem.rejected", {note: this.id, item: item.id});
             }
         }
     }
@@ -123,27 +128,56 @@ export default class ANote {
                     break;
                 case 'AClass':
                     let model = AClass.create(item.json);
-                    if(!model) {
+                    if (!model) {
                         console.error("Model note created for:", item.json);
                     }
                     item.objectID = model.name;
                     break;
                 case 'AActionItem':
-                       let action = new AActionItem(item.json);
-                       if(!action) {
-                           console.error("Action Item error: ", item.json);
-                       }
-                       item.objectID = action.name;
-                       let retval = await action.save();
-                       console.log(retval);
-                       break; 
+                    let action = new AActionItem(item.json);
+                    if (!action) {
+                        console.error("Action Item error: ", item.json);
+                    }
+                    item.objectID = action.name;
+                    let retval = await action.save();
+                    console.log(retval);
+                    break;
             }
             item.state = "Generated";
             this.save();
             AEvent.emit("noteItem.generated", {note: this.id, item: item.id});
-        }
-        catch(e) {
+        } catch (e) {
             console.error(e);
+        }
+    }
+
+    async #normalizeText() {
+        // Define common Markdown patterns
+        const markdownPatterns = [
+            /^#{1,6}\s.+/,         // Headers
+            /\*\*[^*]+\*\*/,       // Bold
+            /\*[^*]+\*/,           // Italic
+            /\_[^_]+\_/,           // Italic
+            /\!\[.+\]\(.+\)/,      // Images
+            /\[.+\]\(.+\)/,        // Links
+            /^\>\s.+$/m,           // Blockquotes
+            /^\- .+$/m,            // Unordered lists
+            /^\d+\.\s.+$/m,        // Ordered lists
+            /\`\`\`[\s\S]*?\`\`\`/,// Code blocks
+            /\`[^`]+\`/,           // Inline code
+        ];
+
+        // Check for any Markdown pattern in the text
+        if (!markdownPatterns.some(pattern => pattern.test(this.text))) {
+            AEvent.emit("note.normalize.started", {note: this.id});
+            let results = await AIHelper.ask([{
+                role: 'system',
+                content: 'Create a md table with the following columns | Time | Speaker | Text |. The time should be in mm:ss format.'
+            },
+                {role: 'user', content: this.text}
+            ]);
+            this.text = "## Transcript\n\n" + results;
+            AEvent.emit("note.normalize.completed", {note: this.id});
         }
     }
 }

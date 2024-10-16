@@ -1,0 +1,87 @@
+@startuml
+<%
+let inum = 0;
+for(let aname in workflow.activities) {
+    let activity = workflow.activities[aname];
+    let length = 0;
+    if(activity.next) {
+        length = Object.keys(activity.next).length;
+    }
+    inum++;
+    let jnum = 0;
+    for(let nname in activity.next) {
+        let next = activity.next[nname];
+        let pname = "None";
+        let pcolor = "#dddddd";
+        if(activity.hasOwnProperty('actor')) {
+            pname = activity.actor;
+            pcolor = "#ffffcc";
+        } else if(activity.hasOwnProperty('package')) {
+            pname = activity.package;
+            pnospace = activity.package.replace(/\s/g, '');
+            if(global.packages.hasOwnProperty(pnospace)) {
+               let pkg = global.packages[pnospace];
+               pcolor = pkg.color;
+            }
+        }
+        let nactivity = workflow.activities[nname];
+        if(nactivity) {
+        let npname = "None";
+        let npcolor = "#dddddd";
+        if(nactivity.hasOwnProperty('actor')) {
+            npname = nactivity.actor;
+            npcolor = "#ffffcc";
+        } else if(nactivity.hasOwnProperty('package')) {
+            npname = nactivity.package;
+            npnospace = nactivity.package.replace(/\s/g, '');
+            if(global.packages.hasOwnProperty(npnospace)) {
+               let pkg = global.packages[npnospace];
+               npcolor = pkg.color;
+            }
+        }
+        let actName = `"${aname}"`;
+        if(aname === 'Init') { actName = "(*)"; }
+        if(next.condition) {
+            if(jnum === 0) {
+-%>
+partition "<%= pname %>" <%- pcolor %> {
+<%- actName %> --> if "<%= next.condition.test %>" then
+}
+<%
+                jnum++;
+            }
+-%>
+partition "<%= npname %>" <%- npcolor %> {
+else
+--> [<%= next.condition.value %>] "<%= nname %>"
+}
+<%
+        } else {
+            if(length > 1) {
+                if(jnum === 0) {
+-%>
+partition "<%= pname %>" <%- pcolor %> {
+<%- actName %> --> ===F<%- inum %>===
+}
+<%
+                    jnum++;
+                }
+-%>
+
+partition "<%= npname %>" <%- npcolor %> {
+===F<%- inum %>=== --> "<%= nname %>"
+}
+<%
+            } else {
+-%>
+partition "<%= npname %>" <%- npcolor %> {
+<%- actName %> --> "<%- nname %>"
+}
+<%
+            }
+        }
+    }
+    }
+}
+%>
+@enduml

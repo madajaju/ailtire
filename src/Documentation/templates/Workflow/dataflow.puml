@@ -33,31 +33,48 @@ for(let aname in workflow.activities) {
     inum++;
     let jnum = 0;
     let actName = `${actMap[aname]}`
+    let conditions = 0;
+    for(let nname in activity.next) {
+        let next = activity.next[nname];
+        if(next.condition) { conditions++; }
+    }
+    // Terminal State.
+    if(length === 0 ) {
+-%>
+     state T<%- inum %> <<end>>
+     <%- actName %> --> T<%- inum %>
+ <%
+    }
+    else if(conditions > 0) {
+-%>
+state C<%- inum %> <<choice>>
+S<%- inum %> --> C<%- inum %>
+<%
+    // If not all of the next items are controlled by conditions.
+        if(conditions < length) {
+-%>
+state F<%- inum %> <<fork>>
+    <%- actName %> --> F<%- inum %>
+    F<%- inum %> --> C<%- inum %>
+<%
+        }
+    } else if(length > 1) {
+-%>
+        state F<%- inum %> <<fork>>
+        <%- actName %> --> F<%- inum %>
+<%
+    }
     for(let nname in activity.next) {
         let next = activity.next[nname];
         let nactivity = workflow.activities[nname];
         if(next.condition) {
-            if(jnum === 0) {
-        -%>
-state C<%- inum %> <<choice>>
-<%- actName %> --> C<%- inum %>
-            <%
-                jnum++;
-            } -%>
+-%>
 C<%- inum %> --> <%- actMap[nname] %> : <%= next.condition.test %>\n[<%= next.condition.value %>]
 <%
         } else {
             if(length > 1) {
-                if(jnum === 0) {
 -%>
-state F<%- inum %> <<fork>>
-<%- actName %> --> ===F<%- inum %>===
-<%
-                    jnum++;
-                }
--%>
-
-===F<%- inum %>=== --> <%= actMap[nname] %>
+F<%- inum %> --> <%= actMap[nname] %>
 <%
             } else {
 -%>

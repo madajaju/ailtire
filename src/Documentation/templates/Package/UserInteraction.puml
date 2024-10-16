@@ -1,7 +1,7 @@
 @startuml
 <% if(actors && Object.keys(actors).length > 0) { %>
 <% for(let aname in actors) { %>
-actor "<%= actors[aname].name %>" as <%= actors[aname].shortname %>
+actor "<%= actors[aname].name %>" as <%= actors[aname].shortname || actors[aname].name.replace(/\s/g, '') %>
 <% }%>
 
 

@@ -23,7 +23,7 @@ above. Each micro-service has three interfaces exposed Command Line Interface (C
 and a REST interface. This allows for scripting, event programing and connectivity through a common
 REST interface.
 
-![Physical Diagram](./physical.png)
+![Physical Diagram](./physical-deployment.png)
 
 #### Micro-Services
 These are the micro-services for the deployment of the subsystem. The combination of the micro-services help implement
@@ -44,6 +44,8 @@ There are also Ingress and Egress networks for connected to the stack (ingress) 
 the stack (egress). Most of the egress networks are for substacks in the stack itself. This enables
 the creation of aggregation of stacks and substacks and still keep the microsegmentation of each
 stack in a layer of networks.
+
+![Network Diagram](./physical-network.png)
 
 | Name | Type | External Name | Ports |
 | --- | --- | --- | --- |

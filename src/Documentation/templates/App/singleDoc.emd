@@ -1,0 +1,163 @@
+---
+title: "<%- appName %>"
+subtitle: "Process, Logical, and Physical Enterprise Architecture"
+date: \today
+author: "<%- author %>"
+version: <%= version %>
+keywords: [Architecture, UseCases, Workflows, Actors]
+lang: "en"
+toc: true
+toc-own-page: true
+titlepage: true,
+titlepage-rule-color: "003456"
+linkcolor: blue
+header-left: "\\leftmark"
+header-center: "\\rightmark"
+header-right: "Page \\thepage"
+footer-left: "\\thetitle"
+footer-center: "ailtire generated"
+footer-right: "\\theauthor"
+---
+
+# <%= appName %> Overview
+
+<%- _stripHeader("#", '', fs.readFileSync(`${basedir}/index.md`, 'utf-8')) %>
+
+# Use Case View
+
+## Actors
+
+<% for(let aname in actors) {
+let str = _stripHeader('##', `actors/${aname.toLowerCase()}`, fs.readFileSync(`${basedir}/actors/${aname.toLowerCase()}/index.md`, 'utf-8')); %>
+-%>
+<%- str %>
+<% } %>
+
+## Use Cases
+
+<%
+let unames = Object.keys(global.usecases).sort();
+for(let i in unames) {
+    let uname = unames[i];
+    let uc = global.usecases[uname];
+    let rootDir = `${uc.prefix}/usecases/${uname}`;
+    let str = _stripHeader("##", rootDir, fs.readFileSync(`${basedir}/${rootDir}/index.md`, 'utf-8'));
+-%>
+<%- str %>
+<%
+}
+-%>
+
+# Logical View
+
+## Packages
+
+<% let pnames = Object.keys(global.packages).sort();
+for(let i in pnames) {
+    let pkg = global.packages[pnames[i]];
+    let rootDir = `${pkg.prefix}`;
+    let str = _stripHeader("##", rootDir, fs.readFileSync(`${basedir}/${rootDir}/index.md`, 'utf-8'));
+-%>
+<%- str %>
+<%
+}
+%>
+
+## Classes
+
+<% let cnames = Object.keys(global.classes).sort();
+for(let i in cnames) {
+    let cls = global.classes[cnames[i]];
+    let rootDir = cls.definition.package.prefix; 
+    let str = _stripHeader("##", `${rootDir}/models/${cnames[i].toLowerCase()}`, fs.readFileSync(`${basedir}/${rootDir}/models/${cnames[i].toLowerCase()}/index.md`, 'utf-8'));
+-%>
+<%- str %>
+<%
+}
+%>
+
+# Process View
+
+<% 
+let wffiles = fs.readdirSync(`${basedir}/workflows`);
+for(let i in wffiles) {
+    let file = wffiles[i];
+    if(file.includes('.md')) {
+        let str = _stripHeader("##", 'workflows', fs.readFileSync(`${basedir}/workflows/${file}`, 'utf-8'));
+-%>
+<%- str %>
+<%
+    }
+} -%>
+
+# Implementation View
+
+## External Dependencies
+
+External Dependencies of the application 
+
+| Name | Version | depends | Resolve |
+|------|---------|---------|---------|
+<% for(let name in sbom.components) {
+    let comp = sbom.components[name];
+    if(comp.resolved) {
+-%>
+| <%- comp.name %> | <%- comp.version %> | <%- comp.depth %> | [<%- comp.name %> Link](<%- comp.resolved %>) |
+<%  }
+} -%>
+
+
+## Container Images
+
+The architecture utilizes a micro-service design pattern for the deployment architecture. The following is a list of 
+the container images for the deployment of the solution.
+<% 
+let ifiles = fs.readdirSync(`${basedir}/images`);
+for(let i in ifiles) {
+    let file = ifiles[i] + '/index.md';
+    if(fs.existsSync(`${basedir}/images/${file}`)) {
+        let str = _stripHeader("##", 'images', fs.readFileSync(`${basedir}/images/${file}`, 'utf-8'));
+%>
+<%- str %>
+<% }
+} %>
+
+# Deployment View
+
+## Environments
+<% 
+let efiles = fs.readdirSync(`${basedir}/environments`);
+for(let i in efiles) {
+    let file = efiles[i] + '/index.md';
+    if(fs.existsSync(`${basedir}/environments/${file}`)) {
+        let str = _stripHeader("##", 'environments', fs.readFileSync(`${basedir}/environments/${file}`, 'utf-8'));
+        let envStr = _getAllEnvironments("###", basedir, efiles[i]);    
+%>
+<%- str %>
+<%- envStr %>
+<% 
+}
+} %>
+
+## Services
+
+<% for(let sname in services) {
+    let service = services[sname]
+    let links = Object.keys(service).map( e => { return `[${e}](environment-${e}-${sname})`; }).join(', ');
+-%>
+* <%= sname %> - <%= links %>
+<% } -%>
+
+# Physical Architecture
+
+
+# Architectural Notes
+
+<% 
+let wfiles = fs.readdirSync(`${basedir}/notes`);
+for(let i in wfiles) {
+    let file = wfiles[i];
+    let str = _stripHeader("##", 'notes', fs.readFileSync(`${basedir}/notes/${file}`, 'utf-8'));
+%>
+<%- str %>
+<% } %>

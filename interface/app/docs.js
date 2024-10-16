@@ -6,8 +6,7 @@ module.exports = {
     friendlyName: 'docs',
     description: 'Generate Documentation of the app',
     static: true,
-    inputs: {
-    },
+    inputs: {},
 
     exits: {
         success: {},
@@ -25,16 +24,19 @@ module.exports = {
 
         let project = require(process.cwd() + '/package.json');
 
-        server.docBuild( {
-            version: project.version,
-            baseDir: '.',
-            prefix: project.name,
-            routes: {
-            },
-            host: host,
-            urlPrefix: urlPrefix,
-            listenPort: port
-        });
+        try {
+            server.docBuild({
+                version: project.version,
+                baseDir: '.',
+                prefix: project.name,
+                routes: {},
+                host: host,
+                urlPrefix: urlPrefix,
+                listenPort: port
+            });
+        } catch (e) {
+            console.error(e);
+        }
         let volumeStr = process.cwd() + '/docs:/docs';
         let plantimage = "ailtire-plantuml";
         console.log("Generating Diagrams from PUML");
@@ -42,14 +44,26 @@ module.exports = {
             stdio: 'pipe',
             env: process.env
         });
-        if(proc.status != 0) {
-            console.error("Error Building PNG from Plantruml");
+        if (proc.status != 0) {
+            console.error("Error Building pdf from md");
             console.error(proc.stdout.toString('utf-8'));
             console.error(proc.stderr.toString('utf-8'));
         }
         console.log(proc.stdout.toString('utf-8'));
         console.log("Done Generating Diagrams from PUML");
-
+        console.log("Generating pdf from md");
+        let pdfimage = "ailtire_buildpdf";
+        let proc2 = spawn('docker', ['run', '-v', volumeStr, pdfimage, "singleDoc.md", "singleDoc.pdf"], {
+            stdio: 'pipe',
+            env: process.env
+        });
+        if (proc2.status != 0) {
+            console.error("Error Building PNG from Plantruml");
+            console.error(proc2.stdout.toString('utf-8'));
+            console.error(proc2.stderr.toString('utf-8'));
+        }
+        console.log(proc2.stdout.toString('utf-8'));
+        console.log("Done Generating Diagrams from PUML");
     }
 };
 

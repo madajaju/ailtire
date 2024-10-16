@@ -40,7 +40,6 @@ module.exports = {
             let route = config.urlPrefix + '/' + i.toLowerCase();
             let action = find(config.routes[i]);
             if (action) {
-                console.log("Route:", route);
                 if(route.includes('/upload')) {
                     server.post(route, global.upload.single('file-to-upload'), (req, res) => {
                         execute(action, req.query, {req: req, res: res});
@@ -258,10 +257,12 @@ const mapToServer = (server, config) => {
         }
         normalizedName = config.urlPrefix + normalizedName;
         if(normalizedName.includes('/upload')) {
-            server.post('*' + normalizedName, global.upload.single('file'), (req, res) => {
-                req.url = req.url.replace(config.urlPrefix, '');
-                upload(gaction, req.query, {req: req, res: res});
-            });
+            if(global.upload) {
+                server.post('*' + normalizedName, global.upload.single('file'), (req, res) => {
+                    req.url = req.url.replace(config.urlPrefix, '');
+                    upload(gaction, req.query, {req: req, res: res});
+                });
+            }
         } else {
             server.post('*' + normalizedName, (req, res) => {
                 req.url = req.url.replace(config.urlPrefix, '');

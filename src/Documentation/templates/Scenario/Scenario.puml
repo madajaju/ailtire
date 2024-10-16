@@ -30,7 +30,10 @@ group Given [<%= scenario.given %>]
     let names = step.action.split('/');
     let object = package.shortname;
     let method = names.pop().toLowerCase();
-    let calledObj = names.pop().toLowerCase();
+    let calledObj = "this";
+    if(names.length > 0) {
+        calledObj = names.pop().toLowerCase();
+    }
     if(step.act) {
         object = step.act.obj;
     }

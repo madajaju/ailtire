@@ -5,6 +5,7 @@ const Generator = require('./Generator.js');
 const AClass = require('../Server/AClass');
 const APackage = require('../Server/APackage');
 const Action = require('../Server/Action');
+const {execSync} = require("child_process");
 
 const isDirectory = source => fs.existsSync(source) && fs.lstatSync(source).isDirectory();
 const isFile = source => fs.existsSync(source) && !fs.lstatSync(source).isDirectory();
@@ -50,8 +51,29 @@ module.exports = {
             categoryGenerator(categories[i], output + '/categories')
         }
     },
+    notes: (output) => {
+       /* 
+        const { default: ANote } = await import("../../Server/ANote.mjs");
+        ANote.loadDirectory(path.resolve('./.notes'));
+        let notes = Note.list();
+        
+        */
+        let mdir = path.resolve('./.notes'); 
+        fs.mkdirSync(mdir, {recursive:true});
+        let notesFiles = fs.readdirSync(mdir);
+        
+        for (let i in notesFiles) {
+            let fileName = `${mdir}/${notesFiles[i]}`;
+            let json = fs.readFileSync(path.resolve(fileName), 'utf-8');
+            let note = JSON.parse(json);
+            notesGenerator(note, output + '/notes');
+        }
+    },
     app: (app, output) => {
         appGenerator(app, output);
+    },
+    singleDoc: (app, output) => {
+        singleGenerator(app, output);
     }
 };
 const appGenerator = (app, output) => {
@@ -93,6 +115,50 @@ const appGenerator = (app, output) => {
         imageGenerator(global.ailtire.implementation.images[iname], parent);
     }
 };
+const singleGenerator = (name, output) => {
+    let services = {};
+    for(let ename in global.deploy.envs) {
+        let environ = global.deploy.envs[ename];
+        for(let sname in environ) {
+            let service = environ[sname];
+            if(!services.hasOwnProperty(sname)) {
+                services[sname] = {};
+            }
+            services[sname][ename] = service;
+        }
+    }
+    let pakageconfig = fs.readFileSync(path.resolve('./package.json'), 'utf-8');
+    let pkgconfig = JSON.parse(pakageconfig);
+    let sbom = _getSBOM();
+    
+    let files = {
+        context: {
+            sbom: sbom,
+            author: pkgconfig.author,
+            basedir: output,
+            packages: global.packages,
+            actors: global.actors,
+            appName: name,
+            package: global.topPackage,
+            topPackage: global.topPackage,
+            packageName: global.topPackage.name,
+            shortname: '',
+            environments: global.deploy.envs,
+            services: services,
+            version: global.ailtire.config.version,
+            workflows: global.workflows,
+            category: global.categories,
+            fs: fs,
+            _stripHeader: _stripHeader,
+            _getAllEnvironments: _getAllEnvironments
+        },
+        targets: {
+            './singleDoc.md': {template: '/templates/App/singleDoc.emd'},
+        },
+    };
+    addDocs(global.topPackage, files, output, '');
+    Generator.process(files, output);
+};
 const indexGenerator = (name, output) => {
     let services = {};
     for(let ename in global.deploy.envs) {
@@ -132,7 +198,7 @@ const indexGenerator = (name, output) => {
             './images.md': {template: '/templates/Image/all.emd'},
             './environments.md': {template: '/templates/Environment/all.emd'},
             './workflows.md': {template: '/templates/Category/all.emd'},
-//             './services.md': {template: '/templates/Service/all.emd'},
+            // './services.md': {template: '/templates/Service/all.emd'},
             './_config.yml': {template: '/templates/App/_config.yml'},
             './_config-local.yml': {template: '/templates/App/_config-local.yml'},
         },
@@ -140,6 +206,28 @@ const indexGenerator = (name, output) => {
     addDocs(global.topPackage, files, output, '');
     Generator.process(files, output);
 };
+
+const notesGenerator = (note, output) => {
+    if(!note.name) { note.name = note.createdDate; }
+    
+    let files = {
+        context: {
+            note: note,
+            noteName: note.name.replace(/\s/g,''),
+            noteID: note.id
+        },
+        targets: {
+            './Note:noteID:.md': {template: '/templates/Note/index.emd'},
+        },
+    };
+    try {
+        Generator.process(files, output);
+    }
+    catch(e) {
+        console.error(e);
+    }
+};
+
 const categoryGenerator = (category, output) => {
     if(!category.name) { category.name = category.prefix.split('/').pop(); }
     let categoryName = category.name.replace(/\s/g,'');
@@ -476,90 +564,93 @@ const environGenerator = (pkg, env, output, urlPath) => {
 
     deploy.services = env.definition.services;
     let environment = undefined;
+    if(!pkg.physical) {
+        pkg.physical = global.topPackage.physical;
+    }
     if(pkg.physical) {
         if(pkg.physical.environments.hasOwnProperty(env.name)) {
-            environment = pkg.physical.environments[env.name];
-        }
-    }
-    for (let sname in env.definition.services) {
-        let service = env.definition.services[sname];
-        service.name = sname;
-        // Grab any ports that will be external
-        for (let i in service.ports) {
-            let maps = service.ports[i].replace(/"/g, '').split(':');
-            deploy.ports[maps[0]] = {
-                port: maps[1],
-                service: sname,
-            }
-        }
-        deploy.images[service.image] = {
-            name: service.image,
-            id: service.image.replace(/\:/, '') + 'image'
-        }
-        service.id = service.name.replace('/\s/g', '') + 'Service';
-        if (service.image.includes('traefik')) {
-            deploy.frontend.service = service;
-            deploy.frontend.image = service.image;
-            deploy.frontend.id = 'frontendService';
-            deploy.frontend.maps = [];
-        }
-        // Now get the right network from the network list.
-        let networks = {};
-        for (let i in service.networks) {
-            let network = "";
-            let net = service.networks[i];
-            if (typeof net === 'string') {
-                if (deploy.networks.hasOwnProperty(net)) {
-                    network = deploy.networks[net];
-                    networks[net] = network;
-                }
-            } else {
-                if (deploy.networks.hasOwnProperty(i)) {
-                    network = deploy.networks[i];
-                    networks[i] = network;
+                    environment = pkg.physical.environments[env.name];
                 }
             }
-        }
-        service.networks = networks;
-        let label = "";
-        let network = "";
-        let port = "";
-        let route = "";
-        if (service.deploy) {
-            for (let j in service.deploy.labels) {
-                label = service.deploy.labels[j];
-                if (label.includes('rule=')) {
-                    route = label.replace(/^.*\(\`/, '').replace(/\`.*$/, '');
-                } else if (label.includes('network=')) {
-                    let networkname = label.replace(/^.*=/, '').replace(/[\$\{\}]/g, '').toLowerCase();
-                    if (deploy.egress.hasOwnProperty(networkname)) {
-                        network = deploy.egress[networkname];
-                    } else if (deploy.ingress.hasOwnProperty(networkname)) {
-                        network = deploy.egress[networkname];
-                    } else if (deploy.networks.hasOwnProperty(networkname)) {
-                        network = deploy.networks[nnetworkname];
-                    } else {
-                        for (let nname in deploy.egress) {
-                            if (deploy.egress[nname].externalName === networkname) {
-                                network = deploy.egress[nname];
-                            }
+            for (let sname in env.definition.services) {
+                let service = env.definition.services[sname];
+                service.name = sname;
+                // Grab any ports that will be external
+                for (let i in service.ports) {
+                    let maps = service.ports[i].replace(/"/g, '').split(':');
+                    deploy.ports[maps[0]] = {
+                        port: maps[1],
+                        service: sname,
+                    }
+                }
+                deploy.images[service.image] = {
+                    name: service.image,
+                    id: service.image.replace(/\:/, '') + 'image'
+                }
+                service.id = service.name.replace('/\s/g', '') + 'Service';
+                if (service.image.includes('traefik')) {
+                    deploy.frontend.service = service;
+                    deploy.frontend.image = service.image;
+                    deploy.frontend.id = 'frontendService';
+                    deploy.frontend.maps = [];
+                }
+                // Now get the right network from the network list.
+                let networks = {};
+                for (let i in service.networks) {
+                    let network = "";
+                    let net = service.networks[i];
+                    if (typeof net === 'string') {
+                        if (deploy.networks.hasOwnProperty(net)) {
+                            network = deploy.networks[net];
+                            networks[net] = network;
                         }
-                        for (let nname in deploy.ingress) {
-                            if (deploy.ingress[nname].externalName === networkname) {
-                                network = deploy.ingress[nname];
-                            }
+                    } else {
+                        if (deploy.networks.hasOwnProperty(i)) {
+                            network = deploy.networks[i];
+                            networks[i] = network;
                         }
                     }
-                } else if (label.includes('port=')) {
-                    port = label.replace(/^.*=/, '');
                 }
-            }
-            if (!network) {
-                network = {
-                    name: 'Default',
-                    color: '#blue'
+                service.networks = networks;
+                let label = "";
+                let network = "";
+                let port = "";
+                let route = "";
+                if (service.deploy) {
+                    for (let j in service.deploy.labels) {
+                        label = service.deploy.labels[j];
+                        if (label.includes('rule=')) {
+                            route = label.replace(/^.*\(\`/, '').replace(/\`.*$/, '');
+                        } else if (label.includes('network=')) {
+                            let networkname = label.replace(/^.*=/, '').replace(/[\$\{\}]/g, '').toLowerCase();
+                            if (deploy.egress.hasOwnProperty(networkname)) {
+                                network = deploy.egress[networkname];
+                            } else if (deploy.ingress.hasOwnProperty(networkname)) {
+                                network = deploy.egress[networkname];
+                            } else if (deploy.networks.hasOwnProperty(networkname)) {
+                            network = deploy.networks[nnetworkname];
+                        } else {
+                            for (let nname in deploy.egress) {
+                                if (deploy.egress[nname].externalName === networkname) {
+                                    network = deploy.egress[nname];
+                                }
+                            }
+                            for (let nname in deploy.ingress) {
+                                if (deploy.ingress[nname].externalName === networkname) {
+                                    network = deploy.ingress[nname];
+                                }
+                            }
+                        }
+                    } else if (label.includes('port=')) {
+                        port = label.replace(/^.*=/, '');
+                    }
                 }
-            }
+                if (!network) {
+                    network = {
+                        name: 'Default',
+                        color: '#blue'
+                    }
+                }
             if (!deploy.frontend.hasOwnProperty('maps')) {
                 deploy.frontend.maps = [];
             }
@@ -621,6 +712,10 @@ const environGenerator = (pkg, env, output, urlPath) => {
         delete deploy.services[deploy.frontend.service.name];
     }
 
+    if(!environment) {
+        console.error("Environment not definedd: not phsyuical:", pkg.name);
+        return;
+    }
     let files = {
         context: {
             envName: env.name,
@@ -635,7 +730,6 @@ const environGenerator = (pkg, env, output, urlPath) => {
         targets: {
             ':envName:/index.md': {template: '/templates/Environment/_index.emd'},
             ':envName:/deployment.puml': {template: '/templates/Environment/Deployment.puml'},
-            ':envName:/physicalOld.puml': {template: '/templates/Environment/Physical.puml'},
         },
     };
     if(pkg.physical && environment) {
@@ -767,4 +861,97 @@ function _getWorkflowHeritage(workflow) {
         }
     }
     return {grandparent: grandparent, parent: parent};
+}
+
+function _getSBOM() {
+    if(!global.ailtire.implementation) {
+        global.ailtire.implementation = {}
+    }
+    if(!global.ailtire.implementation.libraries) {
+        let results = execSync("npm list --all --json").toString();
+        let retval = JSON.parse(results);
+        global.ailtire.implementation.libraries = retval;
+        global.ailtire.implementation.components = { };
+        global.ailtire.implementation.components[retval.name] = retval;
+        _iterateLibraries(retval.dependencies);
+    }
+    return global.ailtire.implementation;
+}
+
+function _iterateLibraries(items) {
+    let total = 0;
+    for(let name in items) {
+        total++;
+        global.ailtire.implementation.components[name] = items[name];
+        global.ailtire.implementation.components[name].name = name;
+        if(items[name].dependencies) {
+            let depth = _iterateLibraries(items[name].dependencies);
+            global.ailtire.implementation.components[name].depth = depth;
+            total += depth;
+        }
+    }
+    return total;
+}
+
+function _stripHeader(hlevel, basedir, text) {
+    const cwd = path.join(process.cwd(),  "docs");
+    basedir = basedir.startsWith(cwd) ? basedir.substring(cwd.length +1 ) : basedir;
+    basedir = basedir.replace(/\\/g, '/')
+    text = text.replace(/\r\n/g, '\n');
+    let yamlHeader = text.match(/---[\s\S]*?---\n/);
+    let retval = "";
+    let permalink = "";
+    if(yamlHeader) {
+        permalink = yamlHeader[0].match(/permalink:\s*["']?(.*?)['"]?\s*\n/);
+    } 
+    
+    let textLines = text.replace(/---[\s\S]*?---\n/,'').split('\n');
+    // Now check for hyperlinkes and change them if they do not have a :// token
+    let foundTitle = false;
+    for(let i in textLines) {
+        let line = textLines[i];
+        let header = line.match(/^#/);
+        if(header) {
+            let firstHeader = header[1];
+            if(!foundTitle && permalink) {
+                line = hlevel + line + ` {#${permalink[1]}}\n`
+                foundTitle = true;
+            } else {
+                line = hlevel + line;
+            }
+        }
+        
+        let test = line.match(/\[.*\]\(.*\)/);
+        if(test) {
+            // This is a image
+            if(line.match(/^!\[/)) {
+                line = line.replace(/\]\(\.\//g, `](./${basedir}/`);
+            } else if(!line.includes('http')) {
+                if(!line.includes('](#')) {
+                    line = line.replace(/\]\(/g, '](#');
+                }
+            } 
+        }
+        retval += line + '\n';
+    }
+    
+    return retval;
+}
+function _getAllEnvironments(hlevel, basedir, environment) {
+    const dirs = fs.readdirSync(basedir);
+    let retval = "";
+    for(let i in dirs) {
+        const entryPath = path.join(basedir, dirs[i]);
+        if(fs.statSync(entryPath).isDirectory()) {
+            const envDir = path.join(basedir, "envs", environment);
+            if(fs.existsSync(envDir) && fs.statSync(envDir).isDirectory()) {
+                const indexPath = path.join(envDir, 'index.md'); 
+                if(fs.existsSync(indexPath)) {
+                   retval += _stripHeader(hlevel, envDir, fs.readFileSync(indexPath,'utf-8'));
+                }
+            }
+            retval += _getAllEnvironments(hlevel, entryPath, environment);
+        }
+    }
+    return retval;
 }

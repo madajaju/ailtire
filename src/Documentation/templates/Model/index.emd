@@ -77,7 +77,7 @@ The following diagram is the state net for this class.
 * [<%= mname %>() - <%= method.description %>](#action-<%= mname.replace(/\//g,'-') %>)
 <% } %>
 
-<h2>Method Details</h2>
+## Method Details
     <% for(let mname in model.methods) {
         let method = model.methods[mname];
         method.name = model.name.toLowerCase() + '/' + mname;

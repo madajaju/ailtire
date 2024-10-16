@@ -84,7 +84,7 @@ async function _generateSummary(notes) {
         let messages = [];
         messages.push({
             role: "system",
-            content: `For the user prompt generate a summary of the notes include Attendees and topics discussed`
+            content: `For the user prompt generate a summary of the notes and topics discussed. If this is a transcript or meeting notes list the attendees as well.`
         });
         messages.push({role: 'user', content: chunks[i]});
         summaries.push(await AIHelper.ask(messages));
