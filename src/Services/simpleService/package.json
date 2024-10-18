@@ -12,6 +12,6 @@
   "author": "Darren W Pulsipher - darren@pulsipher.org",
   "license": "ISC",
   "dependencies": {
-    "express": "latest"
+    "express": "4.21.1"
   }
 }
