@@ -180,6 +180,17 @@ module.exports = {
             let str = mainPage(config);
             res.end(str);
         });
+        let mdirs = fs.readdirSync(path.resolve(config.baseDir + '/views/layouts'))
+        for(let i in mdirs) {
+            if(path.extname(mdirs[i]) === '.ejs') {
+                let basename = path.basename(mdirs[i], '.ejs');
+                server.all(`/${basename}`, (req, res) => {
+                    config.layout = basename;
+                    let str = mainPage(config);
+                    res.end(str);
+                });
+            }
+        }
         server.all('*', (req, res) => {
             console.error(`Config: ${config.urlPrefix}`)
             console.error("Catch All", req.originalUrl);
@@ -259,6 +270,17 @@ module.exports = {
             let str = mainPage(config);
             res.end(str);
         });
+        let mdirs = fs.readdirSync(path.resolve(config.baseDir + '/views/layouts'))
+        for(let i in mdirs) {
+            if(path.extname(mdirs[i]) === '.ejs') {
+                let basename = path.basename(mdirs[i], '.ejs');
+                server.all(`/${basename}`, (req, res) => {
+                    config.layout = basename;
+                    let str = mainPage(config);
+                    res.end(str);
+                });
+            }
+        }
         server.all('*', (req, res) => {
             console.error(`Config: ${config.urlPrefix}`)
             console.error("Catch All", req.originalUrl);
@@ -331,7 +353,8 @@ module.exports = {
 }
 
 function mainPage(config) {
-    return Renderer.render('', './index', {
+    let layout = config.layout || 'default';
+    return Renderer.render(layout, './index', {
         app: {name: config.name},
         name: config.name,
     });
