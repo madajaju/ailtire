@@ -71,6 +71,29 @@ statenet: {
     ...
 `;
 module.exports = {
+    getTopLevelClasses: () => {
+        // Analyze all of the classes and find out if they do not have an owner.
+        // all classes that do not have an owner are toplevel classes.
+        let checkClasses = {};
+        for (let name in global.classes) {
+            let cls = global.classes[name];
+            let assocs = cls.definition.associations;
+            let hasOwner = false;
+            for (let aname in assocs) {
+                let assoc = assocs[aname];
+                if (assoc.owner) {
+                    checkClasses[assoc.type] = true;
+                }
+            }
+        }
+        let retval = {};
+        for(let name in global.classes) {
+            if(!checkClasses.hasOwnProperty(name)) {
+                retval[name] = global.classes[name];
+            }
+        }
+        return retval;
+    },
     getClass: (className) => {
         return _getClass(className);
     },

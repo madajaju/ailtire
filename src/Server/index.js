@@ -153,7 +153,7 @@ module.exports = {
 
         if(config.persist) {
             let pAdaptor = config.persist.adaptor;
-            pAdaptor.load();
+            pAdaptor.loadAll();
         }
 
         standardFileTypes(config,server);
@@ -356,7 +356,7 @@ function normalizeConfig(config) {
 }
 
 function findStaticFile(config, apath) {
-    config.staticPaths = config.staticPaths || [ path.resolve(`./views`), path.resolve(`./assets`) ];
+    config.staticPaths = config.staticPaths || [ path.resolve('.'), path.resolve(`./views`), path.resolve(`./assets`) ];
     let paths = config.staticPaths;
     paths.push(path.resolve(`${__dirname}/../../assets`));
     for(let i in paths) {

@@ -71,7 +71,8 @@ class AWorkflowInstance {
     }
 
     static loadAll() {
-        let dir = `${ailtire.config.baseDir}/.workflows`;
+
+        let dir = `${ailtire?.config?.baseDir}/.workflows` || `./.workflows`;
         fs.mkdirSync(dir, {recursive: true});
         let wdirs =  fs.readdirSync(dir, { withFileTypes: true })
             .filter(dirent => dirent.isDirectory() && dirent.name !== '.' && dirent.name !== '..')

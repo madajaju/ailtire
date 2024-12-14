@@ -14,7 +14,12 @@ module.exports = {
     analyze: (pkg) => {
         analyzeApp(pkg);
     },
-    processPackage: async (dir) => {
+    processPackage: (dir) => {
+        if (!global.ailtire) {
+            global.ailtire = {
+                config: {'baseDir': dir}
+            }
+        }
         global.actors = {};
         global.actions = global.actions || {}; // Allow actions to be added programattically
         global.events = {};
@@ -29,7 +34,7 @@ module.exports = {
         global.topPackage = processDirectory(dir);
         _processModelIncludeFiles();
         _loadWorkflowInstances();
-        await _loadNotes();
+        // await _loadNotes();
         return global.topPackage;
     },
     checkPackages: () => {
@@ -38,14 +43,14 @@ module.exports = {
 };
 
 const _loadNotes = async () => {
+    return null;
     try {
         const {default: ANote} = await import('./ANote.mjs');
         ANote.loadDirectory(path.resolve('./.notes'));
         global.notes = ANote.list();
         return global.notes;
-    }
-    catch(e) {
-        console.error(e);
+    } catch (e) {
+        console.error("_loadNotes Error:", e);
     }
 }
 
@@ -124,8 +129,6 @@ const processDirectory = dir => {
 // First look load the index file as the name of the top subsystem.
 
 
-
-
 const isDirectory = source => fs.existsSync(source) && fs.lstatSync(source).isDirectory();
 const isFile = source => fs.existsSync(source) && !fs.lstatSync(source).isDirectory();
 const getDirectories = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
@@ -134,27 +137,21 @@ const getFiles = source => fs.readdirSync(source).map(name => path.join(source, 
 let reservedDirs = {
     actors: (pkg, prefix, dir) => {
         AActor.loadAll(dir);
-    },
-    node_modules: (pkg, prefix, dir) => {
+    }, node_modules: (pkg, prefix, dir) => {
         // Do Nothing.
         // Just skip
-    },
-    doc: (pkg, prefix, dir) => {
+    }, doc: (pkg, prefix, dir) => {
         loadDocs(pkg, dir);
-    },
-    deploy: (pkg, prefix, dir) => {
+    }, deploy: (pkg, prefix, dir) => {
         pkg = loadDeploy(pkg, prefix, dir);
-    },
-    handlers: (pkg, prefix, dir) => {
+    }, handlers: (pkg, prefix, dir) => {
         // The Interface directory can be multiple directories deep which map to routes A/B/C
         pkg.handlers = loadHandlers(pkg, prefix, dir);
-    },
-    interface: (pkg, prefix, dir) => {
+    }, interface: (pkg, prefix, dir) => {
         //The Interface directory can be multiple directories deep which map to routes A/B/C
         pkg.interfaceDir = dir;
         pkg.interface = loadActions(pkg, prefix, dir);
-    },
-    models: (pkg, prefix, dir) => {
+    }, models: (pkg, prefix, dir) => {
         // This stores the pkg classes.
         // Process the Model Include Files
         pkg.classes = {};
@@ -166,11 +163,9 @@ let reservedDirs = {
             // let model = path.basename(modelDir);
             AClass.load(pkg, modelDir);
         }
-    },
-    workflows: (pkg, prefix, dir) => {
+    }, workflows: (pkg, prefix, dir) => {
         loadWorkflows(pkg, "", dir);
-    },
-    usecases: (pkg, prefix, dir) => {
+    }, usecases: (pkg, prefix, dir) => {
         pkg.usecases = {};
         let usecases = getDirectories(dir);
         for (let i in usecases) {
@@ -201,7 +196,7 @@ const loadWorkflows = (pkg, prefix, dir) => {
             let ext = path.extname(file);
             if (file.includes('index.js')) {
                 category = require(file);
-            } else if(ext === '.js') {
+            } else if (ext === '.js') {
                 let workflow = require(file);
                 workflow.baseDir = dir;
                 pkg.workflows[workflow.name] = workflow;
@@ -211,7 +206,7 @@ const loadWorkflows = (pkg, prefix, dir) => {
                     global.workflows = {};
                 }
                 if (!global.workflows.hasOwnProperty(workflow.name)) {
-                    let anospace = workflow.name.replace(/\s/g,'');
+                    let anospace = workflow.name.replace(/\s/g, '');
                     global.workflows[anospace] = workflow;
                 } else {
                     console.error("Workflow already defined:", workflow.name);
@@ -227,7 +222,7 @@ const loadWorkflows = (pkg, prefix, dir) => {
         for (let i in dirs) {
             let mdir = dirs[i];
             let mprefix = path.basename(mdir);
-            if(mprefix !== 'doc') {
+            if (mprefix !== 'doc') {
                 if (prefix) {
                     mprefix = `${prefix}/${mprefix}`;
                 }
@@ -236,18 +231,18 @@ const loadWorkflows = (pkg, prefix, dir) => {
             }
         }
         let shortName = path.basename(dir);
-        if(!global.categories) {
+        if (!global.categories) {
             global.categories = {};
         }
         global.categories[shortName] = category;
         return category;
     }
 };
-const loadDocs = async (pkg, dir) => {
-   /* const { default: ADocumentation } = await import("./ADocumentation.mjs");
-    ADocumentation.load(pkg, dir);
-    
-    */
+const loadDocs = (pkg, dir) => {
+    /* const { default: ADocumentation } = await import("./ADocumentation.mjs");
+     ADocumentation.load(pkg, dir);
+
+     */
     if (fs.existsSync(dir)) {
         let files = getFiles(dir);
         let nfiles = [];
@@ -549,8 +544,7 @@ const _loadPhysicalDefaults = () => {
 
     if (!global.physical) {
         global.physical = {
-            modules: {},
-            environments: {},
+            modules: {}, environments: {},
         }
     }
     if (!global.environments) {
@@ -569,10 +563,7 @@ const _loadPhysicalDefaults = () => {
 const loadPhysical = (pkg, prefix, dir) => {
 
     let physical = {
-        dir: dir,
-        prefix: prefix,
-        environments: {},
-        modules: {}
+        dir: dir, prefix: prefix, environments: {}, modules: {}
     };
     _loadPhysicalDefaults();
 
@@ -584,7 +575,7 @@ const loadPhysical = (pkg, prefix, dir) => {
     // Next load the environment files.
     mdir = path.resolve(dir + '/environments');
     mfiles = fs.readdirSync(mdir);
-    
+
     _loadEnvironments(physical.environments, "", mdir, mfiles);
     pkg.physical = physical;
     // Now check the environment files for references to the modules, consistency in the configurations.
@@ -597,13 +588,13 @@ const loadPhysical = (pkg, prefix, dir) => {
 
 const loadDeploy = (pkg, prefix, dir) => {
     pkg.deploy = {
-        dir: dir,
-        prefix: prefix,
-        envs: {},
-        build: {}
+        dir: dir, prefix: prefix, envs: {}, build: {}
     };
     // Get the build file
     let apath = path.resolve(dir + '/build.js');
+    if (!global.ailtire) {
+        global.ailtire = {};
+    }
     if (!global.ailtire.implementation) {
         global.ailtire.implementation = {};
     }
@@ -627,11 +618,7 @@ const loadDeploy = (pkg, prefix, dir) => {
                 normalizedBuild[iname] = image;
             }
             global.ailtire.implementation.images[image.tag] = {
-                image: image,
-                context: iname,
-                pkg: pkg.shortname,
-                basedir: dir,
-                name: image.tag
+                image: image, context: iname, pkg: pkg.shortname, basedir: dir, name: image.tag
             };
         }
         pkg.deploy.build = normalizedBuild;
@@ -880,7 +867,7 @@ const checkWorkflows = (workflows) => {
                 }
                 // Now check and see if there is an interface that matches
                 if (!found) {
-                    if(global.actions.hasOwnProperty(anospace)) {
+                    if (global.actions.hasOwnProperty(anospace)) {
                         activity.obj = global.actions[anospace];
                         activity.type = "action";
                         found = true;
@@ -949,10 +936,7 @@ const checkDeployment = (deployments, images) => {
                             if (base) {
                                 if (!global.ailtire.implementation.images.hasOwnProperty(base)) {
                                     global.ailtire.implementation.images[base] = {
-                                        pkg: 'undefined',
-                                        context: 'external',
-                                        name: base,
-                                        children: {}
+                                        pkg: 'undefined', context: 'external', name: base, children: {}
                                     }
                                 }
                                 global.ailtire.implementation.images[base].children[image.name] = image;
@@ -1087,14 +1071,12 @@ const checkPackage = (pkg) => {
                 description: `When an object of type ${cls.definition.name} is created.`,
                 emitter: cls,
                 handlers: {}
-            },
-            'destroy': {
+            }, 'destroy': {
                 name: `${ename}.destroy`,
                 description: `When an object of type ${cls.definition.name} is destroyed.`,
                 emitter: cls,
                 handlers: {}
-            },
-            'updated': {
+            }, 'updated': {
                 name: `${ename}.updated`,
                 description: `When an object of type ${cls.definition.name} has an attribute or association updated.`,
                 emitter: cls,
@@ -1358,6 +1340,7 @@ function _loadWorkflowInstances() {
     let AWorkFlowInstance = require('./AWorkflowInstance');
     AWorkFlowInstance.loadAll();
 }
+
 function _processModelIncludeFiles() {
 
     for (let pname in global.packages) {
@@ -1371,34 +1354,27 @@ function _initHandlers() {
     const AActivityInstance = require('./AActivityInstance');
     let retval = {};
     retval['activity.completed'] = {
-        name: "activity.completed", handlers: [
-            {
-                description: 'Activity Completed Handler. Notifies the next activity of the completion.',
-                fn: (data) => {
-                    AActivityInstance.handleEvent("activity.completed", data);
-                }
-            },
-        ]
+        name: "activity.completed", handlers: [{
+            description: 'Activity Completed Handler. Notifies the next activity of the completion.', fn: (data) => {
+                AActivityInstance.handleEvent("activity.completed", data);
+            }
+        },]
     };
     retval['activity.skipped'] = {
-        name: "activity.skipped", handlers: [
-            {
-                description: 'Activity Completes with a Skipped Handler. Notifies the next activity of the skipped state.',
-                fn: (data) => {
-                    AActivityInstance.handleEvent("activity.skipped", data);
-                }
-            },
-        ]
+        name: "activity.skipped", handlers: [{
+            description: 'Activity Completes with a Skipped Handler. Notifies the next activity of the skipped state.',
+            fn: (data) => {
+                AActivityInstance.handleEvent("activity.skipped", data);
+            }
+        },]
     };
     retval['activity.error'] = {
-        name: "activity.error", handlers: [
-            {
-                description: 'Activity Completes with an Error Handler. Notifies the next activity of the error state.',
-                fn: (data) => {
-                    AActivityInstance.handleEvent("activity.error", data);
-                }
-            },
-        ]
+        name: "activity.error", handlers: [{
+            description: 'Activity Completes with an Error Handler. Notifies the next activity of the error state.',
+            fn: (data) => {
+                AActivityInstance.handleEvent("activity.error", data);
+            }
+        },]
     };
     return retval;
 }

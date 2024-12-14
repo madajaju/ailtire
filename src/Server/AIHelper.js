@@ -35,6 +35,7 @@ async function _askForCode(messages) {
             tries++;
         } catch (e) {
             console.warn("Fixing the response:", e);
+            console.warn(response);
             let nMessages = [
                 {
                     role: 'system', content: "Given the following error from evaluting this string with" +

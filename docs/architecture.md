@@ -9,54 +9,124 @@ has_children: true
 
 ![Architecture](./Architecture.png)
 
+Use Case Model
+Quality Assurance
+
 * Logical
-    * [Action](action) - actions for packages in the interface directory and models actions.
-    * [Model](model) - models in the package models directory
-    * [Package](package) - package/subsystem of the architecture.
-* Process
-    * [Micro-Segmented Network](deployment#network) - Network for a service stack including firewall rules etc...
-    * [Micro-Service](deployment#microservice) - Individual service of a set of service stacks.
-    * [Service Stack](deployment#stack) - The aggregation of micro-services and micro-segmented networks for a package and its
-      sub-packages.
+    * [Action](action) - Defines operations and behaviors for packages in the interface directory and model
+      interactions.
+    * [Model](model) - Represents core data structures and their relationships within the system.
+    * [Package](package) - A distinct subsystem within the architecture, encapsulating related functionality and domain
+      logic.
 * Deployment
-    * [Container](deployment#container) - Container that implements a micro-service for specific environment.
-    * [Environment](deployment#environment) - Dev, Test, Production for the application. Custom enviornments may be used.
-    * [Interface](package#interface) - Interface for the container. Including CLI, REST, and WebUI.
-    * [Test](test) - Test cases for the application based on usecases and scenarios.
+    * [Micro-Segmented Network](deployment#network) - A network configuration for a service stack, including firewall
+      rules and access controls.
+    * [Micro-Service](deployment#microservice) - An individual service that operates within a broader set of service
+      stacks.
+    * [Service Stack](deployment#stack) - A collection of micro-services and their corresponding micro-segmented
+      networks, organized for a specific package and its sub-packages.
+    * [Interface](package#interface) The access points for the container, including CLI, REST APIs, WebSocket
+      connections, and Web UI.
+* Implementation
+    * [Image](implementation#image) - A container image that encapsulates a micro-service tailored for a specific
+      environment.
+    * [Environment](implementation#environment) - Various deployment contexts such as Development, Testing, Production,
+      or custom environments.
+    * [Component](directory) - The file structure and individual files that constitute the system's components, guiding
+      developers in building the system.
 * Use Case Model
-    * [Actor](actor) - A user of the application through the use cases.
-    * [Scenario](scenario) - A sequence of steps for a specific use case.
-    * [Step](scenario#step) - An individual call to a method with specific parameters.
-    * [UseCase](usecase) - I use of the system by actors.
-* [Implementation](directory)
+    * [Actor](actor) - An entity (user, application, or package) that interacts with the system through defined use
+      cases.
+    * [Scenario](scenario) -A specific sequence of steps that illustrates how an actor engages with a use case.
+    * [Step](scenario#step) - An individual method call with specified parameters within a scenario.
+    * [UseCase](usecase) - Describes how an actor utilizes the system to achieve specific goals.
+* Quality Assurance
+    * [TestSuite](test) - A collection of test cases designed to validate application functionality based on use cases
+      and scenarios, along with specific QA requirements.
+    * [Test](test) - Individual test cases that assess various aspects of the application according to defined use cases
+      and scenarios.
+* Process
+    * [Activity](activity) - A set of actions performed in a specific order to accomplish a distinct business goal
+      within a workflow. Activities represent the building blocks of workflows and encapsulate related tasks.
+    * [Workflow](workflow) - A structured sequence of activities designed to achieve specific business objectives within
+      the system. Workflows orchestrate multiple activities to deliver end-to-end business processes efficiently.
+    * [Workspace](workspace) - The comprehensive environment that supports the execution of activities and workflows. It
+      encompasses all necessary resources, tools, and configurations required for actors to perform actions effectively.
+      Workspaces are tailored to specific process needs and can include development environments, collaboration
+      platforms, and access to relevant data and services.
+* Physical
+    * [Compute](compute) - Represents the processing resources required for running micro-services, workflows, and other
+      system operations. It includes physical servers, virtual machines, or cloud-based compute instances.
+    * [Storage](storage) - Provides the system's data storage capabilities, supporting persistent and temporary data
+      needs. This includes databases, file systems, and object storage solutions.
+    * [Network](network) - Facilitates communication between system components, ensuring reliable data transfer and
+      connectivity. It includes switches, routers, and other networking infrastructure, as well as virtual networks in
+      cloud environments.
+    * [Location](location) - Defines the geographical or virtual placement of resources, affecting latency, compliance,
+      redundancy, and fault tolerance. This includes data centers, cloud regions, and edge computing sites.
 
-## Logical
+## Logical Layer
 
-This is the logical view of the architecture. This includes typical information about the packages, classes, and data
-model of the architecture. Documentation of the logical view can be found in the docs directory and is auto generated
-based on the definition of [Packages](package) and [Classes](class). The Web User Interface also allows architects to
-navigate the logical view of the architecture.
+The **Logical** layer defines the foundational constructs of the architecture, focusing on the core system elements and
+their interactions. At its heart, [Actions](action) define the operations and behaviors that enable interaction with
+data models and other logical components. [Models](model) represent the essential data structures and relationships that
+form the backbone of the system, ensuring consistency and integrity. [Packages](package) encapsulate related
+functionality and domain logic, organizing the system into distinct subsystems that promote modularity and clear
+separation of concerns. Together, these elements provide a cohesive framework for the system’s functionality.
 
-## Process
+## Deployment Layer
 
-This view layouts out how the processes of the architecture interact with them. A micro-service pattern is used in the
-architure which include the aggreation of [micro-services](microservice) and their [networks](network) into
-[service stacks](stack).
+The **Deployment** layer is responsible for the configuration and organization of services, ensuring efficient and
+secure operation. The [Micro-Segmented Network](deployment#network) establishes a secure communication framework, using
+firewalls and access controls to manage interactions between components. [Micro-Services](deployment#microservice) are
+self-contained units of functionality that work within the broader system, enabling scalability and independent
+development. A [Service Stack](deployment#stack) groups these micro-services and their corresponding networks to support
+a specific [Package](package) and its sub-packages. The layer also defines [Interfaces](package#interface) such as CLIs,
+REST APIs, and Web UIs to facilitate access and interaction with the deployed services.
 
-## Deployment
+## Implementation Layer
 
-Deploying the architect onto hardware follows a multi-hybird cloud architecture. Mapping of resources to micro-services
-should be accomplished with service orchestration like K8s or Docker Swarm. The deployment model shows how the
-[containers](deployment#container) are mapped to the [environment](deployment#environment). The Containers are accessed through 
-[interfaces](interface).  See also the [Deployment Page](deployment) for more information.
+The **Implementation** layer focuses on the practical construction and deployment of the
+system. [Images](implementation#image) encapsulate micro-service functionality into deployable containers, tailored for
+specific [Environments](implementation#environment) like Development, Testing, and Production.
+The [Component](directory) directory provides a clear file structure, guiding developers in building, organizing, and
+managing the system’s code and resources. This layer bridges the logical design and the operational deployment, ensuring
+that the architecture is realized efficiently in various real-world contexts.
 
 ## Use Case Model
 
-Applications are used by Actors. An [Actor](actor) can be a person, another application, or another package. Actors use
-the application or package through [use cases](usecase). Each [use case](usecase) has several [scenarios](scenario) 
-that show different uses of the application.
+The **Use Case Model** ensures the system is designed to meet user needs and achieve business goals
+effectively. [Actors](actor), which can include users, applications, or packages, interact with the system through
+defined [Use Cases](usecase) that describe specific objectives. [Scenarios](scenario) provide detailed sequences of
+steps, showing how an actor engages with a use case to accomplish a task. Each step, represented by
+a [Step](scenario#step), corresponds to a method call with specified parameters. This layer translates high-level
+requirements into actionable system interactions, enabling a user-centered design approach.
 
-## Implementation
+## Quality Assurance Layer
 
-The implmentation of the architecture shows the how the application is implemented in a directory structure.
-See the [directory structure](directory) page for more information.
+The **Quality Assurance** layer focuses on validating the functionality and reliability of the
+system. [Test Suites](test) group related [Tests](test) to assess various aspects of the application based on use cases,
+scenarios, and specific QA requirements. Individual tests ensure that components meet functional, performance, and
+security expectations. This layer provides a structured framework for identifying and addressing issues, ensuring the
+system operates as intended and adheres to defined quality standards.
+
+## Process Layer
+
+The **Process** layer organizes the execution of workflows and activities that achieve specific business
+objectives. [Activities](activity) are discrete tasks performed in sequence to accomplish defined goals,
+while [Workflows](workflow) orchestrate these activities into structured, end-to-end processes. [Workspaces](workspace)
+provide the necessary environments, tools, and configurations to support these processes, tailored to the specific needs
+of each workflow. This layer ensures efficient, repeatable execution of complex processes, enhancing overall system
+productivity.
+
+## Physical Layer
+The **Physical** layer provides the essential hardware and infrastructure that underpin the system's deployment and
+operation. [Compute](compute) resources, such as physical servers, virtual machines, or cloud-based instances, supply
+the processing power necessary for running micro-services, workflows, and other operations. [Storage](storage) solutions
+ensure the availability of persistent and temporary data, incorporating databases, file systems, and object storage to
+meet various data management needs. The [Network](network) component establishes reliable communication pathways between
+system elements, leveraging physical and virtual networking infrastructure to enable seamless data transfer and
+connectivity. Finally, [Location](location) determines the physical or virtual placement of these resources, addressing
+concerns related to latency, redundancy, fault tolerance, and regulatory compliance through strategies involving data
+centers, cloud regions, and edge computing sites. Together, these elements form the robust foundation needed to support
+the system’s logical and operational layers.

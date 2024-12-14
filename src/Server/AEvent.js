@@ -1,6 +1,7 @@
 const funcHandler = require('../Proxy/MethodProxy');
 const Action = require('../Server/Action');
 const clientio = require('socket.io-client');
+const AClass = require('./AClass');
 
 module.exports = {
     // Pass an array of pattern and server url
@@ -48,7 +49,7 @@ module.exports = {
         // TODO: Could check if the event has the right signature in the data
         try {
             const nevent = event.toLowerCase();
-            console.log("Event:", nevent);
+            // console.log("Event:", nevent);
             // send the event to all clients.
             let sdata = data.toJSON;
             if (!sdata) {
@@ -68,8 +69,13 @@ module.exports = {
                 let server = global.servers[i];
                 server.socket.emit(nevent, sdata);
             }
-            global.io.emit(nevent, sdata);
-            global.io2.emit(nevent, sdata);
+            try {
+                global.io.emit(nevent, sdata);
+                global.io2.emit(nevent, sdata);
+            }
+            catch(e) {
+                console.error("Error Emiting:", sdata, e);
+            }
             // Check to see if the current server handles this event.
             // If it does then call the Call the handlers defined.
             // This allows for a server to have events handled.
@@ -82,9 +88,16 @@ module.exports = {
         }
     }
 }
-const callActions = (event, data) => {
+const callActions = async (event, data) => {
     console.log("Handled Event:", event);
+    // This is first class object assigned to a class.
+    if (data.obj.hasOwnProperty('definition') && data.obj.hasOwnProperty('_attributes')) {
+        let cls = AClass.getClass(data.obj.definition.name);
+        data.obj = await cls.findDeep(data.obj._attributes.id);
+    }
+    // Ok now call the handlers.
     for (let i in global.handlers[event].handlers) {
+
         let handler = global.handlers[event].handlers[i];
         if (handler.hasOwnProperty('action')) {
             let action = Action.find(handler.action);
@@ -117,12 +130,17 @@ function _toString(obj, cache) {
     });
     return retval;
 }
+const sanitizeString = (input) => input.replace(/"/g, ``).replace(/'/g, ``);
 function _toJSON(obj) {
     let cache = new Set();
     function clone(obj) {
         // if it is a primitive or function, return as is
         if (obj === null || typeof obj !== 'object') {
-            return obj;
+            if(typeof obj === 'string') {
+                return sanitizeString(obj);
+            } else {
+                return obj;
+            }
         }
         // if circular detected, return undefined
         if (cache.has(obj)){

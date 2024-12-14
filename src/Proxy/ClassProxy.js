@@ -1,5 +1,6 @@
 const objHandler = require('./ObjectProxy');
 const funcHandler = require('./MethodProxy');
+const AClass = require("ailtire/src/Server/AClass");
 
 module.exports = {
     get: (obj, prop) => {
@@ -12,8 +13,8 @@ module.exports = {
                 }
             }
         }
-        if(prop === 'doc') {
-           return obj.doc; 
+        if (prop === 'doc') {
+            return obj.doc;
         }
         if (prop === '_gid') {
             if (!obj.hasOwnProperty('_gid)')) {
@@ -34,21 +35,21 @@ module.exports = {
             obj.definition.package = obj.package;
             return obj.definition;
         }
-        if(prop === 'doc') {
+        if (prop === 'doc') {
             return obj.doc;
         }
         if (prop === 'toJSON') {
             return function (...args) {
                 let methods = {};
                 let pkgname = obj.definition.package.shortname;
-                methods['create'] = { name: 'create', description: 'default create method'};
-                methods['destroy'] = { name: 'destroy', description: 'default destroy method'};
-                methods['update'] = { name: 'update', description: 'default update method'};
-                methods['addTo'] = { name: 'addTo', description: 'default addTo method'};
-                methods['removeFrom'] = { name: 'removeFrom', description: 'default removeFrom method'};
-                for(let mname in obj.definition.methods) {
+                methods['create'] = {name: 'create', description: 'default create method'};
+                methods['destroy'] = {name: 'destroy', description: 'default destroy method'};
+                methods['update'] = {name: 'update', description: 'default update method'};
+                methods['addTo'] = {name: 'addTo', description: 'default addTo method'};
+                methods['removeFrom'] = {name: 'removeFrom', description: 'default removeFrom method'};
+                for (let mname in obj.definition.methods) {
                     let method = obj.definition.methods[mname];
-                    methods[mname] = { name: mname, description: method.description, inputs: method.inputs};
+                    methods[mname] = {name: mname, description: method.description, inputs: method.inputs};
                 }
                 return {
                     name: obj.name,
@@ -76,17 +77,53 @@ module.exports = {
             }
         }
         // Need to find all of the other subclass items as well.
-        if (prop === 'find') {
-            return function (...args) {
-                let retval = findObject(obj, obj.definition.name, args);
+        if (prop === 'findDeep') {
+            return async function (...args) {
+                let retval = await findObject(obj, obj.definition.name, args);
                 if (!retval) {
                     for (let i in obj.definition.subClasses) {
                         if (!retval) {
                             let subclassName = obj.definition.subClasses[i];
-                            retval = findObject(obj, subclassName, args);
+                            retval = await findObject(obj, subclassName, args);
+                        }
+                    u}
+                }
+                return retval;
+            }
+        } else if (prop === 'find') {
+            return function (...args) {
+                let retval = _findObjectInMemory(obj, obj.definition.name, args);
+                if (!retval) {
+                    for (let i in obj.definition.subClasses) {
+                        if (!retval) {
+                            let subclassName = obj.definition.subClasses[i];
+                            retval = _findObjectInMemory(obj, subclassName, args);
                         }
                     }
                 }
+                return retval;
+            }
+        } else if (prop === 'load') {
+            if (obj.definition.methods.hasOwnProperty("load")) {
+                return function (...args) {
+                    let retval = funcHandler.run(obj.definition.methods["load"], this, args[0]);
+                    return retval;
+                }
+            } else {
+                return function (...args) {
+                    let adaptor = global.ailtire.config.persist?.adaptor;
+                    if (adaptor) {
+                        adaptor.load(obj, args[0]);
+                        return obj;
+                    } else {
+                        return obj;
+                    }
+                }
+            }
+        } else if (prop === 'instances') {
+            return async function (...args) {
+                let retval = {};
+                await _getSubInstances(obj.definition.name, retval);
                 return retval;
             }
         }
@@ -96,17 +133,19 @@ module.exports = {
             target._gid = 0;
         }
         let oid = target._gid;
-        let retval = Reflect.construct(target, args);
-        retval.definition = retval.__proto__.constructor.definition;
-        let uid = retval.definition.name + oid;
+        let obj = Reflect.construct(target, args);
+        obj.definition = obj.__proto__.constructor.definition;
+        let uid = obj.definition.name + oid;
 
         // Check if the class instances are unique and the funtion they are unique by.
-        if(retval.definition.hasOwnProperty('unique')) {
-            uid = retval.definition.unique(args[0]);
+        if (args[0].id) {
+            uid = args[0].id;
+        } else if (obj.definition.hasOwnProperty('unique')) {
+            uid = obj.definition.unique(args[0]);
         }
-        retval._attributes = {id: uid};
-        retval._state = 'Init';
-        retval._associations = {};
+        obj._attributes = {id: uid};
+        obj._state = 'Init';
+        obj._associations = {};
         if (!global.hasOwnProperty('_instances')) {
             global._instances = {};
         }
@@ -114,23 +153,56 @@ module.exports = {
         if (!global._instances.hasOwnProperty(target.name)) {
             global._instances[target.name] = {};
         }
-        let obj;
-        // Now make sure the uniqueness is gaurenteed
-        if(!global._instances[target.name].hasOwnProperty(retval._attributes.id)) {
-            obj = new Proxy(retval, objHandler);
-            target._gid++;
-            global._instances[target.name][retval._attributes.id] = obj;
-        }
-        else {
-            obj = global._instances[target.name][retval._attributes.id];
-        }
-        obj.create(args[0]);
+        let proxy;
 
-        return obj;
+        // Now make sure the uniqueness is gaurenteed
+        if (!global._instances[target.name].hasOwnProperty(obj._attributes.id)) {
+            proxy = new Proxy(obj, objHandler);
+            obj._proxy = proxy;
+            // Populate the object based on the arguments.
+            for (let name in args[0]) {
+                if (name[0] !== '_') {
+                    proxy[name] = args[0][name];
+                }
+            }
+
+            target._gid++;
+            global._instances[target.name][obj._attributes.id] = proxy;
+        } else {
+            proxy = global._instances[target.name][obj._attributes.id];
+        }
+        if (!args[0].hasOwnProperty('_loading')) {
+            proxy.create(args[0]);
+        } else {
+            obj._state = "Loading";
+            if (args[0]._file) {
+                obj._persist = {file: args[0]._file._file, _clsName: args[0]._file._clsName, notLoaded: true};
+            }
+        }
+
+        return proxy;
     },
 };
 
-function findObject(obj, name, args) {
+async function findObject(obj, name, args) {
+    let retval = _findObjectInMemory(obj, name, args);
+    if (!retval) {
+        retval = _findObjectInPersist(obj, args);
+    }
+    return retval;
+}
+
+async function _findObjectInPersist(obj, args) {
+    let adaptor = global.ailtire.config.persist?.adaptor;
+    if (adaptor) {
+        let retval = await adaptor.find(obj, args[0]);
+        return retval;
+    } else {
+        return obj;
+    }
+}
+
+function _findObjectInMemory(obj, name, args) {
     if (!global._instances) {
         return null;
     }
@@ -166,4 +238,49 @@ function findObject(obj, name, args) {
         }
         return null;
     }
+}
+
+async function _getSubInstances(clsname, retval) {
+    if(!global._instances) {
+        global._instances = {};
+    }
+    if (global._instances.hasOwnProperty(clsname) && global._instances[clsname] !== null) {
+        for (let oname in global._instances[clsname]) {
+            retval[oname] = global._instances[clsname][oname];
+        }
+    } else {
+        let adaptor = global.ailtire.config.persist?.adaptor;
+        if (adaptor) {
+            await adaptor.loadClass(clsname);
+            if(global._instances.hasOwnProperty(clsname)) {
+                for (let oname in global._instances[clsname]) {
+                    retval[oname] = global._instances[clsname][oname];
+                }
+            }
+        }
+    }
+    let subclasses = global.classes[clsname].definition.subClasses;
+    for (let i in subclasses) {
+        let subclass = subclasses[i];
+        await _getSubInstances(subclass, retval);
+    }
+}
+
+function _createTransparentProxy(promise) {
+    return new Proxy(
+        {},
+        {
+            get: (_, prop) => {
+                return (...args) => {
+                    // Chain promise resolution to access the final property/method
+                    return promise.then(resolved => {
+                        if (typeof resolved[prop] === 'function') {
+                            return resolved[prop](...args); // Call resolved method
+                        }
+                        return resolved[prop]; // Return resolved property
+                    });
+                };
+            },
+        }
+    );
 }

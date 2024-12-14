@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="plantumlnail">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/src/node-plantuml/nail/plantumlnail.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

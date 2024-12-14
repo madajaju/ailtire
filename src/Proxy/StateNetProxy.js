@@ -43,28 +43,64 @@ statenet: {
         }
     }
 }
+
+Example of Converting a Document.
+statenet: {
+    Created: {
+        description: "My Description of the state",
+        color: "#aaaaaa",
+        events: { // Events that can be handled while in this state.
+            convert: {
+                Converting: {
+                }
+            },
+        }
+    }
+    Converting: {
+        events: {
+            entry.runConversion: {
+                Failed: {
+                    condition: {
+                        fn: (retval) => { return retval.status === 'Failed'; }
+                    }
+                }
+                Converted: {
+                    condition: {
+                        fn: (retval) => { return retval.status === 'Successful'; }
+                    }
+                }
+            }
+        }
+        actions: {
+            entry: {
+                runConversion: {
+                    action: runConversion;
+                }
+            }
+        }
+    }
+}
 */
 module.exports = {
-
     // Check if a statenet will allow the transition from current state
     // To the next state with a call to this method.
     processEvent: (proxy, obj, event, args) => {
-        // Check that the parameters are valid.
-        // console.log("....................Process Event: ", event, "on", proxy.id, "[", proxy.state, "]");
         let currentState = proxy.state;
         // This gets the statenet from the current model or its parent.
         let statenet = _getStateNet(proxy.definition);
+        
+        if(!statenet) {
+            console.error("No statenet defined for", proxy.definition.name);
+            return;
+        }
         // Check for the terminal state. If it is then log a warning.
         if(!statenet.hasOwnProperty(currentState)) {
             console.error("Unknown State:", currentState);
             return;
         }
+        // Run the method and return if there are no restrictions on the events that can happen
         if (!statenet[currentState].hasOwnProperty('events')) {
-            let retval = "";
-            if(proxy.definition.methods.hasOwnProperty(event)) {
-                retval = funcHandler.run(proxy.definition.methods[event], proxy, args[0]);
-            }
-            return retval;
+            return _runMethod(proxy, event, args[0]);
         }
 
         // Check if the event handled is a defined transition. If not then log a warning or reject the call based on
@@ -74,9 +110,7 @@ module.exports = {
             if (global.ailtire.config.statenet && global.ailtire.config.statenet === "strict") {
                 console.error(`There is not a transistion from current state ${currentState} with the event ${event} for ${proxy.id}`);
             } else {
-                if (proxy.definition.methods.hasOwnProperty(event)) {
-                    retval = funcHandler.run(proxy.definition.methods[event], proxy, args[0]);
-                }
+                return _runMethod(proxy, event, args[0]);
             }
             return retval;
         }
@@ -84,80 +118,42 @@ module.exports = {
         // Check the condition of the event this should happen before the event action is called.
         let eventObj = statenet[currentState].events[event];
         // Now iterate over all of the potential states and check the conditions.
-        let transition = null;
-        for (let stateName in eventObj) {
-            eventI = eventObj[stateName];
-            // Check if a condition is set.
-            if (eventI.hasOwnProperty('condition')) {
-                // If the condition is met then transistion to the new state.
-                if(_executeAction(eventI.condition, proxy)) {
-                    transition = eventObj[stateName];
-                    transition.state = stateName;
-                }
-            } else { // Transition because there is no transition.
-                transition = eventObj[stateName];
-                transition.state = stateName;
-            }
-        }
+        let transition = _checkTransitions(eventObj, proxy);
         // If the transition is set then move forward with the transition.
         if (transition) {
-            cStateObj = statenet[currentState];
-            // First run all of the actions in the exit of the current state.
-            if (cStateObj.hasOwnProperty('actions')) {
-                if (cStateObj.actions.hasOwnProperty('exit')) {
-                    for (i in cStateObj.actions.exit) {
-                        _executeAction(cStateObj.actions.exit[i], proxy);
-                    }
-                }
-            }
-            // Fire the action and then start on the next state.
-            if (transition.hasOwnProperty('action')) {
-                _executeAction(transition.action, proxy);
-            }
-            let nStateObj = statenet[transition.state];
-            if (nStateObj.hasOwnProperty('actions')) {
-                if (nStateObj.actions.hasOwnProperty('entry')) {
-                    // Fire off the after actions in the current state.
-                    for (let i in nStateObj.actions.entry) {
-                        _executeAction(nStateObj.actions.entry[i], proxy);
-                    }
-                }
-            }
-            // Short circuit it the transition is to itself. Do not call the entry and exit actions.
-            if (obj._state === transition.state) {
-                let retval = undefined;
-                if (proxy.definition.methods.hasOwnProperty(event)) {
-                    retval = funcHandler.run(proxy.definition.methods[event], proxy, args[0]);
-                }
-                return retval;
-            }
-            
-            // Change the state of the obj to the new state.
-            obj._state = transition.state;
-            
-            // Emit an event with the transistion.
-            AEvent.emit(`${obj.definition.name}.${obj._state}`, {obj: proxy});
-
-
-            // Now call the event action if there is one. If a method  was called on the class call it here.
-            // The method is the implied action of the transition.
-            let retval = undefined;
-            if (proxy.definition.methods.hasOwnProperty(event)) {
-                retval = funcHandler.run(proxy.definition.methods[event], proxy, args[0]);
-            }
-
-            // This handles the inheritance model.
-            // We need to emit an event for the extends (parent) as well.
-            let definition = obj.definition;
-            while (definition.extends) {
-                let cls = AClass.getClass(definition.extends);
-                definition = cls.definition;
-                AEvent.emit(`${definition.name}.${obj._state}`, {obj: proxy});
-            }
-            return retval;
+            return _processTransition(statenet, currentState, transition, event, proxy, args[0]);
         }
     }
 };
+
+function _processTransition(statenet, currentState, transition, event, proxy, args) {
+    _handleExitActions(statenet[currentState], proxy);
+
+    // This handles custom actions and the event method before changing the state.
+    // This is the transistion action and event.
+    let transistionRetVal = null;
+    _executeAction(transition.action, proxy);
+    if(proxy.definition.methods.hasOwnProperty(event)) {
+        transistionRetVal =  _runMethod(proxy, event, args);
+    }
+
+    // Now handle new State and all of the entry actions in the new state.
+    proxy._state = transition.state;
+    proxy._persist = { dirty: true };
+
+
+    AEvent.emit(`${proxy.definition.name}.${proxy._state}`, {obj: proxy.toJSON});
+    _handleInheritanceEvents(proxy);
+    _handleEntryActions(statenet, statenet[transition.state], proxy);
+    
+    return  transistionRetVal;
+}
+
+function _runMethod(proxy, event, arg) {
+    if (proxy.definition.methods.hasOwnProperty(event)) {
+        return funcHandler.run(proxy.definition.methods[event], proxy, arg);
+    }
+}
 
 // Get the statenet of the parent model.
 function _getStateNet(definition) {
@@ -171,18 +167,77 @@ function _getStateNet(definition) {
     }
 }
 
-function _executeAction(paction, pobj, pargs) {
-    if (paction.hasOwnProperty('action')) {
-        let action = Action.find(paction.action);
-        if (action) {
-            return funcHandler.run(action, pobj);
+function _checkTransitions(eventObj, proxy) {
+    for (let stateName in eventObj) {
+        let eventI = eventObj[stateName];
+        if (eventI.hasOwnProperty('condition')) {
+            if (_executeAction(eventI.condition, proxy)) {
+                return { ...eventObj[stateName], state: stateName };
+            }
         } else {
-            console.error("Action not found, for condition!", eventI.condition)
-            return null;
+            return { ...eventObj[stateName], state: stateName };
         }
-    } else if (paction.hasOwnProperty('fn')) {
-        return paction.fn(pobj);
-    } else {
-        return paction(pobj);
+    }
+    return null;
+}
+
+function _handleExitActions(stateObj, proxy) {
+    if (stateObj.hasOwnProperty('actions') && stateObj.actions.hasOwnProperty('exit')) {
+        for (let aname in stateObj.actions.exit) {
+            let action = stateObj.actions.exit[aname];
+            _executeAction(action, proxy);
+        }
+    }
+}
+
+function _handleEntryActions(statenet, stateObj, proxy) {
+    if(!stateObj) {
+       throw new Error("Invalid State transition. Trying to move to a state that does not exist.");
+    }
+    if (stateObj.hasOwnProperty('actions') && stateObj.actions.hasOwnProperty('entry')) {
+        for (let aname in stateObj.actions.entry) {
+            let action = stateObj.actions.entry[aname];
+            try {
+                let retval = _executeAction(action, proxy);
+                // Check the current stateObject events to see if there is an entry.${aname}
+                // If there is then proceses the event.
+                let eventName = `entry.${aname}`;
+                let eventObj = stateObj.events[eventName];
+                if(eventObj) {
+                    let transition = _checkTransitions(eventObj,{status: 'successful', obj: proxy});
+                    return _processTransition(statenet, stateObj.name, transition, eventName, proxy, retval);
+                }
+            } catch(e) {
+               // set the retval status to failed.
+            }
+        }
+    }
+}
+
+function _executeAction(paction, pobj, pargs) {
+    if(paction) {
+        if (paction.hasOwnProperty('action')) {
+            let action = Action.find(paction.action);
+            if (action) {
+                return funcHandler.run(action, pobj);
+            } else {
+                console.error("Action not found, ", action.action);
+                return null;
+            }
+        } else if (paction.hasOwnProperty('fn')) {
+            return paction.fn(pobj);
+        } else {
+            return paction(pobj);
+        }
+    }
+    return;
+}
+
+function _handleInheritanceEvents(obj) {
+    let definition = obj.definition;
+    while (definition.extends) {
+        let cls = AClass.getClass(definition.extends);
+        definition = cls.definition;
+        AEvent.emit(`${definition.name}.${obj._state}`, { obj: obj });
     }
 }

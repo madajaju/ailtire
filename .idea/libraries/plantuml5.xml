@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="plantuml5">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/src/Services/buildpdf/plantuml.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
