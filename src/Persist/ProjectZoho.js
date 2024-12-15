@@ -1,10 +1,10 @@
-import axios from 'axios';
-import ProjectManagementAbstract from './ProjectManagementAbstract.mjs';
-import querystring from 'querystring';
-import AAplication from '../../src/Server/AApplication.js';
-import AIHelper from '../../src/Server/AIHelper.js';
+const axios = require('axios');
+const ProjectManagementAbstract = require( './ProjectManagementAbstract.js');
+const querystring = require('querystring');
+const AAplication = require('../../src/Server/AApplication.js');
+const AIHelper = require('../../src/Server/AIHelper.js');
 
-export default class ProjecgtZoho extends ProjectManagementAbstract {
+class ProjecgtZoho extends ProjectManagementAbstract {
     static _instances = [];
 
     constructor(params) {
@@ -88,6 +88,7 @@ export default class ProjecgtZoho extends ProjectManagementAbstract {
         throw new Error("getTasks method must be implemented!");
     }
 }
+module.exports = ProjecgtZoho;
 
 async function refreshAccessToken(clientId, clientSecret, refreshToken, tokenUrl) {
     try {

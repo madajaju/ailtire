@@ -281,6 +281,7 @@ module.exports = {
                 });
             }
         }
+        
         server.all('*', (req, res) => {
             console.error(`Config: ${config.urlPrefix}`)
             console.error("Catch All", req.originalUrl);

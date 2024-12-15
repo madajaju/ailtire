@@ -1,16 +1,16 @@
-import AIHelper from "./AIHelper.js";
-import path from 'path';
-import fs from 'fs';
-import AActor from "./AActor.js";
-import AClass from "./AClass.js";
-import AScenario from "./AScenario.js";
-import AUseCase from "./AUseCase.js";
-import AWorkflow from "./AWorkflow.js";
-import AActionItem from "./AActionItem.mjs";
-import {pathToFileURL} from 'url';
-import AEvent from "./AEvent.js";
+const AIHelper = require("./AIHelper.js");
+const path = require( 'path');
+const fs = require('fs');
+const AActor = require("./AActor.js");
+const AClass = require("./AClass.js");
+const AScenario = require( "./AScenario.js");
+const AUseCase = require( "./AUseCase.js");
+const AWorkflow = require("./AWorkflow.js");
+const AActionItem = require("./AActionItem.js");
+const {pathToFileURL} = require('url');
+const AEvent = require("./AEvent.js");
 
-export default class ANote {
+class ANote {
     static _instances = [];
 
     constructor(params) {
@@ -181,3 +181,4 @@ export default class ANote {
         }
     }
 }
+module.exports = ANote;

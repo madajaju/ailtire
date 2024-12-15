@@ -9,7 +9,7 @@ module.exports = {
         objs.body = tmpString;
         objs.config = global.ailtire.config
         if(!layout) {
-            layout = "default"
+            layout = global.ailtire.config.layout || "default"
         }
         let pageString = renderPage('layouts/' + layout, objs);
         return pageString;

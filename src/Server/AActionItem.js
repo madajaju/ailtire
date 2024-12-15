@@ -1,8 +1,6 @@
-import path from "path";
-import fs from "fs";
-import ProjectManagementFactory from "../Persist/ProjectManagementFactory.mjs";
+const ProjectManagementFactory = require("../Persist/ProjectManagementFactory.js");
 
-export default class AActionItem {
+class AActionItem {
     static _instances = [];
 
     constructor(params) {
@@ -17,5 +15,5 @@ export default class AActionItem {
         let retval = await projectManager.addTask(this);
         return retval;
     }
-
 }
+module.exports = AActionItem;

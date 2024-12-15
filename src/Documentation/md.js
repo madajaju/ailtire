@@ -52,12 +52,6 @@ module.exports = {
         }
     },
     notes: (output) => {
-       /* 
-        const { default: ANote } = await import("../../Server/ANote.mjs");
-        ANote.loadDirectory(path.resolve('./.notes'));
-        let notes = Note.list();
-        
-        */
         let mdir = path.resolve('./.notes'); 
         fs.mkdirSync(mdir, {recursive:true});
         let notesFiles = fs.readdirSync(mdir);

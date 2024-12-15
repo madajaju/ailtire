@@ -1,6 +1,6 @@
-import ProjectZoho from './ProjectZoho.mjs';
+const ProjectZoho = require('./ProjectZoho.js');
 
-export default class ProjectManagementFactory {
+class ProjectManagementFactory {
     static _instances = [];
 
     static create(config) {
@@ -12,3 +12,4 @@ export default class ProjectManagementFactory {
         }
     }
 }
+module.exports = ProjectManagementFactory;

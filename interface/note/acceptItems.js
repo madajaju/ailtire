@@ -1,4 +1,5 @@
 // const renderer = require('../../src/Documentation/Renderer.js');
+const ANote = require('ailtire/src/Server/ANote');
 
 module.exports = {
     friendlyName: 'acceptItems',
@@ -20,7 +21,6 @@ module.exports = {
     },
 
     fn: async function (inputs, env) {
-        const { default: ANote } = await import("../../src/Server/ANote.mjs");
         
         let note =  ANote.get(inputs.note);
         if(note) {

@@ -1,4 +1,5 @@
 // const renderer = require('../../src/Documentation/Renderer.js');
+const ANote = require('ailtire/src/Server/ANote');
 
 module.exports = {
     friendlyName: 'rejectItems',
@@ -19,8 +20,7 @@ module.exports = {
         }
     },
 
-    fn: async function (inputs, env) {
-        const { default: ANote } = await import("../../src/Server/ANote.mjs");
+    fn: function (inputs, env) {
         let note =  ANote.get(inputs.note);
         if(note) {
             let items = inputs.items.split(',');

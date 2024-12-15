@@ -1,4 +1,4 @@
-export default class ProjectManagementAbstract {
+class ProjectManagementAbstract {
     static _instances = [];
 
     constructor(params) {
@@ -15,3 +15,4 @@ export default class ProjectManagementAbstract {
         throw new Error("getTasks method must be implemented!");
     }
 }
+module.exports = ProjectManagementAbstract;

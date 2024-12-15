@@ -1,4 +1,5 @@
 // const renderer = require('../../src/Documentation/Renderer.js');
+const ANote = require('../../src/Server/ANote.js');
 
 module.exports = {
     friendlyName: 'update',
@@ -15,8 +16,7 @@ module.exports = {
         }
     },
 
-    fn: async function (inputs, env) {
-        const { default: ANote } = await import("../../src/Server/ANote.mjs");
+    fn: function (inputs, env) {
         let retval = ANote.get(inputs.id);
         for(let i in inputs) {
             retval[i] = inputs[i];

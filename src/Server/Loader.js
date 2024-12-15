@@ -8,6 +8,7 @@ const YAML = require('yamljs');
 const AClass = require('./AClass');
 const AActor = require('./AActor');
 const AHandler = require('./AHandler');
+const ANote = require('./ANote');
 const AActivityInstance = require("./AActivityInstance");
 
 module.exports = {
@@ -34,7 +35,7 @@ module.exports = {
         global.topPackage = processDirectory(dir);
         _processModelIncludeFiles();
         _loadWorkflowInstances();
-        // await _loadNotes();
+        _loadNotes();
         return global.topPackage;
     },
     checkPackages: () => {
@@ -42,10 +43,8 @@ module.exports = {
 
 };
 
-const _loadNotes = async () => {
-    return null;
+const _loadNotes = () => {
     try {
-        const {default: ANote} = await import('./ANote.mjs');
         ANote.loadDirectory(path.resolve('./.notes'));
         global.notes = ANote.list();
         return global.notes;

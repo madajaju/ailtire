@@ -1,4 +1,5 @@
 // const renderer = require('../../src/Documentation/Renderer.js');
+const ANote = require('../../src/Server/ANote.js');
 
 module.exports = {
     friendlyName: 'list',
@@ -10,7 +11,6 @@ module.exports = {
     },
 
     fn: async function (inputs, env) {
-        const { default: ANote } = await import("../../src/Server/ANote.mjs");
         let retval = ANote.list();
         if(env.res) {
             env.res.json(retval);
