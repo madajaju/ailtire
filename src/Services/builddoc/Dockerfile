@@ -1,5 +1,5 @@
 
-FROM node:current-alpine
+FROM node:22.8.0-alpine3.20
 
 # Create app directory
 WORKDIR /usr/src/app
