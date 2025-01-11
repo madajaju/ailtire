@@ -1,11 +1,12 @@
-module.exports = {
-    ask: async (messages) => {
+class AIHelper {
+    static async ask(messages){
         return _ask(messages);
-    },
-    askForCode: async (messages) => {
+    }
+    static async askForCode(messages) {
         return _askForCode(messages);
-    },
+    }
 }
+module.exports=AIHelper;
 
 async function _askForCode(messages) {
     let response = await _ask(messages);
@@ -57,13 +58,14 @@ async function _askForCode(messages) {
         return retval;
     }
 }
-
 async function _ask(messages) {
-    const completion = await global.openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: messages
-    });
-    return completion.choices[0].message.content;
+    if(global.ai) {
+        const content = await global.ai.chat({
+            messages: messages
+        });
+        return content;
+    }
+    return "";
 }
 
 function _limitMessages(messages) {
