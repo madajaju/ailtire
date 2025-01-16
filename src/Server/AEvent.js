@@ -1,6 +1,5 @@
 const funcHandler = require('../Proxy/MethodProxy');
 const Action = require('../Server/Action');
-const clientio = require('socket.io-client');
 const AClass = require('./AClass');
 
 module.exports = {
@@ -9,39 +8,23 @@ module.exports = {
     // servers: [ {url:localhost:3000, pattern: }, ...]
     //
     addServers: (servers) => {
-        if(!global.hasOwnProperty('servers')) {
-            global.servers = [];
-        }
         for(let i in servers) {
             let server = servers[i];
-            let items = server.url.split('/');
-            let url = 'http://' + items.shift();
-            let childsocket = clientio.connect(url);
-            global.servers.push( {
-                pattern: server.pattern,
-                socket: childsocket,
-                url: server.url
-            });
-            childsocket.on('connect', () => {
-                let url = `${global.ailtire.config.host}:${global.ailtire.config.port}${global.ailtire.config.urlPrefix}`;
-                childsocket.emit('ailtire.server.started', {url:url});
-                if(server.connectionEvent) {
-                    childsocket.emit(server.connectionEvent, server.connectionData);
-                }
-            });
+            for(let j in global.ailtire.comms.services) {
+                let commsService = global.ailtire.comms.services[j];
+                commsService.connect(server);
+            }
         }
     },
-    addHandlers: (socket) => {
+    addHandlers: async (adaptor) => {
         for (let event in global.handlers) {
             // Make sure the handlers are only installed once. per socket.
-            if(!global.handlers[event].hasOwnProperty('sockets')) {
-                global.handlers[event].sockets = {};
+            if(!global.handlers[event].hasOwnProperty('adaptors')) {
+                global.handlers[event].adaptors = {};
             }
-            if (!global.handlers[event].sockets[socket.id]) {
-                global.handlers[event].sockets[socket.id] = true;
-                socket.on(event, function (data) {
-                    callActions(event, data);
-                });
+            if (!global.handlers[event].adaptors[adaptor.id]) {
+                global.handlers[event].adaptors[adaptor.id] = true;
+                await adaptor.subscribe(event);
             }
         }
     },
@@ -57,24 +40,15 @@ module.exports = {
                     sdata = data.obj.toJSON;
                 }
             }
-            if (!sdata) {
-                sdata = data;
-            }
+            sdata = sdata || data;
             try {
                 sdata = _toJSON(sdata);
             } catch(e) {
-                console.error(e);
+                console.error("Problem converting event message to JSON", e);
             }
-            for (let i in global.servers) {
-                let server = global.servers[i];
-                server.socket.emit(nevent, sdata);
-            }
-            try {
-                global.io.emit(nevent, sdata);
-                global.io2.emit(nevent, sdata);
-            }
-            catch(e) {
-                console.error("Error Emiting:", sdata, e);
+            for(let i in global.ailtire.comms.services) {
+                let commsService = global.ailtire.comms.services[i];
+                commsService.publish(nevent, sdata);
             }
             // Check to see if the current server handles this event.
             // If it does then call the Call the handlers defined.
@@ -84,12 +58,12 @@ module.exports = {
             }
         }
         catch (e) {
-            console.log("Error on Emit:", e);
+            console.log("Error on Event Emit:", e);
         }
     }
 }
 const callActions = async (event, data) => {
-    console.log("Handled Event:", event);
+    console.log("Handled Event Locally:", event);
     // This is first class object assigned to a class.
     if (data.obj.hasOwnProperty('definition') && data.obj.hasOwnProperty('_attributes')) {
         let cls = AClass.getClass(data.obj.definition.name);

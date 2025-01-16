@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const AClass = require('./AClass');
+const Renderer = require('../Documentation/Renderer');
 
 const isDirectory = source => fs.lstatSync(source).isDirectory();
 const isFile = source => !fs.lstatSync(source).isDirectory();
@@ -37,20 +38,30 @@ module.exports = {
         for (let i in config.routes) {
             // Get Action handler from the actions.
             // let routeTarget = config.routes[i];
-            let route = config.urlPrefix + '/' + i.toLowerCase();
-            let action = find(config.routes[i]);
-            if (action) {
-                if(route.includes('/upload')) {
-                    server.post(route, global.upload.single('file-to-upload'), (req, res) => {
-                        execute(action, req.query, {req: req, res: res});
-                    });   
-                } else {
-                    server.all(route, (req, res) => {
-                        execute(action, req.query, {req: req, res: res});
-                    });
-                }
+            if(config.routes[i].includes('layouts')) {
+                   server.all(`/${config.routes[i]}`, (req, res) => {
+                        let layout = config.routes[i].split('/')[1];  
+                        return Renderer.render(layout, './index', {
+                            app:{name: config.name},
+                            name: config.name
+                        });
+                   }); 
             } else {
-                console.error("Could not find the route: ", i, config.routes[i]);
+                let route = config.urlPrefix + '/' + i.toLowerCase();
+                let action = find(config.routes[i]);
+                if (action) {
+                    if (route.includes('/upload')) {
+                        server.post(route, global.upload.single('file-to-upload'), (req, res) => {
+                            execute(action, req.query, {req: req, res: res});
+                        });
+                    } else {
+                        server.all(route, (req, res) => {
+                            execute(action, req.query, {req: req, res: res});
+                        });
+                    }
+                } else {
+                    console.error("Could not find the route: ", i, config.routes[i]);
+                }
             }
         }
     },

@@ -7,7 +7,7 @@ if(!fs.existsSync('./node_modules')) {
 const server = require('./index');
 
 server.listen( {
-    baseDir: 'example2/example2',
+    baseDir: 'test/test-project',
     prefix: '',
     routes: {
         "/document": "/model/document"

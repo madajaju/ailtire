@@ -2,7 +2,6 @@ const express = require('express');
 const server = express();
 const http = require('http').createServer(server);
 const path = require('path');
-const { Server } = require("socket.io");
 const sLoader = require('./Loader.js');
 const AEvent = require('./AEvent.js');
 const Action = require('./Action.js');
@@ -11,6 +10,8 @@ const fs = require('fs');
 // const redis = require('socket.io-redis');
 const bodyParser = require("body-parser");
 const upload = multer({dest: '.uploads/'});
+const ASocketIOAdaptor = require('../Comms/ASocketIOAdaptor');
+
 global.upload = upload;
 
 const htmlGenerator = require('../Documentation/html');
@@ -151,10 +152,7 @@ module.exports = {
         Action.load(server, config.prefix, path.resolve(config.baseDir + '/api/interface'), config);
         Action.mapRoutes(server, config);
 
-        if(config.persist) {
-            let pAdaptor = config.persist.adaptor;
-            pAdaptor.loadAll();
-        }
+        _setupAdaptors(config);
 
         standardFileTypes(config,server);
 
@@ -197,22 +195,6 @@ module.exports = {
             // Look in the views directly for items to load.
             let str = findPage(req.originalUrl, config);
             res.end(str);
-        });
-        global.io = io = new Server(http, {path: config.urlPrefix + '/socket.io/'});
-        global.io2 = io2 = new Server(http, {path: '/socket.io/'});
-
-        io2.on('connection', (msocket) => {
-            console.log("Connection 2 happen!");
-            // io2.emit("ConnectedEdge", "Connected Edge made it");
-            AEvent.addHandlers(msocket);
-        });
-        io2.on('ailtire.server.started', (msocket) => {
-            console.log("Peer Server Started", msocket);
-        })
-        io.on('connection', function (msocket) {
-            console.log("Connection happen!");
-            //io.emit("ConnectedEdge", "Connected Edge made it");
-            AEvent.addHandlers(msocket);
         });
 
         http.listen(config.listenPort, () => {
@@ -241,10 +223,7 @@ module.exports = {
         Action.load(server, config.prefix, path.resolve(config.baseDir + '/interface'), config);
         Action.mapRoutes(server, config);
 
-        if(config.persist) {
-            let pAdaptor = config.persist.adaptor;
-            pAdaptor.load();
-        }
+        _setupAdaptors(config);
 
         standardFileTypes(config,server);
 
@@ -289,22 +268,6 @@ module.exports = {
             let str = findPage(req.originalUrl, config);
             res.end(str);
         });
-        global.io = io = new Server(http, {path: config.urlPrefix + '/socket.io/'});
-        global.io2 = io2 = new Server(http, {path: '/socket.io/'});
-
-        io2.on('connection', (msocket) => {
-            console.log("Connection 2 happen!");
-            io2.emit("ConnectedEdge", "Connected Edge made it");
-            AEvent.addHandlers(msocket);
-        });
-        io2.on('ailtire.server.started', (msocket) => {
-            console.log("Peer Server Started", msocket);
-        })
-        io.on('connection', function (msocket) {
-            console.log("Connection happen!");
-            io.emit("ConnectedEdge", "Connected Edge made it");
-            AEvent.addHandlers(msocket);
-        });
 
         console.log("Micro Service Interface:", Object.keys(global.actions).join(",\n"));
         http.listen(config.listenPort, () => {
@@ -332,24 +295,7 @@ module.exports = {
             let str = mainPage(config);
             res.end(str);
         });
-        /*
-        server.get('/styles/*', (req, res) => {
-            let apath = path.resolve('./assets' + req.url);
-            let str = fs.readFileSync(apath, 'utf8');
-            res.end(str);
-        });
-        server.get('/js/*', (req, res) => {
-            let apath = path.resolve('./assets' + req.url);
-            let str = fs.readFileSync(apath, 'utf8');
-            res.end(str);
-        });
-        server.get('/views/*', (req, res) => {
-            let apath = path.resolve( req.url);
-            let str = fs.readFileSync(apath, 'utf8');
-            res.end(str);
-        });
-        
-         */
+
     }
 }
 
@@ -477,4 +423,33 @@ function _toJSON(obj) {
     }
     let retval = clone(obj);
     return retval;
+}
+
+function _setupAdaptors(config) {
+    global.ailtire.comms = { services: []};
+
+    // Default should always be there. This is the websocket socket.io that communicates with the webinterface.
+    let myconfig = {
+        urlPrefix: config.urlPrefix,
+        http: http,
+    }
+    global.ailtire.comms.services.push( new ASocketIOAdaptor(myconfig) );
+    if(config.comms) {
+        for(let i in config.comms) {
+            let comms = config.comms[i];
+            comms.http = http;
+            comms.urlPrefix = config.urlPrefix;
+            global.ailtire.comms.services.push( new comms.adaptor({comms: comms}) );
+        }
+    }
+    if(config.ai) {
+        let aiAdaptor = config.ai.adaptor;
+        global.ai = new aiAdaptor(config.ai);
+        // this might need an await.
+        global.ai.init();
+    }
+    if(config.persist) {
+        let pAdaptor = config.persist.adaptor;
+        pAdaptor.loadAll();
+    }
 }

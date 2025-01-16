@@ -1,6 +1,5 @@
 const objHandler = require('./ObjectProxy');
 const funcHandler = require('./MethodProxy');
-const AClass = require("ailtire/src/Server/AClass");
 
 module.exports = {
     get: (obj, prop) => {

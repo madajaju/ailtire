@@ -97,7 +97,7 @@ async function _startOLlama(obj) {
             let response = await axios.get(`${obj.apiUrl}/api/version`);
             if (response.status !== 200) {
                 console.log("Starting OLlamA server...");
-                const cmd = 'docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ailtire-aihelper madajaju/ailtire-aihelper:latest';
+                const cmd = 'docker run -d --rm -v ollama:/root/.ollama -p 11434:11434 --name ailtire-aihelper madajaju/ailtire-aihelper:latest';
                 let results = await execSync(cmd);
                 console.log(results.toString());
                 await _sleep(timeout);
@@ -107,7 +107,7 @@ async function _startOLlama(obj) {
             }
         } catch(error) {
             console.log("Starting OLlamA server...");
-            const cmd = 'docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ailtire-aihelper madajaju/ailtire-aihelper:latest';
+            const cmd = 'docker run -d --rm -v ollama:/root/.ollama -p 11434:11434 --name ailtire-aihelper madajaju/ailtire-aihelper:latest';
             let results = await execSync(cmd);
             console.log(results.toString());
             await _sleep(timeout);

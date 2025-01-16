@@ -1,7 +1,7 @@
 module.exports = {
-    aihelper: {
-        tag: 'ailtire_aihelper:latest',
-        name: 'aihelper',
+    kafka: {
+        tag: 'ailtire_kafka:latest',
+        name: 'kafka',
         file: 'Dockerfile',
         dir: '.',
         env: {}

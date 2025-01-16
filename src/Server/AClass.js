@@ -424,8 +424,8 @@ function loadClassMethods(mClass, mDir) {
 };
 
 async function loadDocs(pkg, dir) {
-    const {default: ADocumentation} = await import("./ADocumentation.mjs");
-    ADocumentation.load(pkg, dir);
+   // const {default: ADocumentation} = await import("./ADocumentation.mjs");
+   // ADocumentation.load(pkg, dir);
 }
 function _load(pkg, dir) {
     const classProxy = require("../Proxy/ClassProxy");

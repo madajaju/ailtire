@@ -1,4 +1,5 @@
 
+
 import {AText} from "./ailtire/index.js";
 
 export class Graph3D {
@@ -270,7 +271,6 @@ export class Graph3D {
         this.objects[obj.aid] = obj;
         this.graph.scene().add(obj);
     }
-
     addLink(link) {
         if (link.id) {
             this.links[link.id] = link;
@@ -390,6 +390,7 @@ export class Graph3D {
         this.normalizeData(); // Creates the ndata. Normalizedd Data
         this.graph.graphData(this.ndata);
     };
+    // Add the data if it exists then update the data node.
     updateData(pNodes, pLinks) {
         for (let i in pNodes) {
             this.data.nodes[i] = pNodes[i];
@@ -410,6 +411,9 @@ export class Graph3D {
             }
         }
         for (let i in pLinks) {
+            if(!this.data.links) {
+                this.data.links = [];
+            }
             this.data.links.push(pLinks[i]);
         }
         this.normalizeData();
@@ -425,8 +429,8 @@ export class Graph3D {
             if (this.options.selectCallback) {
                 this.options.selectCallback(node);
             }
-            this.selectRelNodes(node, "source");
-            this.selectRelNodes(node, "target");
+            this.selectRelNodes(node, "source", 1);
+            this.selectRelNodes(node, "target", 1);
         }
         this.graph
             .nodeThreeObject(this.graph.nodeThreeObject())
@@ -442,16 +446,27 @@ export class Graph3D {
             }
             if(node) {
                 // Aim at node from outside it
-                const box = node.box || 35;
-                const distRatio = 10 * box;
+                const box = new THREE.Box3().setFromObject(node.__threeObj);
+                for(let i in this.selected.nodes.source) {
+                    let object = this.selected.nodes.source[i].__threeObj;
+                    box.expandByObject(object);
+                }
+                const size = new THREE.Vector3();
+                box.getSize(size); // Get the size of the object
+               const camera = this.graph.camera();
+                // Optional: Move the camera farther away so the object fits in the view
+                const maxDim = Math.max(size.x,size.y, size.z);
+                const fov = camera.fov * (Math.PI / 180); // Convert vertical FOV to radians
+                const cameraDistance = 1.2* (maxDim / (2 * Math.tan(fov / 2))); // Distance required to fit object
+                // const distRatio = 10 * box;
                 // Get the Bounding Box
                 if(!node.orientation) {
                     node.orientation = { x:0,y:0,z:1};
                 }
                 this.graph.cameraPosition( {
-                        x: node.x + (distRatio*node.orientation.x),
-                        y: node.y + (distRatio*node.orientation.y),
-                        z: node.z + (distRatio*node.orientation.z)
+                        x: node.x + (cameraDistance*node.orientation.x),
+                        y: node.y + (cameraDistance*node.orientation.y),
+                        z: node.z + (cameraDistance*node.orientation.z)
                     }, // new position
                     node, // lookAt ({ x, y, z })
                     3000  // ms transition duration.
@@ -459,6 +474,7 @@ export class Graph3D {
             }
         }
     };
+
 
 
     unSelectNodes() {
@@ -481,7 +497,7 @@ export class Graph3D {
         }
     };
 
-    selectRelNodes(node, direction) {
+    selectRelNodes(node, direction, levels) {
         let bdir = "target";
         if (direction === "target") {
             bdir = "source";
@@ -501,16 +517,19 @@ export class Graph3D {
                 this.selected.links[bdir].add(link);
                 if (this.data.nodes.hasOwnProperty(link[direction].id)) {
                     let nnode = this.data.nodes[link[direction].id];
+                    if(nnode.hasOwnProperty('parentObject')) {
+                       this.selectRel(nnode.parentObject, direction, levels);
+                    }
                     this.selected.nodes[bdir][nnode.id] = nnode;
-                    this.selectRelNodes(nnode, direction);
+                    this.selectRelNodes(nnode, direction, levels);
                 }
             }
         }
-    }
+    };
 
     getSelectedNode() {
         return this.selected.nodes.primary;
-    }
+    };
 
     setNode(nodeid, opts) {
         let node = this.data.nodes[nodeid];
@@ -521,6 +540,7 @@ export class Graph3D {
         }
         this.selectNode(this.data.nodes[nodeid]);
     };
+
     setNodeAndFocus(nodeid, opts) {
         let node = this.data.nodes[nodeid];
         if (node) {
@@ -529,25 +549,35 @@ export class Graph3D {
             }
         }
         this.selected.nodes.primary = node;
-        return;
         if(node) {
-            // Aim at node from outside it
-            const box = node.box || 35;
-            const distRatio = 10 * box;
+            const box = new THREE.Box3().setFromObject(node.__threeObj);
+            for(let i in this.selected.nodes.source) {
+                let object = this.selected.nodes.source[i].__threeObj;
+                box.expandByObject(object);
+            }
+            const size = new THREE.Vector3();
+            box.getSize(size); // Get the size of the object
+            const camera = this.graph.camera();
+            // Optional: Move the camera farther away so the object fits in the view
+            const maxDim = Math.max(size.x,size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180); // Convert vertical FOV to radians
+            const cameraDistance = 1.2* (maxDim / (2 * Math.tan(fov / 2))); // Distance required to fit object
+            // const distRatio = 10 * box;
             // Get the Bounding Box
             if(!node.orientation) {
                 node.orientation = { x:0,y:0,z:1};
             }
             this.graph.cameraPosition( {
-                    x: node.x + (distRatio*node.orientation.x),
-                    y: node.y + (distRatio*node.orientation.y),
-                    z: node.z + (distRatio*node.orientation.z)
+                    x: node.x + (cameraDistance*node.orientation.x),
+                    y: node.y + (cameraDistance*node.orientation.y),
+                    z: node.z + (cameraDistance*node.orientation.z)
                 }, // new position
                 node, // lookAt ({ x, y, z })
                 500  // ms transition duration.
             );
         }
     }
+
     static forceOnPlane() {
         function constant(_) {
             return () => _;
@@ -579,6 +609,8 @@ export class Graph3D {
                 if (node.rbox) {
                     let parent = nodes[nmap[node.rbox.parent]];
                     if (parent) { // the Parent is found then go forward. If not then don't.
+                        _applyRotationAndPosition(node,parent);
+                        /*
                         // IF fx is defined on the parent then force it to the fx to lock the position.
                         if (parent.fx != undefined) {
                             parent.x = parent.fx;
@@ -688,6 +720,8 @@ export class Graph3D {
                                 }
                             }
                         }
+
+                         */
                     }
                 }
 
@@ -937,8 +971,51 @@ export class Graph3D {
         });
         this.data.nodes = nodes;
         this.data.links = links;
-        this.normalizeData(); // Creates the ndata. Normalizedd Data
+        this.normalizeData(); // Creates the ndata. Normalized Data
         this.graph.graphData(this.ndata);
     }
 
+}
+
+
+function _applyRotationAndPosition(node, parent) {
+    // Ensure the parent rotation values are provided
+    let rx = parent.rotate?.x || 0; // Rotation around x-axis (in radians)
+    let ry = parent.rotate?.y || 0; // Rotation around y-axis (in radians)
+    let rz = parent.rotate?.z || 0; // Rotation around z-axis (in radians)
+
+    // Calculate relative position before rotation
+    let relativeX = node.rbox.fx || node.rbox.x?.min || -node.width/2;
+    let relativeY = node.rbox.fy || node.rbox.y?.min || -node.height/2;
+    let relativeZ = node.rbox.fz || node.rbox.z?.min || -node.depth/2;
+
+    // Apply rotation around X-axis
+    let y1 = relativeY * Math.cos(rx) - relativeZ * Math.sin(rx);
+    let z1 = relativeY * Math.sin(rx) + relativeZ * Math.cos(rx);
+
+    // Apply rotation around Y-axis
+    let x2 = relativeX * Math.cos(ry) + z1 * Math.sin(ry);
+    let z2 = -relativeX * Math.sin(ry) + z1 * Math.cos(ry);
+
+    // Apply rotation around Z-axis
+    let x3 = x2 * Math.cos(rz) - y1 * Math.sin(rz);
+    let y3 = x2 * Math.sin(rz) + y1 * Math.cos(rz);
+
+    // Final transformed positions relative to the parent
+    let finalX = parent.x + x3;
+    let finalY = parent.y + y3;
+    let finalZ = parent.z + z2;
+
+    // Update the node's position and velocity
+    node.x = finalX;
+    node.fx = finalX;
+    node.vx = 0;
+
+    node.y = finalY;
+    node.fy = finalY;
+    node.vy = 0;
+
+    node.z = finalZ;
+    node.fz = finalZ;
+    node.vz = 0;
 }
