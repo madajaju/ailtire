@@ -1,0 +1,120 @@
+@startuml
+
+<%
+const getStates = (name) => {
+    let names = name.split(/\//);
+    let asName = '';
+    let retval = '';
+    names.shift(); // Shift off the first item that is blank.
+    let slen = 0;
+    for(let i in names) {
+        let aname = names[i];
+        if(aname.length > 0) {
+            slen++;
+            asName += aname;
+            retval += `state \"${aname}\" as ${asName} #ffffaa {\n`;
+        }
+    }
+    retval += '}\n'.repeat(slen);
+    return {sname:asName, states:retval, color:"#ffffaa"};
+};
+%>
+
+state <%= model.name %> #cccccc {
+<% for(let name in model.statenet) {
+    let state = model.statenet[name];
+
+%>
+    state <%= name %> #ffffaa {
+    }
+<% } %>
+
+
+<% for(let name in model.statenet) {
+    let state = model.statenet[name];
+    if(state.actions) {
+        if(state.actions.entry) {
+            for(let action in state.actions.entry) {
+            let eaction = state.actions.entry[action];
+            let actionText = "Custom";
+            if(eaction.action) {
+                actionText = eaction.action;
+            }
+%>
+<%= name %>: entry/ <%= actionText %>
+<%          }
+        }
+        if(state.actions.exit) {
+            for(let action in state.actions.exit) {
+            let eaction = state.actions.exit[action];
+            let actionText = "Custom"
+            if(eaction.action) {
+                actionText = eaction.action;
+            }
+%>
+<%= name %>: exit/ <%= actionText %>
+<%          }
+        }
+    }
+    if(state.events) {
+        for(let event in state.events) {
+            let nevent = state.events[event];
+            let conditionFlag = false;
+            for(let tname in nevent) {
+                let tState = nevent[tname];
+                if(tState.hasOwnProperty('condition') ) {
+                    let cond = "Custom";
+                    if(typeof tState.condition === 'object' && tState.condition.description) {
+                        cond = tState.condition.description;
+                    }
+                    if(!conditionFlag) {
+                        conditionFlag = true;
+%>
+state <%= event %>Condition <<choice>>
+<%= name %> -[#black]--> <%= event %>Condition : <%= event %>
+<%
+                    }
+                %>
+<%= event %>Condition -[#black]--> <%= tname %>: [<%= cond %>]
+<%
+                } else {
+%>
+<%= name %> -[#black]--> <%= tname %> : <%= event %>
+<%
+                }
+            }
+        }
+    }
+}
+%>
+}
+<%
+for(let name in model.statenet) {
+    let state = model.statenet[name];
+    let ename = model.name + '.' + name;
+    ename = ename.toLowerCase();
+
+    if(global.events.hasOwnProperty(ename)) {
+        event = global.events[ename];
+        for(let pkg in event.handlers) {
+            let hs = event.handlers[pkg];
+            for(let i in hs.handlers) {
+                let handler = hs.handlers[i];
+                let action = "";
+                if(handler.hasOwnProperty('action')) {
+                    action = `/${handler.action};`
+                } else {
+                    action = pkg + '/Function';
+                }
+                estate = getStates(action);
+ %>
+ <%- estate.states %>
+ <%= name %> -[#black]--> <%= estate.sname %>
+ <%
+          }
+       }
+    }
+ }
+%>
+
+@enduml

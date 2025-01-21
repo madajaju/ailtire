@@ -1,51 +1,28 @@
 const ejs = require('ejs');
 const path = require('path');
 const fs = require('fs');
-const proc = require('child_process').exec;
-const plantuml = require('node-plantuml');
-const {PassThrough} = require('stream');
-const streamBuffers = require('stream-buffers');
-const Action = require("../../src/Server/Action");
-const APackage = require("../../src/Server/APackage");
-
-// const glob = require('glob');
-// const plantuml = require('node-plantuml');
-// plantuml.useNailgun();
+const AService = require('../Server/AService.js');
+const APackage = require("ailtire/src/Server/APackage");
 
 module.exports = {
     model: async (model, diagram) => {
-        const Action = require('../Server/Action');
-        diagram = diagram || "Logical";
-        let diagramFile = `./templates/Model/${diagram}.puml`;
-        let apath = path.resolve(__dirname, diagramFile);
-        let tempString = fs.readFileSync(apath, 'utf-8');
-        let results = ejs.render(tempString, {model: model.definition, Action: Action});
-        let svg = await _getSVG(results);
-        return svg;
+         const modelJSON = model.toJSON();
+        let results = await AService.call('puml/model', {model: modelJSON, diagram: diagram});
+        return results;
     },
     package: async (package, diagram) => {
-        diagram = diagram || "Logical";
-        let diagramFile = `./templates/Package/${diagram}.puml`;
-        let apath = path.resolve(__dirname, diagramFile);
-        let tempString = fs.readFileSync(apath, 'utf-8');
-        let results = ejs.render(tempString, {package: package.definition});
-        let svg = await _getSVG(results);
-        return svg;
+        let packageJSON = package.toJSON();
+        let results = await AService.call('puml/package', {package: packageJSON, diagram: diagram});
+        return results;
     },
     actor: async (actor, diagram) => {
-        const APackage = require('../Server/APackage');
-        diagram = diagram || "UseCase";
-        let diagramFile = `./templates/Actor/${diagram}.puml`;
-        let apath = path.resolve(__dirname, diagramFile);
-        let tempString = fs.readFileSync(apath, 'utf-8');
-
         let apackages = {};
 
         for (let i in actor.usecases) {
             let usecase = actor.usecases[i];
             let uname = usecase.name.replace(/\s/g, '');
             let package = APackage.getPackage(usecase.package);
-            let packageName = package.name.replace(/\s/g, '');
+            let packageName = usecase.package;
             if (!apackages.hasOwnProperty(packageName)) {
                 apackages[packageName] = {
                     color: package.color,
@@ -73,25 +50,15 @@ module.exports = {
             }
             apackages[packageName].workflows[wname] = workflow;
         }
-        let results = ejs.render(tempString, {
-            actor: actor,
-            actorNameNoSpace: actor.shortname,
-            actorPackages: apackages,
-            pageDir: './actors/' + actor.shortname
-        });
-        let svg = await _getSVG(results);
-        return svg;
+        let results = await AService.call('puml/actor', {actor: actor, actorPackages: apackages, diagram: diagram});
+        return results;
     },
     usecase: async (usecase, diagram) => {
-        diagram = diagram || "Activities";
-        let diagramFile = `./templates/UseCase/${diagram}.puml`;
-        let apath = path.resolve(__dirname, diagramFile);
-        let tempString = fs.readFileSync(apath, 'utf-8');
-        let results = ejs.render(tempString, {usecase: usecase});
-        let svg = await _getSVG(results);
-        return svg;
+        let results = await AService.call('puml/usecase', {usecase: usecase, diagram: diagram});
+        return results;
     },
     scenario: async (usecase, scenario, diagram) => {
+        const Action = require('../Server/Action');
         let pkg = global.packages[usecase.package.replace(/\s/g, '')];
         let pkgs = {};
         for (let i in scenario.steps) {
@@ -100,9 +67,20 @@ module.exports = {
             let act = Action.find(`/${step.action.toLowerCase()}`);
             if (act) {
                 step.act = act;
-                if (!pkgs.hasOwnProperty(act.pkg.shortname)) {
-                    pkgs[act.pkg.shortname] = {
-                        pkg: act.pkg,
+                let pkgName = act.pkg;
+                if(typeof pkgName !== 'string') {
+                    pkgName = act.pkg.shortname;
+                }
+                let pkg = APackage.getPackage(pkgName);
+                if (!pkgs.hasOwnProperty(pkgName)) {
+                    let pkgJSON = {
+                        name: pkg.name,
+                        color: pkg.color,
+                        shortname: pkg.shortname,
+                        description: pkg.description,
+                    };
+                    pkgs[pkgName] = {
+                        pkg: pkgJSON,
                         models: {}
                     }
                 }
@@ -115,51 +93,23 @@ module.exports = {
                 console.error("Could not find the action:", step.action.toLowerCase());
             }
         }
-
-        diagram = diagram || "Scenario";
-        let diagramFile = `./templates/Scenario/${diagram}.puml`;
-        let apath = path.resolve(__dirname, diagramFile);
-        let tempString = fs.readFileSync(apath, 'utf-8');
-        let results = ejs.render(tempString, {
-            usecase: usecase,
-                scenario : scenario,
-                pkgs : pkgs,
-                package : pkg,
-                shortname : scenario.name.replace(/ /g, ''),
-                actors : scenario.actors,
-                Action : Action
-        });
-        let svg = await _getSVG(results);
-        return svg;
+        let pkgJSON = pkg.toJSON();
+        let results = await AService.call('puml/scenario', {usecase:usecase, scenario: scenario, pkg:pkgJSON, pkgs:pkgs, diagram: diagram});
+        return results;
     },
     workflow: async (workflow, diagram) => {
-        diagram = diagram || "workflow";
-        let diagramFile = `./templates/Workflow/${diagram}.puml`;
-        let apath = path.resolve(__dirname, diagramFile);
-        let tempString = fs.readFileSync(apath, 'utf-8');
-        let heritage = _getWorkflowHeritage(workflow);
-        let config= {workflow: workflow, workFlowName: workflow.name.replace(/\s/g,'')};
-        config.parent = heritage.parent;
-        config.grandparent = heritage.grandparent;
-        let results = ejs.render(tempString, config);
-        let svg = await _getSVG(results);
-        return svg;   
+        let results = await AService.call('puml/workflow', {workflow: workflow, diagram: diagram});
+        return results;
     },
     category: async (category, diagram) => {
-        diagram = diagram || "category";
-        let diagramFile = `./templates/Category/${diagram}.puml`;
-        let apath = path.resolve(__dirname, diagramFile);
-        let tempString = fs.readFileSync(apath, 'utf-8');
         if(!category.name) { category.name = category.prefix.split('/').pop(); }
-        let config = {category: category, categoryName: category.name.replace(/\s/g,'')};
         let heritage = _getCategoryHeritage(category);
-        config.parent = heritage.parent;
-        config.grandparent = heritage.grandparent;
-        let results = ejs.render(tempString, config);
-        let svg = await _getSVG(results);
-        return svg;
+        
+        let results = await AService.call('puml/category', {category: category, heritage: heritage, diagram: diagram});
+        return results;
     }
 };
+
 function _getCategoryHeritage(category) {
     let parent = "Workflows";
     let grandparent = null;
@@ -176,34 +126,3 @@ function _getCategoryHeritage(category) {
     }
     return {grandparent: grandparent, parent: parent};
 };
-
-function _getWorkflowHeritage(workflow) {
-    let parent = "Workflows";
-    let grandparent = null;
-    let heritage = workflow.category.split('/');
-    if(heritage.length > 0) {
-        parent = `cagtegory-${heritage.join('-')}`
-        heritage.pop();
-        greandparent = "Workflows"
-        if (heritage.length > 0) {
-            grandparent = `category-${heritage.join('-')}`
-        } else {
-            grandparent = null;
-        }
-    }
-    return {grandparent: grandparent, parent: parent};
-}
-async function _getSVG(puml) {
-    return new Promise((resolve) => {
-        let buffer = new streamBuffers.WritableStreamBuffer();
-
-        let gen = plantuml.generate({format: 'svg'});
-        gen.out.pipe(buffer);
-        gen.in.end(puml);
-
-        gen.out.on('end', () => {
-            let svgString = buffer.getContentsAsString('utf8');
-            resolve(svgString);
-        });
-    });
-}

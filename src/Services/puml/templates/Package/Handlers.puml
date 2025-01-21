@@ -1,0 +1,33 @@
+@startuml
+left to right direction
+
+<%
+let g_connections = {};
+let g_interfaces = {};
+let packagName ="sabr";
+let packageName = `${package.prefix}`;
+packageName = packageName.replace(/\//g, '');
+
+// Handlers
+for(let hname in package.handlers) {
+    let handler = package.handlers[hname];
+    %>
+hexagon "<%- hname %>" as <%- hname.replace(/\./g, '') %>
+    <%
+    for(let i in handler.handlers) {
+        let handle = handler.handlers[i];
+        let action = handle.action;
+        if(action) {
+    -%>
+    "<%- action %>" <-- <%= hname.replace(/\./g,'') %>
+    <%
+            } else {
+             -%>
+        <%= packageName %> <-- <%= hname.replace(/\./g,'') %>
+        <%
+        }
+    }
+}
+-%>
+
+@enduml

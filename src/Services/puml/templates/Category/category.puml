@@ -1,0 +1,26 @@
+@startuml
+
+<% if(category.name) { %>
+package "<%= category.name %>" <%= category.color %> {
+<% } %>
+<%
+for(let i in category.subcategories) {
+    let scat = category.subcategories[i];
+%>
+package "<%= scat.name %>"
+<%
+}
+for(let i in category.workflows) {
+    let workflow = category.workflows[i];
+    %>
+rectangle "<%= workflow.name.replace(/\s/g, '\\n') %>" %>
+<%
+}
+%>
+
+<% if(category.name) { %>
+
+}
+<% } %>
+
+@enduml

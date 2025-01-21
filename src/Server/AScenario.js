@@ -189,6 +189,8 @@ function _find(scenario) {
 }
 
 function _toJSON(scenario) {
+
+    const APackage = require('../../src/Server/APackage');
     let retscenario = {
         name: scenario.name,
         description: scenario.description,
@@ -199,7 +201,7 @@ function _toJSON(scenario) {
     };
     retscenario.inputs = scenario.inputs;
     retscenario.id = scenario.uid;
-    let steps = [];
+    let rsteps = [];
     const Action = require('../../src/Server/Action');
     for (let i in scenario.steps) {
         let step = scenario.steps[i];
@@ -208,19 +210,24 @@ function _toJSON(scenario) {
             let retaction = {name: step.action};
             let action = Action.find(step.action);
             if (action) {
+                let pkgName = action.pkg;
+                if (typeof pkgName !== 'string') {
+                    pkgName = action.pkg.shortname;
+                }
+                let pkg = APackage.getPackage(pkgName);
                 retaction = {
                     name: step.action,
                     cls: action.cls,
-                    pkg: {shortname: action.pkg.shortname, name: action.pkg.name, color: action.pkg.color},
-                    obj: {obj: action.pkg.obj}
+                    pkg: {shortname: pkg.shortname, name: pkg.name, color: pkg.color},
+                    obj: {obj: pkg.obj}
                 };
             }
             rstep.action = retaction;
             rstep.description = step.description;
         }
-        steps.push(rstep);
+        rsteps.push(rstep);
     }
-    retscenario.steps = steps;
+    retscenario.steps = rsteps;
     let instances = _scenarioInstances[scenario.id];
     retscenario._instances = instances;
     return retscenario;

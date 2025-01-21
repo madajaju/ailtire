@@ -72,15 +72,13 @@ function buildServiceFiles(pkg, opts) {
         console.error(`Building ${pkg.name}: Error: environment design ${opts.env} not found! Look in the deploy.js file for the package!`);
         return;
     }
-    let stack = pkg.deploy.envs[opts.env].design;
-    stack.name = pkg.deploy.name;
+    let stack = pkg.deploy.envs[opts.env].stack;
     let repo = '';
     if (opts.repo) {
         repo = opts.repo + '/';
     }
     let files = {
         context: {
-            contexts: pkg.deploy.contexts,
             stack: stack,
             repo: repo
         },
@@ -101,8 +99,7 @@ function buildServiceFiles(pkg, opts) {
 }
 
 function buildStartFile(pkg, opts) {
-    let stack = pkg.deploy.envs[opts.env].design;
-    stack.name = pkg.deploy.name;
+    let stack = pkg.deploy.envs[opts.env].stack;
     let repo = '';
     if (opts.repo) {
         repo = opts.repo + '/';

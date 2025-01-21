@@ -9,13 +9,13 @@ const AClass = require('./AClass');
 const AActor = require('./AActor');
 const AHandler = require('./AHandler');
 const ANote = require('./ANote');
+const AStack = require('./AStack');
 const AActivityInstance = require("./AActivityInstance");
 
 module.exports = {
     analyze: (pkg) => {
         analyzeApp(pkg);
-    },
-    processPackage: (dir) => {
+    }, processPackage: (dir) => {
         if (!global.ailtire) {
             global.ailtire = {
                 config: {'baseDir': dir}
@@ -37,8 +37,7 @@ module.exports = {
         _loadWorkflowInstances();
         _loadNotes();
         return global.topPackage;
-    },
-    checkPackages: () => {
+    }, checkPackages: () => {
     }
 
 };
@@ -640,57 +639,65 @@ const loadDeploy = (pkg, prefix, dir) => {
 
         for (let env in contexts) {
             // Now get the file from the deploy and read it in.
-            let compose = {};
-            if (!isFile(dir + '/' + contexts[env].file)) {
-                if (!global.ailtire.hasOwnProperty('error')) {
-                    global.ailtire.error = [];
+            try {
+                let design = {};
+                if (contexts[env].hasOwnProperty('file')) {
+                    if (!isFile(dir + '/' + contexts[env].file)) {
+                        if (!global.ailtire.hasOwnProperty('error')) {
+                            global.ailtire.error = [];
+                        }
+                        global.ailtire.error.push({
+                            type: 'environment.contexts',
+                            object: {type: "environment", id: env, name: env},
+                            message: `Could not find the stack file: ${dir}/${contexts[env].file}`,
+                            data: dir,
+                            lookup: 'environment/list'
+                        });
+                        throw new Error("Could not find the stack file: " + dir + '/' + contexts[env].file);
+                    } else {
+                        design = YAML.load(dir + '/' + contexts[env].file);
+                    }
+                } else {
+                    if (isFile(dir + '/' + contexts[env].design)) {
+                        let fext = path.extname(contexts[env].design);
+                        let stack = {};
+                        switch (fext) {
+                            case '.yaml':
+                                design = YAML.load(dir + '/' + contexts[env].design);
+                                break;
+                            case '.js':
+                                design = require(dir + '/' + contexts[env].design);
+                                break;
+                            default:
+                                console.error("Could not read the design of the service:", apath);
+                                break;
+                        }
+                    }
                 }
-                global.ailtire.error.push({
-                    type: 'environment.contexts',
-                    object: {type: "environment", id: env, name: env},
-                    message: "cloud not find envrionemt association type does not map to a model",
-
-                    data: dir,
-                    lookup: 'model/list'
-                });
-                // console.error(`Could not find ${env} file ${dir}/${contexts[env].file}`);
-            } else {
-                compose = YAML.load(dir + '/' + contexts[env].file);
-            }
-            let design = {};
-            if (isFile(dir + '/' + contexts[env].design)) {
-                let fext = contexts[env].design.split('.').pop();
-                switch (fext) {
-                    case 'yaml':
-                        design = YAML.load(dir + '/' + contexts[env].design);
-                        break;
-                    case 'js':
-                        design = require(dir + '/' + contexts[env].design);
-                        break;
-                    default:
-                        console.error("Could not read the design of the service:", apath);
-                        break;
+                let stack = AStack.load(pkg.deploy.name, env, design);
+                stack.composeFile = contexts[env].file;
+                pkg.deploy.envs[env] = {
+                    tag: `${pkg.deploy.name}:${env}`,
+                    definition: design,
+                    file: contexts[env].file,
+                    stack: stack,
+                    pkg: pkg.name.replace(/\s/g, ''),
+                };
+                if (!global.hasOwnProperty('deploy')) {
+                    global.deploy = {envs: {}};
                 }
-                normalizeStack(design);
+                if (!global.deploy.envs.hasOwnProperty(env)) {
+                    global.deploy.envs[env] = {};
+                }
+                global.deploy.envs[env][pkg.deploy.name] = pkg.deploy.envs[env];
+            } catch(e) {
+                console.error(e.message);
             }
-            pkg.deploy.envs[env] = {
-                tag: `${pkg.deploy.name}:${env}`,
-                definition: compose,
-                file: contexts[env].file,
-                design: design,
-                pkg: pkg.name.replace(/\s/g, ''),
-            };
-            if (!global.hasOwnProperty('deploy')) {
-                global.deploy = {envs: {}};
-            }
-            if (!global.deploy.envs.hasOwnProperty(env)) {
-                global.deploy.envs[env] = {};
-            }
-            global.deploy.envs[env][pkg.deploy.name] = pkg.deploy.envs[env];
         }
     }
     return pkg;
 };
+/*
 const normalizeStack = (stack) => {
     // Add the default networks if needed
     if (!stack.networks.hasOwnProperty('parent')) {
@@ -705,6 +712,7 @@ const normalizeStack = (stack) => {
     // Go through the services and make sure networks are set coorectly.
     for (let sname in stack.services) {
         let service = stack.services[sname];
+        // If the service is a stack of services.
         if (service.type === 'stack') {
             if (service.networks) {
                 if (service.networks.hasOwnProperty('children')) {
@@ -722,7 +730,13 @@ const normalizeStack = (stack) => {
             service.networks = {siblings: {}};
         }
     }
+    for(let sname in stack.services) {
+        let service = stack.services[sname];
+        let serviceObj
+    }
 }
+
+ */
 
 const loadHandlers = (pkg, prefix, mDir) => {
     let handlers = {};
@@ -750,6 +764,7 @@ const loadHandlers = (pkg, prefix, mDir) => {
 
 // These actions are from the models not the interface.
 const loadActions = (pkg, prefix, mDir) => {
+    const Action = require('./Action.js');
     let actions = {};
     if (!pkg.prefix) {
         pkg.prefix = prefix.toLowerCase();
@@ -760,10 +775,9 @@ const loadActions = (pkg, prefix, mDir) => {
         let aname = path.basename(file).replace('.js', '');
         let apath = prefix + '/' + aname;
         apath = apath.toLowerCase();
-        global.actions[apath] = require(file);
-        global.actions[apath].pkg = pkg;
-        global.actions[apath].obj = pkg.name;
-        actions[apath] = global.actions[apath];
+        let details = require(file);
+        let action = Action.create(pkg, apath, details); 
+        actions[apath] = action;
     }
     let dirs = getDirectories(mDir);
     for (let i in dirs) {

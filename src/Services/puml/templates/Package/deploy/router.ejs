@@ -1,0 +1,23 @@
+module.exports = {
+<% for(let sname in stack.services) {
+    let service = stack.services[sname];
+    for(let iname in service.interface) {
+        let iface = service.interface[iname];
+        let protocol = iface.protocol || 'http';
+        let port = iface.port || 3000;
+        let path = iface.path || '/';
+-%>
+    '<%= iname %>': {
+        target: '<%= protocol %>://<%= sname %>:<%= port %>',
+        ws: true,
+        pathRewrite: {
+            '^<%- iname %>': '<%- path %>'
+        },
+        service: '<%= sname %>',
+        logLevel: 'debug',
+        changeOrigin: true
+    },
+<%  }
+}
+-%>
+};

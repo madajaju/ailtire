@@ -24,10 +24,12 @@ server.use(function(req, res, next) {
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });
-server.use(bodyParser.urlencoded({extended: true}));
-server.use(bodyParser.json());
+
+// Increased to pass architecture definitions.
+server.use(bodyParser.urlencoded({limit:'100mb', extended: true}));
+server.use(bodyParser.json({limit:'100mb'}));
 server.use(bodyParser.raw());
-// server.use(upload.array());
+
 server.use((req, res, next) => {
     const oldJSON = res.json;
     res.json = function(obj) {
@@ -153,6 +155,7 @@ module.exports = {
         Action.mapRoutes(server, config);
 
         _setupAdaptors(config);
+        _setupDefaultServices(config);
 
         standardFileTypes(config,server);
 
@@ -224,6 +227,7 @@ module.exports = {
         Action.mapRoutes(server, config);
 
         _setupAdaptors(config);
+        _setupDefaultServices(config);
 
         standardFileTypes(config,server);
 
@@ -425,6 +429,12 @@ function _toJSON(obj) {
     return retval;
 }
 
+function _setupDefaultServices(config) {
+    const AStack = require('./AStack');
+    const design = require(`${__dirname}/../Services/services.js`);
+    
+    AStack.load('ailtire', 'local', design);
+}
 function _setupAdaptors(config) {
     global.ailtire.comms = { services: []};
 

@@ -1,0 +1,114 @@
+@startuml
+
+<%
+let actMap = {};
+let inum = 0;
+for(let aname in workflow.activities) {
+    let activity = workflow.activities[aname];
+    inum++
+    actMap[aname] = "S" + inum;
+    let pname = "None";
+    let pcolor = "#dddddd";
+    if(activity.hasOwnProperty('actor')) {
+        pname = activity.actor;
+        pcolor = "#ffffcc";
+    } else if(activity.hasOwnProperty('package')) {
+        pname = activity.package;
+        pnospace = activity.package.replace(/\s/g, '');
+        if(global.packages.hasOwnProperty(pnospace)) {
+           let pkg = global.packages[pnospace];
+           pcolor = pkg.color;
+        }
+    }
+%>
+state "<%= pname %>" as <%- pname.replace(/\s/g,'') %> <%- pcolor %> {
+    state "<%- aname %>" as S<%- inum %> <%- pcolor %>
+}
+<%
+}
+inum = 0;
+for(let aname in workflow.activities) {
+    let activity = workflow.activities[aname];
+    let length = 0;
+    let pname = "None";
+    let pcolor = "#dddddd";
+    if(activity.hasOwnProperty('actor')) {
+        pname = activity.actor;
+        pcolor = "#ffffcc";
+    } else if(activity.hasOwnProperty('package')) {
+        pname = activity.package;
+        pnospace = activity.package.replace(/\s/g, '');
+        if(global.packages.hasOwnProperty(pnospace)) {
+           let pkg = global.packages[pnospace];
+           pcolor = pkg.color;
+        }
+    }
+    if(activity.next) {
+        length = Object.keys(activity.next).length;
+    }
+    inum++;
+    let jnum = 0;
+    let actName = `${actMap[aname]}`
+    let conditions = 0;
+    for(let nname in activity.next) {
+        let next = activity.next[nname];
+        if(next.condition) { conditions++; }
+    }
+    // Terminal State.
+    if(length === 0) {
+-%>
+ state "<%= pname %>" as <%- pname.replace(/\s/g,'') %> <%- pcolor %> {
+     state T<%- inum %> <<end>>
+     <%- actName %> --> T<%- inum %>
+ }
+<%
+    }
+    else if(conditions > 0) {
+-%>
+state "<%= pname %>" as <%- pname.replace(/\s/g,'') %> <%- pcolor %> {
+    state C<%- inum %> <<choice>>
+    S<%- inum %> --> C<%- inum %>
+}
+<%
+    // If not all of the next items are controlled by conditions.
+        if(conditions < length) {
+-%>
+state "<%= pname %>" as <%- pname.replace(/\s/g,'') %> <%- pcolor %> {
+    state F<%- inum %> <<fork>>
+    <%- actName %> --> F<%- inum %>
+    F<%- inum %> --> C<%- inum %>
+}
+<%
+        }
+    // If there are more than one next items Do a fork.
+    } else if (length > 1 ) {
+    // There are not anything left in next. Put a terminal state in.
+-%>
+    state "<%= pname %>" as <%- pname.replace(/\s/g,'') %> <%- pcolor %> {
+        state F<%- inum %> <<fork>>
+        <%- actName %> --> F<%- inum %>
+    }
+<%
+    }
+    for(let nname in activity.next) {
+        let next = activity.next[nname];
+        let nactivity = workflow.activities[nname];
+        if(next.condition) {
+-%>
+C<%- inum %> --> <%- actMap[nname] %> : <%= next.condition.test %>\n[<%= next.condition.value %>]
+<%
+        } else {
+            if(length > 1) {
+-%>
+F<%- inum %> --> <%= actMap[nname] %>
+<%
+            } else {
+-%>
+<%- actName %> --> <%- actMap[nname] %>
+<%
+            }
+        }
+    }
+}
+%>
+@enduml

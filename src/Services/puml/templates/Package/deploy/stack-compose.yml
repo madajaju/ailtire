@@ -1,0 +1,101 @@
+version: "3.7"
+services:
+<% for(let sname in stack.services) {
+let service = stack.services[sname];
+if(service.type === 'stack') {
+-%>
+  <%= sname %>:
+    image: <%= repo %><%= service.image %>
+    stop_grace_period: 1m
+    stop_signal: SIGINT
+    volumes:
+<%
+  for(let vname in service.volumes) {
+  let volume = service.volumes[vname];
+-%>
+      - <%= volume.source %>:<%= volume.target %>
+<%
+  }
+-%>
+    deploy:
+      replicas: 1
+    environment:
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_PARENT=${AILTIRE_APPNAME}
+      - AILTIRE_SERVICENAME=<%- sname %>
+      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
+      - AILTIRE_PARENT_NETWORK=${AILTIRE_APPNAME}_<%= stack.name %>_<%= sname %>_family
+<% 
+for(let ename in service.environment) { 
+-%>
+      - <%= ename %>=<%= service.environment[ename] %>
+<%
+}
+-%>
+    networks:
+      child<%= sname %>:
+      sibling:
+      parent:
+        aliases:
+          - <%= sname %>
+<%
+} else {
+-%>
+  <%= sname %>:
+    image: <%= repo %><%= service.image %>
+    stop_grace_period: 1m
+    stop_signal: SIGINT
+<% if(service.volumes && service.volumes.size > 0) { -%>
+    volumes:
+<%
+      for(let vname in service.volumes) {
+      let volume = service.volumes[vname];
+-%>
+    - <%= volume.source %>:<%= volume.target %>
+<%
+    }
+}
+-%>
+    deploy:
+      replicas: 1
+    environment:
+      - AILTIRE_STACKNAME={{.Service.Name}}-{{.Task.Slot}}
+      - AILTIRE_SERVICENAME=<%- sname %>
+      - AILTIRE_PARENT=${AILTIRE_APPNAME}
+      - AILTIRE_PARENTHOST=admin
+      - AILTIRE_APPNAME=${AILTIRE_APPNAME}
+<% 
+for(let ename in service.environment) { 
+-%>
+      - <%= ename %>=<%= service.environment[ename] %>
+<%
+}
+-%>
+    networks:
+      sibling:
+      parent:
+        aliases:
+        - <%= sname %>
+<%
+  }
+}
+-%>
+networks:
+  sibling:
+    driver: overlay
+  parent:
+    external: true
+    name: ${AILTIRE_PARENT_NETWORK}
+<% 
+  for(let sname in stack.services) {
+    let service = stack.services[sname];
+    if(service.type === 'stack') {
+-%>
+  child<%- sname %>:
+    driver: overlay
+    attachable: true
+    name: ${AILTIRE_APPNAME}_<%= stack.name %>_<%= sname %>_family
+<%
+  }
+}
+%>

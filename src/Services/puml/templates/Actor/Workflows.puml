@@ -1,0 +1,21 @@
+@startuml
+
+left to right direction
+
+<% let anameNoSpace = actor.name.replace(/ /g, '') %>
+Actor "<%= actor.name %>" as <%= anameNoSpace %>
+
+<% for(let pname in actorPackages) {
+    let package = actorPackages[pname];
+%>
+rectangle "<%= package.name %>" as <%= package.shortname %> #<%= package.color.replace('#','') %> {
+    <% for(let uname in package.workflows) {
+        let workflow = package.workflows[uname];
+    -%>
+    rectangle "<%= workflow.name %>" as <%= uname %>
+    <%= anameNoSpace %> --> <%= uname %>
+<% } %>
+}
+<% } %>
+
+@enduml

@@ -6,7 +6,6 @@ const AIHelper = require(`./AIHelper`);
 const AEvent = require("./AEvent");
 const AActor = require("./AActor");
 const AUseCase = require("./AUseCase");
-const ANote = require("./ANote");
 
 
 module.exports = {
@@ -16,6 +15,7 @@ module.exports = {
         fs.writeFileSync(configFile, `module.exports = ${JSON.stringify(global.ailtire.config)};`);
     },
     generateItems: async (notes, filters, id, env) => {
+        const ANote = require("./ANote.js");
         let newNote = null;
         if(id) {
            newNote = ANote.get(id);

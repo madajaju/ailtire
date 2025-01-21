@@ -30,6 +30,12 @@ module.exports = {
             mapToServer(server, config);
         }
     },
+    create: (pkg, path, details) => {
+        global.actions[path] = details;
+        global.actions[path].pkg = pkg.shortname; // If I put the object in here I geta circular reference.
+        global.actions[path].obj = pkg.name;
+        return global.actions[path];
+    },
     defaults: (server) => {
         addForModels(server);
     },

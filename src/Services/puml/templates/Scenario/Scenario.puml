@@ -1,0 +1,62 @@
+@startuml
+
+<% for(let aname in actors) { %>
+actor "<%= aname %>"
+<% } %>
+
+entity EventBus
+
+box <%= package.name %> #<%= package.color.replace(/\#/g,'') %>
+    boundary <%= package.shortname %> #white
+end box
+
+<% for (let pname in pkgs) {
+let pkgtop = pkgs[pname];
+let pkg1 = pkgtop.pkg;
+%>
+box <%= pkg1.name %> #<%= pkg1.color.replace(/\#/g,'') %>
+    <% for (let model in pkgtop.models) { -%>
+        participant <%= model %>
+    <% } -%>
+end box
+<% } %>
+group Given [<%= scenario.given %>]
+<% for(let aname in actors) {
+%>
+"<%= aname %>" --/ <%= package.shortname %>: <%= scenario.when %>
+"<%= package.shortname %>" -> <%= package.shortname %>: <%= scenario.name %>
+<% for(let i in scenario.steps) {
+    let step = scenario.steps[i];
+    let names = step.action.split('/');
+    let object = package.shortname;
+    let method = names.pop().toLowerCase();
+    let calledObj = "this";
+    if(names.length > 0) {
+        calledObj = names.pop().toLowerCase();
+    }
+    if(step.act) {
+        object = step.act.obj;
+    }
+    object = object.toLowerCase();
+    let parameters = "";
+    if(step.parameters) {
+        let items = [];
+        for(let name in step.parameters) {
+            items.push(`${name}: ${step.parameters[name]}`);
+        }
+        parameters = items.join(',');
+    }
+%>
+    <%= package.shortname.toLowerCase() %> -> "<%= object %>": <%= method %> (<%= parameters %>)
+
+    "<%= object %>" --/ EventBus: <%= calledObj + '.' + method %>
+<% } %>
+<% } %>
+<% for(let aname in actors) {
+%>
+"<%= aname %>" /-- <%= package.shortname %>: <%= scenario.then %>
+<% } %>
+
+end
+
+@enduml

@@ -1,0 +1,137 @@
+@startuml
+left to right direction
+
+<%
+let g_connections = {};
+let g_interfaces = {};
+let packagName ="sabr";
+let packageName = `${package.prefix}`;
+packageName = packageName.replace(/\//g, '');
+
+const getStates = (name) => {
+    let names = name.split(/\//);
+    let inter = names.pop();
+    let comp = names.pop();
+    let pkg = names.join('-');
+    let sname = `${pkg.replace(/\-/g,'') }${comp}${inter}`;
+    sname = sname.replace(/\s/g,'');
+    let states = ``;
+    let pkgname = '';
+    // Connection already made. Don't make it again.
+    if(g_connections.hasOwnProperty(sname+pkgname+comp)) {
+       return {sname:sname,states:''};
+    }
+    g_connections[sname+pkgname+comp] = true;
+    g_interfaces[name] = true;
+    for(let i in names) {
+        if(names[i].length > 0) {
+            pkgname += names[i];
+            if(package.shortname === names[i]) {
+            let color = package.color;
+                if(color[0] !== '#') {
+                    color = `#${color}`;
+                }
+                states += `package "${names[i]}" as ${pkgname} ${color} {\n`
+            } else {
+                states += `package "${names[i]}" as ${pkgname} {\n`
+            }
+        }
+    }
+    states += ` component "${comp}" as ${pkgname}${comp}\n` +
+     ` interface "${inter}" as ${sname}\n` +
+     `${pkgname}${comp} -- ${sname}\n`;
+    for(let i in names) {
+        if(names[i].length > 0) {
+            states += '}\n';
+        }
+    }
+    return {sname: sname, states: states, color: 'gray'};
+};
+// Interface generations
+for(let iname in package.interface) {
+    let istate = getStates(iname);
+    %>
+    <%- istate.states %>
+    <%
+}
+
+// Handlers
+for(let hname in package.handlers) {
+    let handler = package.handlers[hname];
+    %>
+hexagon "<%- hname %>" as <%- hname.replace(/\./g, '') %>
+    <%
+    for(let i in handler.handlers) {
+        let handle = handler.handlers[i];
+        let action = handle.action;
+        if(action) {
+            if(g_interfaces[action]) {
+             let istates = getStates(action);
+    -%>
+    <%- istates.sname %> <-- <%= hname.replace(/\./g,'') %>
+    <%
+            } else {
+             -%>
+        <%= packageName %> <-- <%= hname.replace(/\./g,'') %>
+        <%
+            }
+        } else {
+        -%>
+        <%= packageName %> <-- <%= hname.replace(/\./g,'') %>
+        <%
+        }
+    }
+}
+// Use Case generation
+for (let i in global.usecases) {
+    let uc = global.usecases[i];
+    let ucname = uc.name.replace(/\s/g, '');
+    for(let aname in uc.actors) {
+
+    let method = uc.method;
+    if(g_interfaces[method]) {
+    let mstate = getStates(method);
+%>
+actor :<%= aname %>: as <%= aname.replace(/\s/g,'') %>
+
+rectangle "<%= uc.name %>" as <%= uc.name.replace(/\s/g,'') %> #ffffaa {
+}
+
+<%= uc.name.replace(/\s/g,'') %> <-- <%= aname.replace(/\s/g,'') %>
+
+<%- mstate.states %>
+<%= mstate.sname %> <-- <%= uc.name.replace(/\s/g,'') %>
+
+<% } } %>
+<% for(let sname in uc.scenarios) {
+    let scen = uc.scenarios[sname];
+    let ascname = "";
+    for(let aname in scen.actors) {
+        let method = package.prefix + '/' + scen.method;
+        if(g_interfaces[method]) {
+        let smstates = getStates(method);
+        let auscname = aname.replace(/\s/g,'') + uc.name.replace(/\s/g,'');
+        ascname = auscname + sname.replace(/\s/g,'');
+    %>
+        rectangle "<%= uc.name %>" as <%= uc.name.replace(/\s/g,'') %> #ffffaa {
+            ("<%= scen.name %>")/ as <%= ascname %>
+        }
+    <%- smstates.states %>
+    <%- smstates.sname %> <-- <%= ascname %>
+<%
+        }
+        for(let i in scen.steps) {
+            let step = scen.steps[i];
+            let stepname = step.action;
+            if(g_interfaces[stepname]) {
+            let sstates = getStates(stepname);
+-%>
+    <%= sstates.sname %> <-- <%= ascname %>
+    <%
+            }
+        }
+      }
+    }
+ } -%>
+
+@enduml

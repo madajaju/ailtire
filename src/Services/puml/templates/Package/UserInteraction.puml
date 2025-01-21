@@ -1,0 +1,21 @@
+@startuml
+<% if(actors && Object.keys(actors).length > 0) { %>
+<% for(let aname in actors) { %>
+actor "<%= actors[aname].name %>" as <%= actors[aname].shortname || actors[aname].name.replace(/\s/g, '') %>
+<% }%>
+
+
+<% for(let aname in actors) {
+    let actor = actors[aname];
+     for(let ucname in actors[aname].usecases) {
+        let usecase = actor.usecases[ucname];
+%>
+<%= actors[aname].shortname %> -> "<%= package.name %>": <%= usecase.name %>
+"<%= package.name %>" -> bin: <%= usecase.method.replace(/\//g, " ") %>
+bin -> REST: <%= usecase.method %>
+<% } } %>
+<% } else { %>
+rectangle "TBD"
+<% } %>
+
+@enduml
