@@ -207,6 +207,9 @@ function buildPackage(pkg, opts) {
                 fs.mkdirSync(`${buildDir}/interface`, {recursive: true});
             }
 
+            // copy the interface for the pkg to api/interface
+            _copyDirectory(path.resolve(pkg.interfaceDir), `${buildDir}/api/interface`);
+            
             // Now copy the packages included in the definition
             for (let i in build.packages) {
                 let depPkg = build.packages[i];
