@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const AClass = require('./AClass');
+
 const Renderer = require('../Documentation/Renderer');
 
 const isDirectory = source => fs.lstatSync(source).isDirectory();
@@ -105,7 +105,7 @@ const addForModels = (server) => {
     const showAction = require('./actions/show.js');
     const addAction = require('./actions/add.js');
     let act;
-
+    const AClass = require('./AClass');
     for (let name in global.classes) {
         let cls = AClass.getClass(name);
         act = setAction(`/${name}/new`, newAction);
@@ -460,6 +460,7 @@ const _executeFunction = (action, inputs, env) => {
     }
 }
 const find = (name) => {
+    const AClass = require('./AClass');
     if(typeof name !== "string") {
        console.error("String should be here:", name) ;
     }
