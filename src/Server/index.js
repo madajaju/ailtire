@@ -181,16 +181,20 @@ module.exports = {
             let str = mainPage(config);
             res.end(str);
         });
-        let mdirs = fs.readdirSync(path.resolve(config.baseDir + '/views/layouts'))
-        for(let i in mdirs) {
-            if(path.extname(mdirs[i]) === '.ejs') {
-                let basename = path.basename(mdirs[i], '.ejs');
-                server.all(`/${basename}`, (req, res) => {
-                    config.layout = basename;
-                    let str = mainPage(config);
-                    res.end(str);
-                });
+        try {
+            let mdirs = fs.readdirSync(path.resolve(config.baseDir + '/views/layouts'))
+            for(let i in mdirs) {
+                if(path.extname(mdirs[i]) === '.ejs') {
+                    let basename = path.basename(mdirs[i], '.ejs');
+                    server.all(`/${basename}`, (req, res) => {
+                        config.layout = basename;
+                        let str = mainPage(config);
+                        res.end(str);
+                    });
+                }
             }
+        } catch(e) {
+            console.error("No Web Interface found!");
         }
         server.all('*', (req, res) => {
             console.error(`Config: ${config.urlPrefix}`)
