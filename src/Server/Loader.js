@@ -905,6 +905,11 @@ const checkDeployment = (deployments, images) => {
         global.ailtire.error = [];
     }
     // Make sure that every services has a valid image that can be built.
+    if(!deployments) {
+        console.log("No Deployments Found!");
+        return;
+    }
+        
     for (let i in deployments.envs) {
         let env = deployments.envs[i];
         for (let j in env) {
