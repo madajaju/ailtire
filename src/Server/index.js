@@ -453,7 +453,7 @@ function _setupAdaptors(config) {
             let comms = config.comms[i];
             comms.http = http;
             comms.urlPrefix = config.urlPrefix;
-            global.ailtire.comms.services.push( new comms.adaptor({comms: comms}) );
+            global.ailtire.comms.services.push( new comms.adaptor(comms) );
         }
     }
     if(config.ai) {
