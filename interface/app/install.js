@@ -1,6 +1,5 @@
 const path = require('path');
 const spawn = require('child_process').spawnSync;
-const api = require('../../src/Documentation/api');
 const sLoader = require('../../src/Server/Loader');
 const fs = require('fs');
 const Build = require('../../src/Services/BuildEngine');
@@ -58,7 +57,7 @@ function installPackage(package, opts) {
             console.log("Could not find the environment:", opts.env);
             return "";
         }
-        let stackName = opts.name + '_' + package.deploy.envs[opts.env].tag;
+        let stackName = opts.name + '-' + opts.env;
         stackName = stackName.replace(/:/g, '-');
         stackName = stackName.toLowerCase().replace(/\//,'').replace(/\//g, '_');
         let dockerfile = package.deploy.envs[opts.env].file;
@@ -70,7 +69,6 @@ function installPackage(package, opts) {
         process.env.AILTIRE_ENV = opts.env;
         process.env.AILTIRE_APPNAME = opts.name;
         process.env.APPNAME = opts.name;
-        console.log("Running command!");
         //let proc = spawn('pwd', [], {
         let proc = spawn('docker', ['stack', 'deploy', '-c', files.composeFile, stackName], {
             cwd: package.deploy.dir,
