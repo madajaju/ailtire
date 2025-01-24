@@ -94,7 +94,9 @@ async function _startOLlama(obj) {
     let timeout = 1000;
     while (!completed) {
         try {
+            console.log(`Checking OLlama accessibility at ${obj.apiUrl}/api/version`);
             let response = await axios.get(`${obj.apiUrl}/api/version`);
+           
             if (response.status !== 200) {
                 console.log("Starting OLlamA server...");
                 const cmd = 'docker run -d --rm -v ollama:/root/.ollama -p 11434:11434 --name ailtire-aihelper madajaju/ailtire-aihelper:latest';
