@@ -291,10 +291,7 @@ function _copyDirectory(src, dest) {
             let file = files[i];
             let srcFile = path.join(src, file);
             let destFile = path.join(dest, file);
-            switch (file) {
-                case ".buildDir":
-                    break;
-                default:
+            if(file[0] !== '.' && file !== 'node_modules') {
                     if (fs.lstatSync(srcFile).isDirectory()) {
                         _copyDirectory(srcFile, destFile);
                     } else {
@@ -304,7 +301,7 @@ function _copyDirectory(src, dest) {
                             console.error("Could not copy file:", srcFile, destFile, e);
                         }
                     }
-                    break;
+                }
             }
         }
     }
