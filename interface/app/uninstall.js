@@ -1,12 +1,10 @@
 const path = require('path');
 const exec = require('child_process').spawnSync;
-const api = require('../../src/Documentation/api');
-const sLoader = require('../../src/Server/Loader');
 const fs = require('fs');
 
 module.exports = {
-    friendlyName: 'create',
-    description: 'Create an app',
+    friendlyName: 'uninstall',
+    description: 'Uninstall an application that was installed with docker swarm',
     static: true,
     inputs: {
         env: {
@@ -35,20 +33,17 @@ module.exports = {
         // Iterate down to the Packages the same thing.
         // continue down the tree.
         // Make sure to call docker stack deploy first then go down.
-        let name = inputs.name;
+        let name = inputs.name || 'default';
+        let environ = inputs.env  || 'local';
         let apath = path.resolve('.');
-        let topPackage = sLoader.processPackage(apath);
-        uninstallPackage(topPackage, {name: name});
+        uninstallPackage({name: name, env: environ});
         return `Uninstall Application`;
     }
 };
 
-function uninstallPackage(package, opts) {
-
-    if (package.deploy) {
-        let stackName = opts.name + '_' + package.deploy.prefix.toLowerCase().replace(/\//,'').replace(/\//g, '_');
-        console.log("Stack Name:", stackName);
-        // let proc = exec('pwd', [], {cwd: package.deploy.dir, stdio: 'inherit'});
-        let proc = exec('docker', ['stack', 'rm', stackName], {cwd: package.deploy.dir, stdio: 'inherit'});
-    }
+function uninstallPackage(opts) {
+    let stackName = opts.name + '-' + opts.env;
+    console.log("Removing Stack Name:", stackName);
+    let proc = exec('docker', ['stack', 'rm', stackName], {stdio: 'inherit'});
+    return;
 }
