@@ -292,14 +292,13 @@ function _copyDirectory(src, dest) {
             let srcFile = path.join(src, file);
             let destFile = path.join(dest, file);
             if(file[0] !== '.' && file !== 'node_modules') {
-                    if (fs.lstatSync(srcFile).isDirectory()) {
-                        _copyDirectory(srcFile, destFile);
-                    } else {
-                        try {
-                            fs.cpSync(srcFile, destFile);
-                        } catch (e) {
-                            console.error("Could not copy file:", srcFile, destFile, e);
-                        }
+                if (fs.lstatSync(srcFile).isDirectory()) {
+                    _copyDirectory(srcFile, destFile);
+                } else {
+                    try {
+                        fs.cpSync(srcFile, destFile);
+                    } catch (e) {
+                        console.error("Could not copy file:", srcFile, destFile, e);
                     }
                 }
             }
