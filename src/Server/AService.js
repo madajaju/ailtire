@@ -31,8 +31,10 @@ class AService {
         }
         for (let iname in this.interface) {
             if (global._servicePaths.hasOwnProperty(iname)) {
-                console.error("Service Interface Error:", iname, "already exists!");
-                console.error(`Conflict with ${this.name} and ${global.ailtire.servicePaths[iname].name}`);
+                 if(global._servicePaths[iname] !== this.name) {
+                    console.error("Service Interface Error:", iname, "already exists!");
+                    console.error(`Conflict with ${this.name} and ${global._servicePaths[iname].name}`);
+                }
             } else {
                 global._servicePaths[iname] = this;
             }
