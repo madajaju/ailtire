@@ -362,14 +362,17 @@ function getHandler(obj, definition, prop) {
         let assocDef = getAssociation(obj.definition, prop);
         if (assocDef.cardinality === 1) {
             let retval = obj._associations[prop];
-            if (retval._persist?.hasOwnProperty('_notLoaded') && retval._persist._notLoaded) {
-                const promise = _load(retval, []).then(loaded => {
-                    obj._associations[prop] = loaded; // Cache the resolved object
-                    return obj._associations[prop];
-                });
+            // Could return a null.
+            if(retval) {
+                if (retval._persist?.hasOwnProperty('_notLoaded') && retval._persist._notLoaded) {
+                    const promise = _load(retval, []).then(loaded => {
+                        obj._associations[prop] = loaded; // Cache the resolved object
+                        return obj._associations[prop];
+                    });
 
-                // Return a Proxy that transparently resolves the promise
-                return _createTransparentProxy(promise);
+                    // Return a Proxy that transparently resolves the promise
+                    return _createTransparentProxy(promise);
+                }
             }
             return retval;
         } else {
