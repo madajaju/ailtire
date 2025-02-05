@@ -63,7 +63,7 @@ module.exports = {
         server.all(path, fn);
     },
     doc: (config) => {
-        console.log("Serving documenration");
+        console.log("Serving documentation");
         normalizeConfig(config);
         global.ailtire = { config: config };
         let apath = path.resolve(config.baseDir);
@@ -447,6 +447,8 @@ function _setupAdaptors(config) {
         urlPrefix: config.urlPrefix,
         http: http,
     }
+    global.ailtire.comms.services.push( new ASocketIOAdaptor(myconfig) );
+    myconfig.urlPrefix = '/design';
     global.ailtire.comms.services.push( new ASocketIOAdaptor(myconfig) );
     if(config.comms) {
         for(let i in config.comms) {

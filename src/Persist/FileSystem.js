@@ -25,6 +25,9 @@ function _loadAll() {
 
     // Iterate over the top level directories in the database. Only load the root classes.
     // Only partially load them. Do not load associations they have yet.
+    // Create the basedir if it does not exist.
+    fs.mkdirSync(basedir, {recursive:true});
+
     let clsDirs = fs.readdirSync(basedir);
     for(let i in clsDirs) {
         const classPath = path.join(basedir, clsDirs[i]);

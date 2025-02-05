@@ -191,9 +191,13 @@ function setupExpress() {
 
     process.once('SIGINT', (code) => {
         console.log("SIGINT:", code);
+        console.log("Shutting down...")
         let proc = exec('docker', ['stack', 'rm', stackName], { cwd: '.', stdio: 'pipe', env: process.env });
         console.log("proc:", proc.stdout.toString('utf8'));
-        process.exit();
+        setTimeout( () => {
+            console.log("Exiting after 5 seconds...");
+            process.exit(0);
+        }, 5000);
     });
     return;
 }

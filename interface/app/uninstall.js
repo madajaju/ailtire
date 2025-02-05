@@ -1,6 +1,7 @@
 const path = require('path');
 const exec = require('child_process').spawnSync;
 const fs = require('fs');
+const axios = require('axios');
 
 module.exports = {
     friendlyName: 'uninstall',
@@ -27,7 +28,7 @@ module.exports = {
         }
     },
 
-    fn: function (inputs, env) {
+    fn: async function (inputs, env) {
         // goto the deploy directory at the top level.
         // Call docker stack deploy -c docker-compose.yml
         // Iterate down to the Packages the same thing.
@@ -36,14 +37,15 @@ module.exports = {
         let name = inputs.name || 'default';
         let environ = inputs.env  || 'local';
         let apath = path.resolve('.');
-        uninstallPackage({name: name, env: environ});
+        await uninstallPackage({name: name, env: environ});
         return `Uninstall Application`;
     }
 };
 
-function uninstallPackage(opts) {
+async function uninstallPackage(opts) {
     let stackName = opts.name + '-' + opts.env;
     console.log("Removing Stack Name:", stackName);
+    await axios.get('http://localhost/_admin/shutdown');
     let proc = exec('docker', ['stack', 'rm', stackName], {stdio: 'inherit'});
     return;
 }

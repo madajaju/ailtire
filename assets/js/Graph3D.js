@@ -610,118 +610,6 @@ export class Graph3D {
                     let parent = nodes[nmap[node.rbox.parent]];
                     if (parent) { // the Parent is found then go forward. If not then don't.
                         _applyRotationAndPosition(node,parent);
-                        /*
-                        // IF fx is defined on the parent then force it to the fx to lock the position.
-                        if (parent.fx != undefined) {
-                            parent.x = parent.fx;
-                            parent.vx = 0;
-                        }
-                        if (parent.fy != undefined) {
-                            parent.y = parent.fy;
-                            parent.vy = 0;
-                        }
-                        if (parent.fz != undefined) {
-                            parent.z = parent.fz;
-                            parent.vz = 0;
-                        }
-
-                        if (node.rbox.fx != undefined) {
-                            node.x = parent.x + node.rbox.fx;
-                            node.fx = node.x;
-                            node.vx = 0;
-                        } else if (node.rbox.x) {
-                            if (node.rbox.x.min === node.rbox.x.max) {
-                                let newx = parent.x + node.rbox.x.min;
-                                node.vx = 0;
-                                node.fx = newx;
-                                node.x = newx;
-                            } else {
-                                // Look ahead to where it is going.
-                                let newx = node.x + node.vx;
-                                // Calculate the min and max values based on the parent location
-                                let min = parent.x + node.rbox.x.min;
-                                let max = parent.x + node.rbox.x.max;
-                                let v = node.vx;
-                                // If the boundary is hit then set the value to the boundary
-                                // and set the velocity to 1/4 of the distance to the middle.
-                                if (newx < min) {
-                                    // Bounce the velocity back to the middle by 1/4.
-                                    let v = Math.abs(max - min) / 2 / 4;
-                                    node.x = min;
-                                    node.vx = v * k;
-                                } else if (newx > max) {
-                                    // Bounce the velocity back to the middle by 1/4.
-                                    let v = Math.abs(max - min) / 2 / 4;
-                                    node.x = max;
-                                    node.vx = -v * k;
-                                }
-                            }
-                        }
-                        if (node.rbox.fy != undefined) {
-                            node.y = parent.y + node.rbox.fy;
-                            node.fy = node.y;
-                            node.vy = 0;
-                        } else if (node.rbox.y) {
-                            if (node.rbox.y.min === node.rbox.y.max) {
-                                let newy = parent.y + node.rbox.y.min;
-                                node.vy = 0;
-                                node.y = newy;
-                                node.fy = newy;
-                            } else {
-                                // Look ahead to where it is going.
-                                let newy = node.y + node.vy;
-                                // Calculate the min and max values based on the parent location
-                                let min = parent.y + node.rbox.y.min;
-                                let max = parent.y + node.rbox.y.max;
-                                let v = node.vy;
-                                // If the boundary is hit then set the value to the boundary
-                                // and set the velocity to 1/4 of the distance to the middle.
-                                if (newy < min) {
-                                    // Bounce the velocity back to the middle by 1/4.
-                                    let v = Math.abs(max - min) / 2 / 4;
-                                    node.y = min;
-                                    node.vy = v * k;
-                                } else if (newy > max) {
-                                    // Bounce the velocity back to the middle by 1/4.
-                                    let v = Math.abs(max - min) / 2 / 4;
-                                    node.y = max;
-                                    node.vy = -v * k;
-                                }
-                            }
-                        }
-                        if (node.rbox.fz != undefined) {
-                            node.z = parent.z + node.rbox.fz;
-                            node.fz = node.z;
-                            node.vz = 0;
-                        } else if (node.rbox.z) {
-                            if (node.rbox.z.min === node.rbox.z.max) {
-                                let newz = parent.z + node.rbox.z.min;
-                                node.vz = 0;
-                                node.z = newz;
-                                node.fz = newz;
-                            } else {
-                                let newz = node.z + node.vz;
-                                // Calculate the min and max values based on the parent location
-                                let min = parent.z + node.rbox.z.min;
-                                let max = parent.z + node.rbox.z.max;
-                                let v = node.vz;
-                                // If the boundary is hit then set the value to the boundary
-                                // and set the velocity to 1/4 of the distance to the middle.
-                                if (newz < min) {
-                                    // Bounce the velocity back to the middle by 1/4.
-                                    let v = Math.abs(max - min) / 2 / 4;
-                                    node.z = min;
-                                    node.vz = v * k;
-                                } else if (newz > max) {
-                                    // Bounce the velocity back to the middle by 1/4.
-                                    let v = Math.abs(max - min) / 2 / 4;
-                                    node.z = max;
-                                    node.vz = -v * k;
-                                }
-                            }
-                        }
-
-                         */
                     }
                 }
 
@@ -989,6 +877,42 @@ function _applyRotationAndPosition(node, parent) {
     let relativeY = node.rbox.fy || node.rbox.y?.min || -node.height/2;
     let relativeZ = node.rbox.fz || node.rbox.z?.min || -node.depth/2;
 
+    if(node.rbox.fx) {
+        relativeX = node.rbox.fx;
+    } else {
+        if (node.x <= parent.x + node.rbox.x.min) {
+            relativeX = node.rbox.x.min;
+            node.vx = Math.abs(node.vx || 0); // Move upward
+        } else if (node.x >= parent.x + node.rbox.x.max) {
+            relativeX = node.rbox.x.max;
+            node.vx = -(Math.abs(node.vx || 0)); // Move upward
+        }
+    }
+    
+    if (node.rbox.fy !== undefined) {
+        relativeY = node.rbox.fy;
+    } else {
+        if (node.y <= parent.y + (node.rbox.y?.min || 0)) {
+            relativeY = node.rbox.y.min;
+            node.vy = Math.abs(node.vy || 0); // Move upward
+        } else if (node.y >= parent.y + (node.rbox.y?.max || 0)) {
+            relativeY = node.rbox.y.max;
+            node.vy = -(Math.abs(node.vy || 0)); // Move downward
+        } 
+    }
+
+    if (node.rbox.fz !== undefined) {
+        relativeZ = node.rbox.fz;
+    } else {
+        if (node.z <= parent.z + (node.rbox.z?.min || 0)) {
+            relativeZ = node.rbox.z.min;
+            node.vz = Math.abs(node.vz || 0); // Move forward
+        } else if (node.z >= parent.z + (node.rbox.z?.max || 0)) {
+            relativeZ = node.rbox.z.max;
+            node.vz = -(Math.abs(node.vz || 0)); // Move backward
+        }
+    }
+
     // Apply rotation around X-axis
     let y1 = relativeY * Math.cos(rx) - relativeZ * Math.sin(rx);
     let z1 = relativeY * Math.sin(rx) + relativeZ * Math.cos(rx);
@@ -1005,17 +929,15 @@ function _applyRotationAndPosition(node, parent) {
     let finalX = parent.x + x3;
     let finalY = parent.y + y3;
     let finalZ = parent.z + z2;
-
+    
+    
     // Update the node's position and velocity
     node.x = finalX;
-    node.fx = finalX;
-    node.vx = 0;
+    // node.fx = finalX;
 
     node.y = finalY;
-    node.fy = finalY;
-    node.vy = 0;
+    // node.fy = finalY;
 
     node.z = finalZ;
-    node.fz = finalZ;
-    node.vz = 0;
+    // node.fz = finalZ;
 }

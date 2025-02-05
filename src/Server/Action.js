@@ -9,15 +9,15 @@ const getDirectories = source => fs.readdirSync(source).map(name => path.join(so
 const getFiles = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isFile);
 
 module.exports = {
-    execute: (action, inputs, env) => {
-        let retval = execute(action, inputs, env);
+    execute: async (action, inputs, env) => {
+        let retval = await execute(action, inputs, env);
         return retval;
     },
     add: (route, action) => {
         let nroute = route.replaceAll(/\s/g, '').toLowerCase();
         global.actions[nroute] = action;
-        global._server.all(nroute, (req, res) => {
-            execute(action, req.query, {req: req, res: res});
+        global._server.all(nroute, async (req, res) => {
+            await execute(action, req.query, {req: req, res: res});
         });
     },
     load: (server, prefix, mDir, config) => {
@@ -57,12 +57,12 @@ module.exports = {
                 let action = find(config.routes[i]);
                 if (action) {
                     if (route.includes('/upload')) {
-                        server.post(route, global.upload.single('file-to-upload'), (req, res) => {
-                            execute(action, req.query, {req: req, res: res});
+                        server.post(route, global.upload.single('file-to-upload'), async (req, res) => {
+                            await execute(action, req.query, {req: req, res: res});
                         });
                     } else {
-                        server.all(route, (req, res) => {
-                            execute(action, req.query, {req: req, res: res});
+                        server.all(route, async (req, res) => {
+                            await execute(action, req.query, {req: req, res: res});
                         });
                     }
                 } else {
@@ -255,18 +255,18 @@ const mapToServer = (server, config) => {
         }
         let normalizedName = i.replace('/' + global.topPackage.shortname, '');
         if(normalizedName.includes('/upload')) {
-            server.post('*' + normalizedName, (req, res) => {
+            server.post('*' + normalizedName, async (req, res) => {
                 req.url = req.url.replace(config.urlPrefix, '');
-                upload(gaction, req.query, {req: req, res: res});
+                await upload(gaction, req.query, {req: req, res: res});
             });   
         } else {
-            server.post('*' + normalizedName, (req, res) => {
+            server.post('*' + normalizedName, async (req, res) => {
                 req.url = req.url.replace(config.urlPrefix, '');
-                execute(gaction, req.query, {req: req, res: res});
+                await execute(gaction, req.query, {req: req, res: res});
             });
-            server.all('*' + normalizedName, (req, res) => {
+            server.all('*' + normalizedName, async (req, res) => {
                 req.url = req.url.replace(config.urlPrefix, '');
-                execute(gaction, req.query, {req: req, res: res});
+                await execute(gaction, req.query, {req: req, res: res});
             });
         }
         if (!config.hasOwnProperty('urlPrefix')) {
@@ -275,19 +275,19 @@ const mapToServer = (server, config) => {
         normalizedName = config.urlPrefix + normalizedName;
         if(normalizedName.includes('/upload')) {
             if(global.upload) {
-                server.post('*' + normalizedName, global.upload.single('file'), (req, res) => {
+                server.post('*' + normalizedName, global.upload.single('file'), async (req, res) => {
                     req.url = req.url.replace(config.urlPrefix, '');
-                    upload(gaction, req.query, {req: req, res: res});
+                    await upload(gaction, req.query, {req: req, res: res});
                 });
             }
         } else {
-            server.post('*' + normalizedName, (req, res) => {
+            server.post('*' + normalizedName, async (req, res) => {
                 req.url = req.url.replace(config.urlPrefix, '');
-                execute(gaction, req.query, {req: req, res: res});
+                await execute(gaction, req.query, {req: req, res: res});
             });
-            server.all('*' + normalizedName, (req, res) => {
+            server.all('*' + normalizedName, async (req, res) => {
                 req.url = req.url.replace(config.urlPrefix, '');
-                execute(gaction, req.query, {req: req, res: res});
+                await execute(gaction, req.query, {req: req, res: res});
             });
         }
     }
@@ -313,7 +313,7 @@ const mapToServices = () => {
         global.services = mergeMaps(global.services, service);
     }
 };
-const upload = (action, inputs, env) => {
+const upload = async (action, inputs, env) => {
     let finputs = {};
     for (let i in action.inputs) {
         let input = action.inputs[i];
@@ -346,11 +346,11 @@ const upload = (action, inputs, env) => {
     }
     finputs.buffer = Buffer.from(env.req.body)
     // run the function
-    const retval = _executeFunction(action, finputs, env);
+    const retval = await _executeFunction(action, finputs, env);
     return retval;
 }
 
-const execute = (action, inputs, env) => {
+const execute = async (action, inputs, env) => {
     // check the iputs
     // Add the body of the env.req to the inputs.
     // This handles POST REST items.
@@ -397,7 +397,7 @@ const execute = (action, inputs, env) => {
         }
     }
     // run the function
-    const retval = _executeFunction(action, finputs, env);
+    const retval = await _executeFunction(action, finputs, env);
     return retval;
 };
 const _processReturn = (action, retval, env) => {
@@ -426,7 +426,7 @@ const _processReturn = (action, retval, env) => {
     }
     return retval;
 };
-const _executeFunction = (action, inputs, env) => {
+const _executeFunction = async (action, inputs, env) => {
     // Default is to pass on the inputs.
     let retval = inputs;
     try {

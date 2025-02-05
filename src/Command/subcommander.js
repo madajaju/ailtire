@@ -220,9 +220,16 @@ const _executeAction = (actionObj, args) => {
         console.error("Command Failed!");
         process.exit(-1);
     } else {
-        let retval = Action.execute(actionObj, params);
-        console.log(retval);
-        process.exit(0);
+        Action.execute(actionObj, params).then((retval) =>
+        {
+            console.log(retval);
+        })
+        .catch((err) => {
+            console.error(err);
+        })
+        .finally(() => {
+            process.exit(0);
+        });
     }
 }
 const _postAction = (action, args) => {
