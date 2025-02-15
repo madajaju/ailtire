@@ -1,6 +1,6 @@
 module.exports = {
     kafka: {
-        tag: 'ailtire_kafka:latest',
+        tag: 'ailtire/kafka:latest',
         name: 'kafka',
         file: 'Dockerfile',
         dir: '.',

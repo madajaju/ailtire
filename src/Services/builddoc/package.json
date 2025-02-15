@@ -1,16 +1,16 @@
 {
-  "name": "ailtire_builddoc",
-  "version": "0.6.5",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "start": "node doc.js",
-    "buildAll": "node docbuild.js && cd docs && java -jar plantuml.jar -tpng \"**/*.puml\"; exit 0"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "ailtire": "latest"
-  }
+    "name": "ailtire_builddoc",
+    "version": "0.20.21",
+    "description": "Build documentation for a project.",
+    "main": "index.js",
+    "scripts": {
+        "start": "node doc.js",
+        "buildAll": "node docbuild.js && cd docs && java -jar plantuml.jar -tpng \"**/*.puml\"; exit 0"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "ailtire": "latest"
+    }
 }

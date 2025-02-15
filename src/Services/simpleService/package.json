@@ -1,17 +1,17 @@
 {
-  "name": "ailtire_service_swarm",
-  "version": "0.6.5",
-  "description": "Ailtire Service Swarm for monitoring a Stack of services",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "build": "docker build --tag ailtire_simple:latest -f Dockerfile .",
-    "test": "node ./node_modules/mocha/bin/mocha test/**/*.test.js"
-  },
-  "keywords": [],
-  "author": "Darren W Pulsipher - darren@pulsipher.org",
-  "license": "ISC",
-  "dependencies": {
-    "express": "latest"
-  }
+    "name": "ailtire_service_swarm",
+    "version": "0.20.21",
+    "description": "Ailtire Service Swarm for monitoring a Stack of services",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "build": "docker build --tag ailtire_simple:latest -f Dockerfile .",
+        "test": "node ./node_modules/mocha/bin/mocha test/**/*.test.js"
+    },
+    "keywords": [],
+    "author": "Darren W Pulsipher - darren@pulsipher.org",
+    "license": "ISC",
+    "dependencies": {
+        "express": "latest"
+    }
 }

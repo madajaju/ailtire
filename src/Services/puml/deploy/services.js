@@ -5,7 +5,7 @@ module.exports = {
                 "/puml": {path: '/puml', port: 3000, protocol: "http"},
             }, deployments: {
                 container: {
-                    image: 'madajaju/ailtire-puml:latest', volumes: {}, environment: {},
+                    image: 'ailtire/puml:latest', volumes: {}, environment: {},
                 }, external: {
                     baseDir: './puml', command: 'npm start', url: 'http://localhost:3000',
                 }

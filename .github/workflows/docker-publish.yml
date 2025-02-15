@@ -26,7 +26,7 @@ jobs:
         push: true
         context: ./src/Services/swarm
         file: ./src/Services/swarm/deploy/Dockerfile
-        tags: madajaju/ailtire_service:swarm
+        tags: ailtire/service:swarm
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
   build_doc:
@@ -50,7 +50,7 @@ jobs:
           push: true
           context: ./src/Services/builddoc
           file: ./src/Services/builddoc/Dockerfile
-          tags: madajaju/ailtire_builddoc
+          tags: ailtire/builddoc
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
   build_plantuml:
@@ -74,6 +74,6 @@ jobs:
           push: true
           context: ./src/Services/plantuml
           file: ./src/Services/plantuml/Dockerfile
-          tags: madajaju/ailtire_plantuml
+          tags: ailtire/plantuml
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

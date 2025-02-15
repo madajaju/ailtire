@@ -46,7 +46,7 @@ class AKafkaAdaptor extends ABaseCommsAdaptor {
         } else {
             // Launch the default Kakfa docker container.
             console.log("Kafka is not running, launching default Kafka Docker container...");
-            const cmd = `docker run -d --rm -p 9092:9092 --name kafka madajaju/ailtire_kafka`;
+            const cmd = `docker run -d --rm -p 9092:9092 --name kafka ailtire/kafka`;
             try {
                 let results = await execSync(cmd);
                 console.log("Kafka Launched in container.", results.toString());

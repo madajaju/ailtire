@@ -26,6 +26,15 @@ module.exports = {
             descritpion: 'Recurse all of the subpackages',
             type: 'boolean',
             required: false,
+        },
+        version: {
+            descritpion: 'Version of the Build',
+            type: 'string',
+            required: false,
+        },
+        bump: {
+            descritpion: 'Bump the version. This will increment the patch version.',
+            type: 'boolean',
         }
     },
 
@@ -54,7 +63,7 @@ module.exports = {
         if(inputs.recursive) {
             Build.services(topPackage.dir);
         }
-        Build.pkg(topPackage, {name: name,recursive:inputs.recursive, env: inputs.env, repo: inputs.repo});
+        Build.pkg(topPackage, {name: name,recursive:inputs.recursive, env: inputs.env, repo: inputs.repo, version: inputs.version, bump: inputs.bump});
         return `Building Application`;
     }
 };

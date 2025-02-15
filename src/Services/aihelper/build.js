@@ -1,6 +1,6 @@
 module.exports = {
     aihelper: {
-        tag: 'ailtire_aihelper:latest',
+        tag: 'ailtire/aihelper:latest',
         name: 'aihelper',
         file: 'Dockerfile',
         dir: '.',

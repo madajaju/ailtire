@@ -99,7 +99,7 @@ async function _startOLlama(obj) {
            
             if (response.status !== 200) {
                 console.log("Starting OLlamA server...");
-                const cmd = 'docker run -d --rm -v ollama:/root/.ollama -p 11434:11434 --name ailtire-aihelper madajaju/ailtire-aihelper:latest';
+                const cmd = 'docker run -d --rm -v ollama:/root/.ollama -p 11434:11434 --name ailtire-aihelper ailtire/aihelper:latest';
                 let results = await execSync(cmd);
                 console.log(results.toString());
                 await _sleep(timeout);
@@ -109,7 +109,7 @@ async function _startOLlama(obj) {
             }
         } catch(error) {
             console.log("Starting OLlamA server...");
-            const cmd = 'docker run -d --rm -v ollama:/root/.ollama -p 11434:11434 --name ailtire-aihelper madajaju/ailtire-aihelper:latest';
+            const cmd = 'docker run -d --rm -v ollama:/root/.ollama -p 11434:11434 --name ailtire-aihelper ailtire/aihelper:latest';
             let results = await execSync(cmd);
             console.log(results.toString());
             await _sleep(timeout);

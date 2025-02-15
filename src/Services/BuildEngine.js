@@ -7,8 +7,11 @@ module.exports = {
     pkg: (pkg, opts) => {
         buildPackage(pkg, opts);
     },
-    services: (dir) => {
-        buildBaseImages(dir);
+    publishPkg: (pkg, opts) => {
+        publishPackage(pkg, opts);
+    },
+    services: (dir, opts) => {
+        buildBaseImages(dir, opts);
     },
     buildService: (pkg, opts) => {
         return buildEngine(pkg, opts);
@@ -18,6 +21,15 @@ module.exports = {
     },
     serviceFiles: (pkg, opts) => {
         return buildServiceFiles(pkg, opts);
+    },
+    publish: (dir) => {
+        return publishServices(dir);
+    },
+    bumpVersion: (dir, type) => {
+        return bumpVersion(dir,type);
+    },
+    setVersion: (dir, version) => {
+        _setVersion(dir, version);
     }
 }
 const isDirectory = source => fs.lstatSync(source).isDirectory();
@@ -25,7 +37,119 @@ const isFile = source => !fs.lstatSync(source).isDirectory();
 const getDirectories = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
 const getFiles = source => fs.readdirSync(source).map(name => path.join(source, name)).filter(isFile);
 
-function buildBaseImages(dir) {
+function bumpVersion(dir, type) {
+    if (!['major', 'minor', 'patch'].includes(type)) {
+        console.error('Invalid type. Please use "major", "minor", or "patch".');
+        process.exit(1);
+    }
+    let pkgFile = path.resolve(`${dir}/package.json`);
+    if (!fs.existsSync(pkgFile)) {
+        console.error('Could not find package.json file.');
+        throw new Error('Could not find package.json file.');
+    }
+    let project = require(pkgFile);
+    let version = project.version.split('.');
+    switch (type) {
+        case 'major':
+            version[0] = parseInt(version[0]) + 1;
+            break;
+        case 'minor':
+            version[1] = parseInt(version[1]) + 1;
+            break;
+        case 'patch':
+            version[2] = parseInt(version[2]) + 1;
+            break;
+    }
+
+    let versionString = version.join('.');
+
+    console.log(`Bumping version: ${versionString}`);
+    return versionString;
+}
+function publishPackage(pkg) {
+    if (pkg.deploy) {
+        for (let name in pkg.deploy.build.contexts) {
+            let build = pkg.deploy.build.contexts[name];
+            _publishImage(build);
+        }
+    }
+}
+
+function publishServices(dir) {
+    let ndir = path.resolve(dir);
+    let bpath = path.resolve(ndir + '/build.js');
+    try {
+        if (isFile(bpath)) {
+            let tbuild = require(bpath);
+            if (tbuild.tag !== undefined) {
+                for (let name in tbuild) {
+                    let service = tbuild[name];
+                    service.name = name;
+                    service.rootdir = ndir;
+                    _publishImage(service);
+                }
+            }
+        }
+    } catch (e) {
+        console.error("No build.js found search directories");
+    }
+    // Look in sub-directories
+    let dirs = getDirectories(ndir);
+    for (let i in dirs) {
+        let dirname = dirs[i];
+        console.log(dirname);
+        let npath = path.resolve(dirname + '/build.js');
+        try {
+            if (isFile(npath)) {
+                let build = require(npath);
+                for (let name in build) {
+                    let service = build[name];
+                    service.name = name;
+                    service.rootdir = dirname;
+                    if (service.name !== undefined) {
+                        _publishImage(service);
+                    }
+                }
+            }
+        } catch (e) {
+        }
+    }
+}
+
+function _publishImage(build) {
+    let env = process.env;
+
+    if (build.tag !== undefined) {
+        let pkgFile = path.resolve(`${build.rootdir}/package.json`);
+        let tag = build.tag.replace(':latest', '');
+        if (fs.existsSync(pkgFile)) {
+            let pkg = require(pkgFile);
+            tag = tag + ':' + pkg.version;
+            let results = spawn('docker', ['tag', build.tag, tag], {
+                stdio: [process.stdin, process.stdout, process.stderr],
+                env: process.env
+            });
+        }
+        let proc = spawn('docker', ['push', tag], {
+            stdio: [process.stdin, process.stdout, process.stderr],
+            env: process.env
+        });
+
+        // Now put the latest tag on and push
+        tag = build.tag.replace(':latest','') + ':latest';
+        let results = spawn('docker', ['tag', build.tag, tag], {
+            stdio: [process.stdin, process.stdout, process.stderr],
+            env: process.env
+        });
+        proc = spawn('docker', ['push', tag], {
+            stdio: [process.stdin, process.stdout, process.stderr],
+        })
+    } else {
+        console.error("No tag found for image:", build.name);
+    }
+}
+
+function buildBaseImages(dir, opts) {
     // read the directory and get the
     let ndir = path.resolve(dir);
     let bpath = path.resolve(ndir + '/build.js');
@@ -37,6 +161,7 @@ function buildBaseImages(dir) {
                     let service = tbuild[name];
                     service.name = name;
                     service.rootdir = ndir;
+                    if(opts.version) { _setVersion(service.rootdir, opts.version); }
                     buildImage(service);
                 }
             }
@@ -58,6 +183,7 @@ function buildBaseImages(dir) {
                     service.name = name;
                     service.rootdir = dirname;
                     if (service.name !== undefined) {
+                        if(opts.version) { _setVersion(service.rootdir, opts.version); }
                         buildImage(service);
                     }
                 }
@@ -136,7 +262,7 @@ function buildEngine(pkg, opts) {
         // console.error("Environments:", pkg.deploy.envs);
         return;
     }
-    let proc = spawn('docker', ['build', '-t', pkg.deploy.name.toLowerCase(), '-f', files.dockerFile, '.'], {
+    let proc = spawn('docker', ['buildx', 'build', '--sbom=true', '--provenance=true', '-t', pkg.deploy.name.toLowerCase(), '-f', files.dockerFile, '.'], {
         cwd: pkg.deploy.dir,
         stdio: [process.stdin, process.stdout, process.stderr],
         env: process.env
@@ -169,6 +295,11 @@ function buildPackage(pkg, opts) {
             } else {
                 build = bc.contexts[opts.env];
             }
+            // if the opt includes a version number then update the package.json version before creating the image.
+            if (opts.version) {
+                _setVersion(build.dir, opts.version);
+            }
+
             // Create the build directory for the build with the environment.
             // If it exists it should be removed and another one created.
             let buildDir = path.resolve(`${destDir}/${name}/${opts.env}`);
@@ -209,7 +340,7 @@ function buildPackage(pkg, opts) {
 
             // copy the interface for the pkg to api/interface
             _copyDirectory(path.resolve(pkg.interfaceDir), `${buildDir}/api/interface`);
-            
+
             // Now copy the packages included in the definition
             for (let i in build.packages) {
                 let depPkg = build.packages[i];
@@ -258,7 +389,7 @@ function buildImage(build) {
 
     console.log(`Building ${build.name} from directory ${dirname}`);
     if (build.tag !== undefined && build.file !== undefined) {
-        let proc = spawn('docker', ['build', '-t', build.tag, '-f', build.file, '.'], {
+        let proc = spawn('docker', ['buildx', 'build', '--sbom=true', '--provenance=true', '-t', build.tag, '-f', build.file, '.'], {
             cwd: dirname,
             stdio: [process.stdin, process.stdout, process.stderr],
             env: process.env
@@ -291,7 +422,7 @@ function _copyDirectory(src, dest) {
             let file = files[i];
             let srcFile = path.join(src, file);
             let destFile = path.join(dest, file);
-            if(file[0] !== '.' && file !== 'node_modules') {
+            if (file[0] !== '.' && file !== 'node_modules') {
                 if (fs.lstatSync(srcFile).isDirectory()) {
                     _copyDirectory(srcFile, destFile);
                 } else {
@@ -335,5 +466,20 @@ function _copyPackage(srcPkg, destDir) {
             let destDir = path.resolve(`${dpkgDir}/models/${iname}`);
             _copyDirectory(inc.definition.dir, destDir)
         }
+    }
+}
+
+function _setVersion(buildDir, version) {
+    let pkgFile = path.resolve(`${buildDir}/package.json`);
+    if (fs.existsSync(pkgFile)) {
+        let pkg = require(pkgFile);
+        pkg.version = version;
+        fs.writeFileSync(pkgFile, JSON.stringify(pkg, null, 4));
+    } else {
+        const project = {
+            name: 'ailtire',
+            version: version,
+        }
+        fs.writeFileSync(path.resolve(`${buildDir}/package.json`), JSON.stringify(project, null, 4));
     }
 }

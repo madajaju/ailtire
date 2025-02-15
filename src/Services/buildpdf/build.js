@@ -1,6 +1,6 @@
 module.exports = {
     builddoc: {
-        tag: 'ailtire_buildpdf:latest',
+        tag: 'ailtire/buildpdf',
         name: 'buildpdf',
         file: 'Dockerfile',
         dir: '.',

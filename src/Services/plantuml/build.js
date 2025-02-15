@@ -1,7 +1,7 @@
 module.exports = {
     builddoc: {
-        tag: 'ailtire_plantuml:2022.14',
-        name: 'builddoc',
+        tag: 'ailtire/plantuml',
+        name: 'plantuml',
         file: 'Dockerfile',
         dir: '.',
         env: {}

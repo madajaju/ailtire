@@ -7,7 +7,7 @@ module.exports = {
             },
             deployments: {
                 container: {
-                    image: 'madajaju/ailtire-puml:latest',
+                    image: 'ailtire/puml:latest',
                     volumes: {
                     },
                     environment: {

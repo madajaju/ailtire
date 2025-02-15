@@ -1,4 +1,4 @@
-FROM madajaju/ailtire_service:swarm
+FROM ailtire/service:swarm
 
 WORKDIR /usr/src/app
 

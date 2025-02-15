@@ -1,6 +1,6 @@
 module.exports = {
     puml: {
-        tag: 'ailtire-puml:latest',
+        tag: 'ailtire/puml',
         name: 'puml',
         file: 'Dockerfile',
         dir: '.',

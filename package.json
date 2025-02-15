@@ -1,32 +1,34 @@
 {
-  "name": "ailtire",
-  "version": "0.20.6",
-  "description": "UML Architecture by coding and simulating system architectures.",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js",
-    "build": "node build.js",
-    "docs": "java -jar docs/plantuml.jar docs/*.puml docs/**/*.puml",
-    "startTest": "node test.js"
-  },
-  "keywords": [],
-  "bin": "bin/ailtire",
-  "author": "Darren W Pulsipher - darren@pulsipher.org",
-  "license": "ISC",
-  "dependencies": {
-    "axios": "latest",
-    "body-parser": "^1.20.0",
-    "ejs": "^3.1.8",
-    "express": "^4.18.1",
-    "flatted": "^3.2.6",
-    "kafkajs": "^2.2.4",
-    "multer": "latest",
-    "socket.io": "^4.5.1",
-    "socket.io-client": "^4.5.1",
-    "stream-buffers": "latest",
-    "yamljs": "^0.3.0"
-  },
-  "devDependencies": {
-    "mocha": "^11.0.1"
-  }
+    "name": "ailtire",
+    "version": "0.20.21",
+    "description": "UML Architecture by coding and simulating system architectures.",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "build": "node build.js",
+        "build-bump": "node build.js bump patch",
+        "publish": "node publish.js",
+        "docs": "java -jar docs/plantuml.jar docs/*.puml docs/**/*.puml",
+        "startTest": "node test.js"
+    },
+    "keywords": [],
+    "bin": "bin/ailtire",
+    "author": "Darren W Pulsipher - darren@pulsipher.org",
+    "license": "ISC",
+    "dependencies": {
+        "axios": "latest",
+        "body-parser": "^1.20.0",
+        "ejs": "^3.1.8",
+        "express": "^4.18.1",
+        "flatted": "^3.2.6",
+        "kafkajs": "^2.2.4",
+        "multer": "latest",
+        "socket.io": "^4.5.1",
+        "socket.io-client": "^4.5.1",
+        "stream-buffers": "latest",
+        "yamljs": "^0.3.0"
+    },
+    "devDependencies": {
+        "mocha": "^11.0.1"
+    }
 }
