@@ -1,6 +1,6 @@
 {
     "name": "ailtire_service_swarm",
-    "version": "0.20.21",
+    "version": "0.20.23",
     "description": "Ailtire Service Swarm for monitoring a Stack of services",
     "main": "server.js",
     "scripts": {

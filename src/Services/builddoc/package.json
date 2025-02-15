@@ -1,6 +1,6 @@
 {
     "name": "ailtire_builddoc",
-    "version": "0.20.21",
+    "version": "0.20.23",
     "description": "Build documentation for a project.",
     "main": "index.js",
     "scripts": {
