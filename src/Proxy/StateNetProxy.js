@@ -132,7 +132,7 @@ function _processTransition(statenet, currentState, transition, event, proxy, ar
     // This is the transistion action and event.
     let transistionRetVal = null;
     _executeAction(transition.action, proxy);
-    if(_getMethod(proxy.definition, event)) {
+    if(proxy.definition.methods.hasOwnProperty(event)) {
         transistionRetVal =  _runMethod(proxy, event, args);
     }
 
@@ -149,91 +149,21 @@ function _processTransition(statenet, currentState, transition, event, proxy, ar
 }
 
 function _runMethod(proxy, event, arg) {
-    let method = _getMethod(proxy.definition, event);
-    if (method) {
-        return funcHandler.run(method, proxy, arg);
+    if (proxy.definition.methods.hasOwnProperty(event)) {
+        return funcHandler.run(proxy.definition.methods[event], proxy, arg);
     }
 }
 
 // Get the statenet of the parent model.
 function _getStateNet(definition) {
-    const chain = _getInheritanceChain(definition);
-    let statenet = null;
-
-    for (const currentDef of chain) {
-        if (!currentDef.hasOwnProperty('statenet')) {
-            continue;
-        }
-
-        if (!statenet) {
-            statenet = {};
-        }
-
-        for (const [stateName, stateObj] of Object.entries(currentDef.statenet)) {
-            const parentState = statenet[stateName] || {};
-            statenet[stateName] = {
-                ...parentState,
-                ...stateObj,
-                actions: {
-                    ...(parentState.actions || {}),
-                    ...(stateObj.actions || {})
-                },
-                events: {
-                    ...(parentState.events || {}),
-                    ...(stateObj.events || {})
-                }
-            };
-        }
+    if (definition.hasOwnProperty('statenet')) {
+        return definition.statenet;
+    } else if (definition.hasOwnProperty('extends')) {
+        let parent = AClass.getClass({name:definition.extends});
+        return _getStateNet(parent.definition);
+    } else {
+        return false;
     }
-
-    return statenet || false;
-}
-
-function _getMethod(definition, methodName) {
-    const chain = _getInheritanceChain(definition);
-
-    for (let i = chain.length - 1; i >= 0; i--) {
-        const currentDef = chain[i];
-        if (currentDef.hasOwnProperty('methods') && currentDef.methods.hasOwnProperty(methodName)) {
-            return currentDef.methods[methodName];
-        }
-    }
-
-    return null;
-}
-
-function _getInheritanceChain(definition) {
-    let current = definition;
-
-    if (current.definition) {
-        current = current.definition;
-    }
-
-    const chain = [];
-    const seen = new Set();
-
-    while (current) {
-        const currentDef = current.definition || current;
-        const name = currentDef?.name || current?.name;
-        if (!name || seen.has(name)) {
-            break;
-        }
-        seen.add(name);
-        chain.unshift(currentDef);
-
-        const parentName = currentDef.extends;
-        if (!parentName || typeof parentName !== 'string') {
-            break;
-        }
-
-        const parent = AClass.getClass({name: parentName});
-        if (!parent) {
-            break;
-        }
-        current = parent.definition || parent;
-    }
-
-    return chain;
 }
 
 function _checkTransitions(eventObj, proxy) {

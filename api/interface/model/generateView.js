@@ -24,6 +24,6 @@ module.exports = {
     fn: async function (inputs, env) {
         const cname = inputs.id;
         const type = inputs.type || 'svelte';
-        return await AClass.generateView({id: cname, type:type});
+        return await AClass.generateView(cname, type);
     }
 };

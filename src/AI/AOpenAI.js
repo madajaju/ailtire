@@ -1,8 +1,5 @@
 const AIAdaptor = require("./AIAdaptor");
 const OpenAI = require("openai");
-const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
 
 class AOpenAI extends AIAdaptor {
     constructor(config) {
@@ -72,23 +69,18 @@ class AOpenAI extends AIAdaptor {
         if (!this.client) {
             throw new Error("OpenAI client is not initialized. Call init() first.");
         }
-        const response = await this.client.images.generate({
-            model: opts.model || 'gpt-image-2',
+        const response = await openai.createImage({
             prompt: opts.prompt,
-            size: opts.size || "1024x1024",
+            model: opts.model || 'dall-e-3',
+            n: 1, // Number of images
+            size: "1024x1024", // Image size (options: 256x256, 512x512, or 1024x1024)
+            response_format: 'url'
         });
 
-        const imageData = response.data?.[0];
-        if (imageData?.url) {
-            return await this.#fetchImage(imageData.url, opts.outputFilePath);
-        }
-        if (imageData?.b64_json) {
-            const outputFilePath = opts.outputFilePath || path.join('.tmp', `${Date.now()}-${Math.random()}.png`);
-            fs.mkdirSync(path.dirname(outputFilePath), { recursive: true });
-            fs.writeFileSync(outputFilePath, Buffer.from(imageData.b64_json, 'base64'));
-            return outputFilePath;
-        }
-        return response;
+        // Extract the URL of the generated image
+        const imageUrl = response.data.data[0].url;
+        const imagefile =  await this.#fetchImage(imageUrl);
+        return imagefile;
     }
     async #fetchImage(imageUrl, outputFilePath ) {
         try {
@@ -99,8 +91,8 @@ class AOpenAI extends AIAdaptor {
             });
 
             // Ensure the directory exists
-            outputFilePath = outputFilePath || path.join('.tmp', `${Date.now()}-${Math.random()}.png`);
-            const dir = path.dirname(outputFilePath);
+            outputFilePath = outputFilePath || '.tmp/${Date.now()}-${Math.random()}.png';
+            const dir = path.dir(outputFilePath);
 
             fs.mkdirSync(dir, { recursive: true });
 

@@ -58,6 +58,9 @@ module.exports = {
     },
     set: (obj, prop, value) => {
         _initalize(obj);
+        if (prop === "_state") {
+            return obj._state = value;
+        }
         if (prop[0] === '_') {
             return obj._attributes[prop] = value;
         }
@@ -65,21 +68,17 @@ module.exports = {
             _load(obj, []);
         }
         // Check if the class has the attribute
-        if (prop === "_state") {
-            obj._state = value;
-        }
         if (!obj.hasOwnProperty('definition')) {
             console.error("Missing \"definition\" property value for ", obj);
             return false;
         }
-        const definition = getMergedDefinition(obj.definition);
-        if (definition.hasOwnProperty('attributes')) {
-            if (definition.attributes.hasOwnProperty(prop)) {
+        if (obj.definition.hasOwnProperty('attributes')) {
+            if (obj.definition.attributes.hasOwnProperty(prop)) {
                 // Check for attributes first
-                if (typeof value === definition.attributes[prop].type) {
+                if (typeof value === obj.definition.attributes[prop].type) {
                     obj._attributes[prop] = value;
                     obj._persist = {dirty: true};
-                } else if (typeof value === 'object' && definition.attributes[prop].type === 'json') {
+                } else if (typeof value === 'object' && obj.definition.attributes[prop].type === 'json') {
                     obj._attributes[prop] = value;
                     obj._persist = {dirty: true};
                 } else {
@@ -94,10 +93,10 @@ module.exports = {
         if (!obj.hasOwnProperty('_associations')) {
             obj._associations = {};
         }
-        if (definition.hasOwnProperty('associations')) {
-            if (hasAssociation(definition, prop)) {
+        if (obj.definition.hasOwnProperty('associations')) {
+            if (hasAssociation(obj.definition, prop)) {
                 // Check for associations
-                let myAssoc = getAssociation(definition, prop);
+                let myAssoc = getAssociation(obj.definition, prop);
                 // Make the assignment if it is an object.
                 if (myAssoc.cardinality === 'n') {
                     return myAssoc.add({parent: obj, items: value});
@@ -141,7 +140,6 @@ module.exports = {
 };
 
 function getHandler(obj, definition, prop) {
-    definition = getMergedDefinition(definition);
     if (prop === 'name') {
         if (obj._attributes.name) {
             return obj._attributes.name;
@@ -176,12 +174,7 @@ function getHandler(obj, definition, prop) {
         return shallowJSON(obj);
     } else if (prop === 'hasOwnProperty') {
         return function (...args) {
-            const merged = getMergedDefinition(obj.definition);
-            return obj.hasOwnProperty(args[0]) ||
-                obj._attributes.hasOwnProperty(args[0]) ||
-                obj._associations.hasOwnProperty(args[0]) ||
-                (merged.attributes && Object.prototype.hasOwnProperty.call(merged.attributes, args[0])) ||
-                (merged.associations && Object.prototype.hasOwnProperty.call(merged.associations, args[0]));
+            return obj.hasOwnProperty(args[0]) || obj._attributes.hasOwnProperty(args[0]) || obj._associations.hasOwnProperty(args[0]);
         }
     } else if (hasInRegex.test(prop)) { // Association addTo, removeFrom, and Clear
         return function (...args) {
@@ -195,7 +188,7 @@ function getHandler(obj, definition, prop) {
     } else if (addToRegex.test(prop)) {
         return function (...args) {
             const simpleProp = prop.replace(addToRegex, '').toLowerCase();
-            let assoc = getAssociation(definition, simpleProp);
+            let assoc = getAssociation(obj.definition, simpleProp);
             if (assoc && assoc.service) {
                 return _remoteCall(obj, assoc, 'add', args[0]);
             }
@@ -210,7 +203,7 @@ function getHandler(obj, definition, prop) {
     } else if (removeFromRegex.test(prop)) {
         return function (...args) {
             const simpleProp = prop.replace(removeFromRegex, '').toLowerCase();
-            let assoc = getAssociation(definition, simpleProp);
+            let assoc = getAssociation(obj.definition, simpleProp);
             if (assoc && assoc.service) {
                 return _remoteCall(obj, assoc, 'remove', args[0]);
             }
@@ -249,11 +242,11 @@ function getHandler(obj, definition, prop) {
         return function (...args) {
             // Call the method if it exists
 
-            if (!definition.methods) {
-                definition.methods = {};
+            if (!obj.definition.methods) {
+                obj.definition.methods = {};
             }
-            if (definition.methods.hasOwnProperty('create')) {
-                if (hasStateNet(definition)) {
+            if (obj.definition.methods.hasOwnProperty('create')) {
+                if (hasStateNet(obj.definition)) {
                     return stateNetHandler.processEvent(this, obj, prop, args);
                 } else {
                     let retval = funcHandler.run(definition.methods.create, this, args[0]);
@@ -335,8 +328,8 @@ function getHandler(obj, definition, prop) {
 
             return true;
         }
-    } else if (definition.attributes.hasOwnProperty(prop)) {
-        let attr = definition.attributes[prop];
+    } else if (obj.definition.attributes.hasOwnProperty(prop)) {
+        let attr = obj.definition.attributes[prop];
         if(Object.prototype.hasOwnProperty.call(obj._attributes, prop)) {
             return obj._attributes[prop];
         }
@@ -350,7 +343,7 @@ function getHandler(obj, definition, prop) {
     } else if (obj._associations.hasOwnProperty(prop)) {
         // Add check to see if the association is loaded.
 
-        let assocDef = getAssociation(definition, prop);
+        let assocDef = getAssociation(obj.definition, prop);
         if (assocDef.service) {
             if (obj._persist && obj._persist.depth >= 1) {
                 return obj._attributes[prop] || null;
@@ -403,8 +396,8 @@ function getHandler(obj, definition, prop) {
             return obj._associations[prop];
         }
         // Check if the association definition is defined if so then return an empty array or null
-    } else if (hasAssociation(definition, prop)) {
-        let assoc = getAssociation(definition, prop);
+    } else if (hasAssociation(obj.definition, prop)) {
+        let assoc = getAssociation(obj.definition, prop);
         if (assoc.service) {
             if (obj._persist && obj._persist.depth >= 1) {
                 return obj._attributes[prop] || null;
@@ -527,7 +520,7 @@ function addToAssoc(simpleProp, obj, proxy, item) {
         return null;
     }
 
-    let myAssoc = getAssociation(getMergedDefinition(obj.definition), simpleProp);
+    let myAssoc = getAssociation(obj.definition, simpleProp);
     myAssoc.parent = proxy;
     // Make the assignment if it is an object.
     if (Array.isArray(item) && myAssoc.cardinality === 'n') {
@@ -564,44 +557,55 @@ function isTypeOf(item, type) {
 }
 
 function hasStateNet(definition) {
-    definition = getMergedDefinition(definition);
     if (definition.hasOwnProperty('statenet')) {
         return true;
+    } else if (definition.hasOwnProperty('extends')) {
+        let parent = AClass.getClass({name: definition.extends});
+        return hasStateNet(parent.definition);
+    } else {
+        return false;
     }
-    return false;
 }
 
 function hasAssociation(definition, aname) {
-    definition = getMergedDefinition(definition);
-    return !!(definition.associations && Object.prototype.hasOwnProperty.call(definition.associations, aname));
+    if (definition.associations.hasOwnProperty(aname)) {
+        return true;
+    } else if (definition.hasOwnProperty('extends')) {
+        let parent = AClass.getClass({name: definition.extends});
+        return hasAssociation(parent.definition, aname);
+    } else {
+        return false;
+    }
 }
 
 function getAssociation(definition, aname) {
-    definition = getMergedDefinition(definition);
-    if (!definition.associations || !Object.prototype.hasOwnProperty.call(definition.associations, aname)) {
+    if (definition.associations.hasOwnProperty(aname)) {
+        let assoc = definition.associations[aname];
+        if (assoc) {
+            try {
+                if (assoc.isProxy()) {
+                    return assoc;
+                }
+            } catch (e) {
+                definition.associations[aname] = new AAssociation(assoc);
+                definition.associations[aname].name = aname;
+                return definition.associations[aname];
+            }
+        }
+        return null
+    } else if (definition.hasOwnProperty('extends')) {
+        let parent = AClass.getClass({name: definition.extends});
+        return getAssociation(parent.definition, aname);
+    } else {
         console.log("Could not find association:", aname);
         return null;
     }
-    let assoc = definition.associations[aname];
-    if (assoc) {
-        try {
-            if (assoc.isProxy()) {
-                return assoc;
-            }
-        } catch (e) {
-            definition.associations[aname] = new AAssociation(assoc);
-            definition.associations[aname].name = aname;
-            return definition.associations[aname];
-        }
-    }
-    return null;
 }
 
 function shallowJSON(obj) {
     let newAttributes = {id: obj._attributes.id, state: obj._state};
-    let definition = getMergedDefinition(obj.definition);
     for (let aname in obj._attributes) {
-        if (definition.attributes.hasOwnProperty(aname)) {
+        if (obj.definition.attributes.hasOwnProperty(aname)) {
             // THis should check if the attribute is an object or function not the definition.
             if (typeof obj._attributes[aname] !== 'object' && typeof obj._attributes[aname] !== 'function') {
                 newAttributes[aname] = obj._attributes[aname];
@@ -616,7 +620,6 @@ function shallowJSON(obj) {
 }
 
 function _definitionJSON(definition) {
-    definition = getMergedDefinition(definition);
     let newAttributes = {};
     let newAssociations = {};
     for (let aname in definition.attributes) {
@@ -708,7 +711,7 @@ function _update(obj, inputs) {
     }
 
     let changed = false;
-    const attributes = getMergedDefinition(obj.definition)?.attributes || {};
+    const attributes = obj.definition?.attributes || {};
 
     for (const [key, value] of Object.entries(inputs)) {
         if (Object.prototype.hasOwnProperty.call(attributes, key)) {
@@ -729,7 +732,7 @@ function _toJSON(obj) {
     let assocs = {};
     // this should always be the object's class not the parent class.
     obj.package = obj.definition.package?.name?.replace(/ /g, '') || '';
-    let definition = getMergedDefinition(obj.definition);
+    let definition = obj.definition;
     let seenObjects = new WeakSet();
 
     for (let i in obj._associations) {
@@ -833,31 +836,30 @@ async function _aiUpdate(obj, inputs) {
     let objPrompt = obj.toPrompt();
     let doc = obj.getDocumentation();
     let userPrompt = inputs.prompt ? inputs.prompt : '';
-    let definition = getMergedDefinition(obj.definition);
 
     for (let field of fields) {
-        if (definition.attributes.hasOwnProperty(field) || field === "documentation") {
+        if (obj.definition.attributes.hasOwnProperty(field) || field === "documentation") {
             let messages = [];
             messages.push({
                 role: 'system',
-                content: `Use the following ${definition.name} for analysis of the user prompt: ${objPrompt}`
+                content: `Use the following ${obj.definition.name} for analysis of the user prompt: ${objPrompt}`
             });
             if (doc) {
                 messages.push({
                     role: 'system',
-                    content: `Use the following as ${definition.name} documentation for analysis of the user prompt: ${doc}`
+                    content: `Use the following as ${obj.definition.name} documentation for analysis of the user prompt: ${doc}`
                 });
             }
             message.push({
                 role: 'system',
-                content: `Generate a ${field} for ${definition.name} based on the user prompt and the current documentation and specification`
+                content: `Generate a ${field} for ${obj.definition.name} based on the user prompt and the current documentation and specification`
             });
             message.push({role: 'user', content: userPrompt});
             let response = await AIHelper.ask(messages);
             obj[field] = response;
-        } else if (definition.associations.hasOwnProperty(field)) {
+        } else if (obj.definition.associations.hasOwnProperty(field)) {
 
-            let assocDef = definition.associations[field];
+            let assocDef = obj.definition.associations[field];
             const many = assocDef.cardinality === 'n';
             let assocClass = AClass.getClass({name: assocDef.type});
             let assocFormat = assocClass.schema();
@@ -1002,71 +1004,4 @@ function _wrapRemoteObject(data, type, service, depth = 1) {
 
     const handler = require('./ObjectProxy');
     return new Proxy(obj, handler);
-}
-
-function getInheritanceChain(definition) {
-    let current = definition;
-    if (!current) {
-        return [];
-    }
-
-    if (current.definition) {
-        current = current.definition;
-    }
-
-    const chain = [];
-    const seen = new Set();
-
-    while (current) {
-        const currentDef = current.definition || current;
-        const name = currentDef?.name || current?.name;
-        if (!name || seen.has(name)) {
-            break;
-        }
-        seen.add(name);
-        chain.unshift(currentDef);
-
-        const parentName = currentDef.extends;
-        if (!parentName || typeof parentName !== 'string') {
-            break;
-        }
-
-        const parent = AClass.getClass({name: parentName});
-        if (!parent) {
-            break;
-        }
-        current = parent.definition || parent;
-    }
-
-    return chain;
-}
-
-function getMergedDefinition(definition) {
-    const chain = getInheritanceChain(definition);
-    if (chain.length === 0) {
-        return definition?.definition || definition || {};
-    }
-
-    const merged = {};
-    for (const currentDef of chain) {
-        for (const [key, value] of Object.entries(currentDef)) {
-            if (key === 'attributes' || key === 'associations' || key === 'methods') {
-                continue;
-            }
-            merged[key] = value;
-        }
-        merged.attributes = {
-            ...(merged.attributes || {}),
-            ...(currentDef.attributes || {})
-        };
-        merged.associations = {
-            ...(merged.associations || {}),
-            ...(currentDef.associations || {})
-        };
-        merged.methods = {
-            ...(merged.methods || {}),
-            ...(currentDef.methods || {})
-        };
-    }
-    return merged;
 }

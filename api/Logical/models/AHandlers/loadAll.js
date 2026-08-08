@@ -24,15 +24,13 @@ module.exports = {
     fn: function (inputs, env) {
         const package = inputs.package;
         const dir = path.resolve(package.dir, "handlers");
-        let retval = [];
         if(fs.existsSync(dir)) {
             let handlers = getFiles(dir);
             for (let i in handlers) {
                 let file = handlers[i];
-                retval.push(AHandlers.load({package: inputs.package, file: file}));
+                AHandlers.load({package: inputs.package, file: file});
             }
         }
-        return retval;
     }
 };
 

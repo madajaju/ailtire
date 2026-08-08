@@ -10,7 +10,6 @@ class AHandlers {
             handlers: {
                 type: "AHandler",
                 description: "The actual Handler that will perform something when the event is captured.",
-                cardinality: 'n',
             },
             event: {
                 type: 'AEvent',

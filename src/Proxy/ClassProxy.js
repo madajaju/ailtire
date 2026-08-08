@@ -239,9 +239,6 @@ module.exports = {
             // continue to load the object.
         }
         // Check if the class instances are unique and the function they are unique by.
-        if(!args[0]) {
-            console.error('args[0] is not undefined');
-        }
         if (args[0].id) {
             uid = args[0].id;
         } else if (obj.definition.hasOwnProperty('unique')) {
