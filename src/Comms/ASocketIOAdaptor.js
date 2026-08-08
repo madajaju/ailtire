@@ -34,9 +34,22 @@ class ASocketIOAdaptor extends ABaseCommsAdaptor {
     }
 
     connect(server) {
-        let items = server.url.split('/');
-        let url = 'http://' + items.shift();
-        let childsocket = clientio.connect(url);
+        const target = new URL(server.url);
+        const path = target.pathname.endsWith('/')
+            ? target.pathname
+            : `${target.pathname}/`;
+
+        // Keep trying until the peer is available. This is important when
+        // services are started in different orders, and also handles peer
+        // restarts without requiring a new addServers call.
+        let childsocket = clientio.connect(`${target.protocol}//${target.host}`, {
+            path,
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: server.reconnectionDelay || 1000,
+            reconnectionDelayMax: server.reconnectionDelayMax || 10000,
+            randomizationFactor: server.randomizationFactor ?? 0.5,
+        });
         this.servers.push({
             pattern: server.pattern,
             socket: childsocket,
@@ -48,6 +61,9 @@ class ASocketIOAdaptor extends ABaseCommsAdaptor {
             if (server.connectionEvent) {
                 childsocket.emit(server.connectionEvent, server.connectionData);
             }
+        });
+        childsocket.on('connect_error', (error) => {
+            console.error(`Unable to connect to websocket peer ${server.url}; retrying`, error.message);
         });
     }
 

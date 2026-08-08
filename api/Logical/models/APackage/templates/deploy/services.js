@@ -7,6 +7,7 @@ module.exports = {
             },
             interface: {
                 "/<%= shortname %>/api": { path: '/', port: 3000, protocol:"http"},
+                "/<%= shortname %>/api/socket.io": { path: '/socket.io', port: 3000, protocol:"http"},
             },
             policies: { },
             environment: {
