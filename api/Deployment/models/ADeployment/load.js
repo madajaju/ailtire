@@ -29,7 +29,7 @@ module.exports = {
     exits: {},
     fn: function (inputs, env) {
         let name = inputs.name;
-        let dir = inputs.dir;
+        let dir = path.resolve(inputs.dir, 'deploy');
         let prefix = inputs.prefix;
 
         let retval = new ADeployment({
@@ -146,3 +146,4 @@ module.exports = {
         return retval;
     }
 };
+

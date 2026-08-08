@@ -23,7 +23,9 @@ let reservedDirs = {
         APackage.loadDocs(package, dir);
     },
     deploy: (package, prefix, dir) => {
-    //    package = ADeployment.load(package, prefix, dir);
+        if(global.hasOwnProperty("ADeployment")) {
+            ADeployment.load(package, prefix, dir);
+        }
     }, handlers: (package, prefix, dir) => {
         // The Interface directory can be multiple directories deep which map to routes A/B/C
         // package.handlers = AHandler.loadAll(package, prefix, dir);

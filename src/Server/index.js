@@ -440,7 +440,10 @@ function _setupPeerConnections(config) {
     // Peer connections are initiated during startup, but ASocketIOAdaptor
     // keeps retrying until the peer is available. This makes startup order
     // independent and also allows peers to restart without reconfiguration.
-    let peers = config.peers || config.servers || [];
+    let peers = _peersFromDeployment(config);
+    if (peers.length === 0) {
+        peers = config.peers || config.servers || [];
+    }
     if (!Array.isArray(peers)) {
         peers = [peers];
     }
@@ -457,4 +460,33 @@ function _setupPeerConnections(config) {
             }
         }
     }
+}
+
+function _peersFromDeployment(config) {
+    const environments = global.deploy?.envs;
+    if (!environments) return [];
+
+    const environmentName = config.environment || process.env.AILTIRE_ENV;
+    const environment = environmentName
+        ? Object.values(environments).find(envs => envs[environmentName])?.[environmentName]
+        : Object.values(environments)[0] && Object.values(environments)[0][Object.keys(Object.values(environments)[0])[0]];
+    const services = environment?.definition?.services || {};
+    const currentName = config.serviceName || process.env.AILTIRE_SERVICE_NAME || config.name;
+    const peers = [];
+
+    for (const [name, service] of Object.entries(services)) {
+        if (name === currentName) continue;
+        for (const [route, endpoint] of Object.entries(service.interface || {})) {
+            if (!route.endsWith('/socket.io') && endpoint.path !== '/socket.io') continue;
+            const host = service.host || service.hostname || name;
+            const protocol = endpoint.protocol || 'http';
+            peers.push({
+                name,
+                url: `${protocol}://${host}${route}`,
+                pattern: '*',
+            });
+            break;
+        }
+    }
+    return peers;
 }
