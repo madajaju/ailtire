@@ -82,6 +82,7 @@ module.exports = {
 
         standardFileTypes(config, server);
         await _setupAdaptors(config);
+        _setupPeerConnections(config);
         _setupDefaultServices(config);
 
         try {
@@ -431,6 +432,29 @@ async function _setupAdaptors(config) {
         let pAdaptor = config.persist.adaptor;
         if (pAdaptor && typeof pAdaptor.loadAll === 'function') {
             await Promise.resolve(pAdaptor.loadAll());
+        }
+    }
+}
+
+function _setupPeerConnections(config) {
+    // Peer connections are initiated during startup, but ASocketIOAdaptor
+    // keeps retrying until the peer is available. This makes startup order
+    // independent and also allows peers to restart without reconfiguration.
+    let peers = config.peers || config.servers || [];
+    if (!Array.isArray(peers)) {
+        peers = [peers];
+    }
+
+    for (const peer of peers) {
+        if (!peer || !peer.url) {
+            console.error('Skipping websocket peer without a URL', peer);
+            continue;
+        }
+
+        for (const commsService of global.ailtire.comms.services) {
+            if (typeof commsService.connect === 'function') {
+                commsService.connect(peer);
+            }
         }
     }
 }
