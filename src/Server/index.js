@@ -31,10 +31,10 @@ ailtire = global.ailtire || { config: { baseDir: ailtireBaseDir }};
 module.exports = {
     listen: async (config) => {
 
-    // This loads everything.
+        // This loads everything.
         global.ailtire.config = config;
         global.ailtire.baseDir = config.baseDir || ailtireBaseDir;
-        
+
         BootStrap.init(ailtireBaseDir);
         ARole.loadAll();
         AActor.loadAll({dir: path.resolve(ailtireBaseDir, "actors")});
@@ -68,7 +68,7 @@ module.exports = {
         });
 
         normalizeConfig(config);
-        global.ailtire = global.ailtire || {};  
+        global.ailtire = global.ailtire || {};
         global.ailtire.config = config;
 
         // Action.defaults(server);
@@ -292,7 +292,7 @@ function findStaticFile(config, apath) {
     for(let i in paths) {
         let checkPath = path.resolve(`${paths[i]}/${apath}`);
         if(fs.existsSync(checkPath)) {
-            return checkPath    
+            return checkPath
         }
     }
     // Check in model views
@@ -400,7 +400,7 @@ function _toJSON(obj) {
 
 function _setupDefaultServices(config) {
     // const design = require(`${__dirname}/../Services/services.js`);
-    
+
     // AStack.load('ailtire', 'local', design);
 }
 async function _setupAdaptors(config) {
@@ -463,30 +463,35 @@ function _setupPeerConnections(config) {
 }
 
 function _peersFromDeployment(config) {
-    const environments = global.deploy?.envs;
-    if (!environments) return [];
-
-    const environmentName = config.environment || process.env.AILTIRE_ENV;
-    const environment = environmentName
-        ? Object.values(environments).find(envs => envs[environmentName])?.[environmentName]
-        : Object.values(environments)[0] && Object.values(environments)[0][Object.keys(Object.values(environments)[0])[0]];
-    const services = environment?.definition?.services || {};
+    const servicePaths = global._servicePaths || {};
     const currentName = config.serviceName || process.env.AILTIRE_SERVICE_NAME || config.name;
-    const peers = [];
+    const peersByName = {};
 
-    for (const [name, service] of Object.entries(services)) {
-        if (name === currentName) continue;
-        for (const [route, endpoint] of Object.entries(service.interface || {})) {
-            if (!route.endsWith('/socket.io') && endpoint.path !== '/socket.io') continue;
-            const host = service.host || service.hostname || name;
-            const protocol = endpoint.protocol || 'http';
-            peers.push({
-                name,
-                url: `${protocol}://${host}${route}`,
-                pattern: '*',
-            });
-            break;
+    for (const [route, service] of Object.entries(servicePaths)) {
+        if (!service || !service.name || service.name === currentName) {
+            continue;
         }
+
+        const endpoint = service.interface?.[route];
+        if (!endpoint) {
+            continue;
+        }
+
+        const isSocketPath = route.endsWith('/socket.io') || endpoint.path === '/socket.io';
+        if (!isSocketPath) {
+            continue;
+        }
+
+        const host = endpoint.host || service.host || service.hostname || "localhost";
+        const port = service.interface[route].port || 80;
+        const protocol = endpoint.protocol || service.protocol || 'http';
+
+        peersByName[service.name] = {
+            name: service.name,
+            url: `${protocol}://${host}:${port}${route}`,
+            pattern: '*',
+        };
     }
-    return peers;
+
+    return Object.values(peersByName);
 }
