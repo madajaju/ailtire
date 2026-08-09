@@ -2,21 +2,34 @@
 class AStack {
     static definition = {
         name: 'AStack',
-        description: 'Description ' +
-            'long description',
+        description: 'A Stack definition',
         attributes: {
-            attr1: {
+            name: {
                 type: 'string',
-                description: 'description' +
-                    ' long description'
+                description: 'Name of the stack',
+            },
+            networks: {
+                type: 'json',
+                description: 'Network of the stack',
+            },
+            interface: {
+                type: 'json',
+                description: 'Interface of the stack',
+            },
+            policies: {
+                type: 'json',
+                description: 'Policies of the stack',
+            },
+            data: {
+                type: 'json',
             }
         },
         associations: {
-            assoc1: {
-                type: 'ModelName',
-                cardinality: 1,
-                composition: false,
-                owner: false,
+            services: {
+                type: 'AService',
+                cardinality: 'n',
+                composition: true,
+                owner: true,
             },
         },
         /*

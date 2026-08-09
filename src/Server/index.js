@@ -486,12 +486,13 @@ function _peersFromDeployment(config) {
         const port = service.interface[route].port || 80;
         const protocol = endpoint.protocol || service.protocol || 'http';
 
-        peersByName[service.name] = {
-            name: service.name,
-            url: `${protocol}://${host}:${port}${route}`,
-            pattern: '*',
-        };
+        if(!(global.ailtire.config.host === host && global.ailtire.config.port === port)) {
+            peersByName[service.name] = {
+                name: service.name,
+                url: `${protocol}://${host}:${port}${route}`,
+                pattern: '*',
+            };
+        }
     }
-
     return Object.values(peersByName);
 }

@@ -61,6 +61,6 @@ module.exports = {
                 global._servicePaths[iname] = obj;
             }
         }
-        return this;
+        return obj;
     }
 };
