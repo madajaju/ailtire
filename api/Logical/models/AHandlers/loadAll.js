@@ -16,14 +16,21 @@ module.exports = {
             type: 'string',
             required: true
         },
+        dir: {
+            description: 'Directory of the handlers',
+            type: 'string',
+        },
+        prefix: {
+            description: 'Prefix of the handlers',
+            type: 'string',
+        },
     },
 
     exits: {
     },
 
     fn: function (inputs, env) {
-        const package = inputs.package;
-        const dir = path.resolve(package.dir, "handlers");
+        const dir = inputs.dir;
         if(fs.existsSync(dir)) {
             let handlers = getFiles(dir);
             for (let i in handlers) {
