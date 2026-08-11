@@ -1,6 +1,7 @@
 const fs = require('fs');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const path = require('path');
+const objectProxy = require('../Proxy/ObjectProxy');
 const { GitHubStorageProvider, ExternalStorageProvider, AzureBlobStorageProvider, S3StorageProvider, MultiStorageProvider } = require('./StorageProviders');
 
 class GitHubStorage {
@@ -19,21 +20,29 @@ class GitHubStorage {
         this.providers = [];
         this.providerMap = {};
         this.blobStorageConfig = this.normalizeBlobStorageConfig(config.blobStorage || config.blobStorageConfig || config.blobs || {});
+        this.pushQueue = [];
+        this.pushQueueLimit = config.pushQueueLimit || 50;
+        this.pushIntervalMs = config.pushIntervalMs || 60 * 1000;
+        this.pushInProgress = false;
+        this.pushTimer = setInterval(() => {
+            void this.flushPushQueue();
+        }, this.pushIntervalMs);
+        if (this.pushTimer.unref) this.pushTimer.unref();
 
         if (config.modelPaths) {
             for (const [modelName, subDir] of Object.entries(config.modelPaths)) {
                 this.registerModel(modelName, subDir);
             }
         }
-        
+
         this.githubProvider = new GitHubStorageProvider({ basePath: this.clonePath });
         this.externalProvider = new ExternalStorageProvider({ basePath: this.externalPath });
-        
+
         this.registerProvider('github', this.githubProvider);
         this.registerProvider('external', this.externalProvider);
         this.addProvider(this.githubProvider);
         this.addProvider(this.externalProvider);
-        
+
         if (config.azure) {
             this.azureProvider = new AzureBlobStorageProvider(config.azure);
             this.registerProvider('azure', this.azureProvider);
@@ -117,8 +126,6 @@ class GitHubStorage {
     }
 
     getModelClass(typeName) {
-        if (this.modelClasses[typeName]) return this.modelClasses[typeName];
-        if (global[typeName]) return global[typeName];
         if (global.classes && global.classes[typeName]) return global.classes[typeName];
         return null;
     }
@@ -174,16 +181,16 @@ class GitHubStorage {
 
         if (!fs.existsSync(this.clonePath)) {
             try {
-                console.log(`Cloning ${this.repo} to ${this.clonePath}`);
-                execSync(`git clone https://github.com/${this.repo}.git "${this.clonePath}"`, { stdio: 'inherit' });
+                console.error(`Cloning ${this.repo} to ${this.clonePath}`);
+                execFileSync('git', ['clone', `https://github.com/${this.repo}.git`, this.clonePath], { stdio: ['ignore', 'ignore', 'inherit'] });
             } catch (error) {
                 console.error(`Failed to clone repository ${this.repo}:`, error.message);
                 throw error;
             }
         } else {
             try {
-                console.log(`Pulling ${this.repo} in ${this.clonePath}`);
-                execSync(`git -C "${this.clonePath}" pull origin main`, { stdio: 'inherit' });
+                console.error(`Pulling ${this.repo} in ${this.clonePath}`);
+                execFileSync('git', ['-C', this.clonePath, 'pull', 'origin', 'main'], { stdio: ['ignore', 'ignore', 'inherit'] });
             } catch (error) {
                 console.error(`Failed to pull repository ${this.repo}:`, error.message);
             }
@@ -233,7 +240,9 @@ class GitHubStorage {
         for (const entry of entries) {
             if (entry.isDirectory()) {
                 const itemDir = path.join(fullPath, entry.name);
-                const item = await this.loadItem(modelClass, itemDir);
+                // Always hydrate with the resolved registered model class
+                // (the ClassProxy), not the caller's possibly raw constructor.
+                const item = await this.loadItem(resolvedClass, itemDir);
                 if (item) results.push(item);
             }
         }
@@ -399,6 +408,7 @@ class GitHubStorage {
     }
 
     async loadInstanceFromData(modelClass, data, itemDir) {
+        modelClass = this.getModelClass(modelClass.definition.name);
         const definition = modelClass.definition;
         const instanceData = {};
         const fileId = path.basename(itemDir || '').replace(/\s/g, '-');
@@ -411,7 +421,7 @@ class GitHubStorage {
             // If it's a file/blob OR if the value in index looks like a storage URI,
             // treat it as an external file reference.
             const isExternal = attr.type === 'file' || attr.type === 'blob' ||
-                             (typeof valueInIndex === 'string' && valueInIndex.includes('://'));
+                (typeof valueInIndex === 'string' && valueInIndex.includes('://'));
 
             if (isExternal) {
                 if (valueInIndex) {
@@ -451,7 +461,10 @@ class GitHubStorage {
                     if (assoc.cardinality === 1) {
                         const childId = childClass ? this.getDataFileName(childrenData) : 'item';
                         const childDir = path.join(itemDir, assocName, childId);
-                        instanceData[assocName] = childClass ? await this.loadInstanceFromData(childClass, childrenData, childDir) : childrenData;
+                        const child = childClass ? await this.loadInstanceFromData(childClass, childrenData, childDir) : childrenData;
+                        if (child !== null && child !== undefined) {
+                            instanceData[assocName] = child;
+                        }
                     } else {
                         // Support both array and map (backward compatibility)
                         const dataArray = Array.isArray(childrenData) ? childrenData : Object.entries(childrenData).map(([key, val]) => {
@@ -460,15 +473,26 @@ class GitHubStorage {
                             }
                             return val;
                         });
+                        const seenChildIds = new Set();
+                        const uniqueDataArray = dataArray.filter(childData => {
+                            if (childData === null || childData === undefined) return false;
+                            const childId = this.getDataFileName(childData);
+                            if (seenChildIds.has(childId)) return false;
+                            seenChildIds.add(childId);
+                            return true;
+                        });
                         instanceData[assocName] = [];
-                        for (const childData of dataArray) {
+                        for (const childData of uniqueDataArray) {
                             if (!childClass) {
                                 instanceData[assocName].push(childData);
                                 continue;
                             }
                             const childId = this.getDataFileName(childData);
                             const childDir = path.join(itemDir, assocName, childId);
-                            instanceData[assocName].push(await this.loadInstanceFromData(childClass, childData, childDir));
+                            const child = await this.loadInstanceFromData(childClass, childData, childDir);
+                            if (child !== null && child !== undefined) {
+                                instanceData[assocName].push(child);
+                            }
                         }
                     }
                 }
@@ -496,7 +520,10 @@ class GitHubStorage {
                         }
                         const childId = this.getDataFileName(childData);
                         const childDir = path.join(assocDir, childId);
-                        children.push(await this.loadInstanceFromData(childClass, childData, childDir));
+                        const child = await this.loadInstanceFromData(childClass, childData, childDir);
+                        if (child !== null && child !== undefined) {
+                            children.push(child);
+                        }
                     }
                 }
 
@@ -523,8 +550,28 @@ class GitHubStorage {
             }
         }
 
-        const modelCtor = modelClass?.prototype?.constructor || modelClass;
-        const instance = new modelCtor(instanceData);
+        // modelClass can be an Ailtire ClassProxy. Accessing its `prototype`
+        // violates the Proxy invariant for the non-configurable prototype
+        // property, so do not inspect prototype to recover the constructor.
+        // The supplied class/proxy is itself constructable.
+        const modelCtor = modelClass;
+        // The ClassProxy assigns constructor arguments (including composed
+        // associations) and then normally invokes create(), which assigns
+        // those associations a second time. Mark this as hydration so the
+        // constructor skips the create lifecycle while loading persisted data.
+        let instance = new modelCtor({ ...instanceData, _loading: true });
+        // Some model registries expose the raw constructor rather than the
+        // ClassProxy. Keep the persistence registry consistent by wrapping
+        // raw hydrated instances before they are returned or cached.
+        let isProxy = false;
+        try {
+            isProxy = typeof instance.isProxy === 'function' && instance.isProxy();
+        } catch (e) {
+            isProxy = false;
+        }
+        if (!isProxy) {
+            instance = new Proxy(instance, objectProxy);
+        }
         if (!instance.definition) {
             instance.definition = modelCtor.definition || modelClass.definition;
         }
@@ -535,6 +582,13 @@ class GitHubStorage {
         }
         instance._attributes = instanceData;
         for (let key in instanceData) {
+            // The proxied constructor already hydrates associations from the
+            // constructor arguments. Assigning them again here causes owned
+            // composed collections (for example Campaign.ctas and
+            // Campaign.phases) to be appended a second time.
+            if (definition.associations && Object.prototype.hasOwnProperty.call(definition.associations, key)) {
+                continue;
+            }
             if (instanceData[key] !== undefined && instanceData[key] !== null) {
                 try {
                     instance[key] = instanceData[key];
@@ -666,13 +720,13 @@ class GitHubStorage {
 
         const itemDir = this.getInstanceDir(instance);
         const encoding = attr.encoding || 'utf-8';
-        
+
         for (const provider of this.providers) {
             if (provider.isHandled(fileName)) {
                 return await provider.load(itemDir, fileName, encoding);
             }
         }
-        
+
         // Fallback to github provider if none handled it and it's a simple filename
         return await this.githubProvider.load(itemDir, fileName, encoding);
     }
@@ -801,7 +855,7 @@ class GitHubStorage {
                 } else {
                     if (assoc.via) {
                         // Query based representation
-                        data[assocName] = { 
+                        data[assocName] = {
                             query: `?${assoc.via}=${instance.id || instance.name}`,
                             type: assoc.type,
                             service: assoc.service
@@ -837,9 +891,33 @@ class GitHubStorage {
         }
 
         await this.saveInstanceToDir(instance, itemDir);
-        
-        // Git push
-        this.push(`Update ${modelName}: ${instance.name}`);
+
+        // The local checkout is updated immediately; Git operations are
+        // batched to reduce commit/push frequency.
+        this.queuePush(`Update ${modelName}: ${instance.name}`);
+    }
+
+    queuePush(message) {
+        if (!this.repo) return;
+        this.pushQueue.push(message);
+        if (this.pushQueue.length >= this.pushQueueLimit) {
+            void this.flushPushQueue();
+        }
+    }
+
+    async flushPushQueue() {
+        if (!this.repo || this.pushInProgress || this.pushQueue.length === 0) return;
+        this.pushInProgress = true;
+        const queuedMessages = this.pushQueue.splice(0);
+        try {
+            this.push(`Batch update (${queuedMessages.length} saves): ${queuedMessages[queuedMessages.length - 1]}`);
+        } catch (error) {
+            // Do not lose save intent if GitHub is temporarily unavailable.
+            this.pushQueue.unshift(...queuedMessages);
+            console.error('GitHub save queue retained after push failure:', error.message);
+        } finally {
+            this.pushInProgress = false;
+        }
     }
 
     async saveInstanceToDir(instance, itemDir) {
@@ -915,7 +993,7 @@ class GitHubStorage {
             if (attr.type === 'file' || attr.type === 'blob' || (attr.storage && provider !== this.githubProvider)) {
                 const encoding = this.getAttributeEncoding(attr, fileName, content);
                 const storageRef = await provider.save(itemDir, fileName, content, encoding);
-                
+
                 // Update the fileName in data to be the storage reference
                 data[attrName] = storageRef;
                 this.setAttributeFile(instance, attrName, storageRef);
@@ -1061,7 +1139,7 @@ class GitHubStorage {
     async defaultSerializeForSave(instance, itemDir) {
         return await this.serializeForSave(instance, itemDir, { skipStorageHook: true });
     }
-    
+
     getFile(instance, fileName) {
         const modelName = instance.definition.name;
         const subDir = this.getSubDir(modelName);
@@ -1072,7 +1150,7 @@ class GitHubStorage {
         }
         return null;
     }
-    
+
     saveFile(instance, fileName, content) {
         const modelName = instance.definition.name;
         const subDir = this.getSubDir(modelName);
@@ -1090,13 +1168,15 @@ class GitHubStorage {
             return;
         }
         try {
-            execSync(`git -C "${this.clonePath}" add .`, { stdio: 'inherit' });
-            execSync(`git -C "${this.clonePath}" commit -m "${message}"`, { stdio: 'inherit' });
-            execSync(`git -C "${this.clonePath}" push origin main`, { stdio: 'inherit' });
+            execFileSync('git', ['-C', this.clonePath, 'add', '.'], { stdio: ['ignore', 'ignore', 'inherit'] });
+            execFileSync('git', ['-C', this.clonePath, 'commit', '-m', message], { stdio: ['ignore', 'ignore', 'inherit'] });
+            execFileSync('git', ['-C', this.clonePath, 'push', 'origin', 'main'], { stdio: ['ignore', 'ignore', 'inherit'] });
         } catch (error) {
             console.error(`Failed to push changes to git:`, error.message);
+            throw error;
         }
     }
 }
 
 module.exports = GitHubStorage;
+

@@ -42,6 +42,27 @@ class AIHelper {
         return _askForCode(messages);
     }
 
+    static async askForImage(messages) {
+        if(!global.ai) {
+            let aiAdaptor = global.ailtire.ai.adaptor;
+            if(aiAdaptor) {
+                try {
+                    if(global.ailtire.ai) {
+                        global.ai = new aiAdaptor(global.ailtire.ai);
+                        global.ai.init();
+                    } else {
+                        return "";
+                    }
+                }
+                catch(e) {
+                    console.error("Error initializing AI:", e.message);
+                    return "";
+                }
+            }
+        }
+        return await _askForImage(messages);
+    }
+
     static async chat(userText, session) {
         const { userId, actorKey } = session;
         const context = { userId, actorKey };
@@ -156,6 +177,36 @@ async function _ask(messages) {
         }
     }
     return "";
+}
+
+async function _askForImage(messages) {
+    if(!global.ai) {
+        return "";
+    }
+    try {
+        const prompt = _messagesToPrompt(messages);
+        return await global.ai.generateImage({
+            prompt: prompt,
+            model: 'gpt-image-2'
+        });
+    }
+    catch(e) {
+        console.error("Calling OpenAI Image Error:", e.message);
+    }
+    return "";
+}
+
+function _messagesToPrompt(messages) {
+    if (typeof messages === 'string') {
+        return messages;
+    }
+    if (!Array.isArray(messages)) {
+        return '';
+    }
+    return messages
+        .filter(message => message && typeof message.content === 'string')
+        .map(message => message.content)
+        .join('\n');
 }
 
 function _limitMessages(messages) {
