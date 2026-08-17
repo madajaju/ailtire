@@ -28,6 +28,14 @@ class AAssociation {
                 type: 'string',
                 description: "Automatically creates the back link in the associated object. This handles the traversing of the graph as well.",
             },
+            service: {
+                type: 'string',
+                description: 'Remote service that owns the associated object.',
+            },
+            remoteType: {
+                type: 'string',
+                description: 'Remote model type represented by an ARemoteReference association.',
+            },
             transient: {
                 type: "boolean",
                 description: "True if the attribute is not stored presistently",
@@ -51,4 +59,3 @@ class AAssociation {
 }
 
 module.exports = AAssociation;
-

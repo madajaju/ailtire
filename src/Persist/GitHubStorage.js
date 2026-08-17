@@ -451,7 +451,29 @@ class GitHubStorage {
         for (let assocName in definition.associations) {
             const assoc = definition.associations[assocName];
             const childClass = this.getModelClass(assoc.type);
-            if (assoc.owner && assoc.composition) {
+            if (assoc.type === 'ARemoteReference' && data[assocName]) {
+                const values = assoc.cardinality === 1
+                    ? [data[assocName]]
+                    : this.getAssociationDataItems(data[assocName], assoc);
+                const references = values.map(value => {
+                    if (!value) return null;
+                    const reference = typeof value === 'object'
+                        ? { ...value, service: value.service || assoc.service, type: value.type || assoc.remoteType }
+                        : { rid: value, service: assoc.service, type: assoc.remoteType };
+                    const remoteReference = childClass
+                        ? new childClass({ ...reference, _loading: true })
+                        : reference;
+                    if (assoc.service) {
+                        if (remoteReference?._attributes) {
+                            remoteReference._attributes.service = remoteReference._attributes.service || assoc.service;
+                        } else {
+                            remoteReference.service = remoteReference.service || assoc.service;
+                        }
+                    }
+                    return remoteReference;
+                }).filter(Boolean);
+                instanceData[assocName] = assoc.cardinality === 1 ? references[0] : references;
+            } else if (assoc.owner && assoc.composition) {
                 // Loaded from JSON
                 if(!data[assocName]) {
                     continue;
@@ -534,6 +556,17 @@ class GitHubStorage {
                         instanceData[assocName] = children;
                     }
                 }
+            } else if (!assoc.owner && assoc.type !== 'ARemoteReference' && data[assocName]) {
+                const assocId = typeof data[assocName] === 'object'
+                    ? (data[assocName].id || data[assocName].name)
+                    : data[assocName];
+                let related = childClass?.find ? childClass.find(assocId) : null;
+                if (!related && childClass && assocId) {
+                    const placeholder = new childClass({ id: assocId, _loading: true });
+                    related = await this.load(placeholder);
+                }
+                if (related) instanceData[assocName] = related;
+                else if (assocId) instanceData[assocName] = assocId;
             } else if (!assoc.owner) {
                 // Non-owned relationships are references/queries. Do not hydrate them into
                 // _associations; ObjectProxy resolves service/via associations lazily.
@@ -580,7 +613,23 @@ class GitHubStorage {
         } else if (instance._state === undefined || instance._state === null || instance._state === '') {
             instance._state = 'Init';
         }
+        const loadedAssociations = {};
+        for (const associationName of Object.keys(definition.associations || {})) {
+            if (Object.prototype.hasOwnProperty.call(instanceData, associationName)) {
+                loadedAssociations[associationName] = instanceData[associationName];
+            }
+        }
+        // Association values belong in _associations, never in _attributes.
+        // Keeping a local non-owned association such as Campaign.brand here
+        // would make ObjectProxy return the persisted ID string directly.
+        for (const associationName of Object.keys(definition.associations || {})) {
+            delete instanceData[associationName];
+        }
         instance._attributes = instanceData;
+        if (!instance._associations) instance._associations = {};
+        for (const [associationName, associationValue] of Object.entries(loadedAssociations)) {
+            instance._associations[associationName] = associationValue;
+        }
         for (let key in instanceData) {
             // The proxied constructor already hydrates associations from the
             // constructor arguments. Assigning them again here causes owned
@@ -602,6 +651,7 @@ class GitHubStorage {
             this.setAttributeFile(instance, attrName, fileAttributes[attrName]);
         }
         this.setCompositionStorageDirs(instance, itemDir);
+        attachBackLinks(instance);
 
         const modelName = instance.definition?.name || modelCtor.name || modelClass.name;
         if(!global._instances.hasOwnProperty(modelName)) {
@@ -841,6 +891,13 @@ class GitHubStorage {
             const value = instance[assocName];
             if (!value) continue;
 
+            if (assoc.type === 'ARemoteReference') {
+                const items = assoc.cardinality === 1 ? [value] : (Array.isArray(value) ? value : Object.values(value));
+                const references = items.map(item => serializeRemoteReference(item, assoc.service)).filter(Boolean);
+                data[assocName] = assoc.cardinality === 1 ? references[0] : references;
+                continue;
+            }
+
             if (assoc.owner && assoc.composition) {
                 if (assoc.cardinality === 1) {
                     data[assocName] = this.serialize(value);
@@ -851,7 +908,7 @@ class GitHubStorage {
             } else if (!assoc.owner) {
                 // Reference or query
                 if (assoc.cardinality === 1) {
-                    data[assocName] = value.id || value.name || value;
+                    data[assocName] = associationReferenceId(value);
                 } else {
                     if (assoc.via) {
                         // Query based representation
@@ -1049,7 +1106,7 @@ class GitHubStorage {
                 delete data[assocName];
             } else if (!assoc.owner) {
                 if (assoc.cardinality === 1) {
-                    data[assocName] = value.id || value.name || value;
+                    data[assocName] = associationReferenceId(value);
                 } else {
                     if (assoc.via) {
                         data[assocName] = {
@@ -1178,5 +1235,50 @@ class GitHubStorage {
     }
 }
 
-module.exports = GitHubStorage;
+function serializeRemoteReference(item, associationService) {
+    if (!item) return null;
+    const attrs = item._attributes && typeof item._attributes === 'object' ? item._attributes : item;
+    const rid = attrs.rid || item.rid || attrs.id || item.id || attrs.name || item.name;
+    if (!rid) return null;
+    return {
+        service: attrs.service || item.service || associationService,
+        type: attrs.type || item.type,
+        rid: String(rid),
+        displayName: attrs.displayName || item.displayName,
+        snapshot: attrs.snapshot || item.snapshot,
+        snapShotDate: attrs.snapShotDate || item.snapShotDate
+    };
+}
 
+// Persist non-owned cardinality-one associations by identity, including
+// proxied objects whose identity is exposed through _attributes.
+function associationReferenceId(value) {
+    if (value === undefined || value === null) return value;
+    if (typeof value !== 'object') return value;
+    const attrs = value._attributes && typeof value._attributes === 'object'
+        ? value._attributes
+        : value;
+    return attrs.id || value.id || attrs.rid || value.rid || attrs.name || value.name || null;
+}
+
+function attachBackLinks(parent) {
+    const parentName = parent?.definition?.name;
+    if (!parentName) return;
+    for (const assocName of Object.keys(parent.definition.associations || {})) {
+        const assoc = parent.definition.associations[assocName];
+        if (!assoc.owner) continue;
+        const value = parent._associations?.[assocName];
+        const children = assoc.cardinality === 1 ? [value] : (Array.isArray(value) ? value : Object.values(value || {}));
+        for (const child of children) {
+            if (!child?.definition) continue;
+            for (const [backName, backDef] of Object.entries(child.definition.associations || {})) {
+                if (backDef.type === parentName && backDef.cardinality === 1 && !backDef.service) {
+                    if (!child._associations) child._associations = {};
+                    child._associations[backName] = parent;
+                }
+            }
+        }
+    }
+}
+
+module.exports = GitHubStorage;

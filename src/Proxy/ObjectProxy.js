@@ -189,7 +189,7 @@ function getHandler(obj, definition, prop) {
         return function (...args) {
             const simpleProp = prop.replace(addToRegex, '').toLowerCase();
             let assoc = getAssociation(obj.definition, simpleProp);
-            if (assoc && assoc.service) {
+            if (assoc && assoc.service && assoc.type !== 'ARemoteReference') {
                 return _remoteCall(obj, assoc, 'add', args[0]);
             }
             let retval = addToAssoc(simpleProp, obj, this, args[0]);
@@ -204,7 +204,7 @@ function getHandler(obj, definition, prop) {
         return function (...args) {
             const simpleProp = prop.replace(removeFromRegex, '').toLowerCase();
             let assoc = getAssociation(obj.definition, simpleProp);
-            if (assoc && assoc.service) {
+            if (assoc && assoc.service && assoc.type !== 'ARemoteReference') {
                 return _remoteCall(obj, assoc, 'remove', args[0]);
             }
             if (!obj._associations.hasOwnProperty(simpleProp)) {
@@ -344,7 +344,7 @@ function getHandler(obj, definition, prop) {
         // Add check to see if the association is loaded.
 
         let assocDef = getAssociation(obj.definition, prop);
-        if (assocDef.service) {
+        if (assocDef.service && assocDef.type !== 'ARemoteReference') {
             if (obj._persist && obj._persist.depth >= 1) {
                 return obj._attributes[prop] || null;
             }
@@ -393,12 +393,14 @@ function getHandler(obj, definition, prop) {
             }
 
             // Return a Proxy for the array that resolves the promises transparently
-            return obj._associations[prop];
+            return assocDef.type === 'ARemoteReference'
+                ? decorateRemoteCollection(obj._associations[prop])
+                : obj._associations[prop];
         }
         // Check if the association definition is defined if so then return an empty array or null
     } else if (hasAssociation(obj.definition, prop)) {
         let assoc = getAssociation(obj.definition, prop);
-        if (assoc.service) {
+        if (assoc.service && assoc.type !== 'ARemoteReference') {
             if (obj._persist && obj._persist.depth >= 1) {
                 return obj._attributes[prop] || null;
             }
@@ -408,7 +410,7 @@ function getHandler(obj, definition, prop) {
             return null;
         } else {
             // return an empty array
-            return [];
+            return assoc.type === 'ARemoteReference' ? decorateRemoteCollection([]) : [];
         }
     } else if (prop === 'toString') {
         return function (...args) {
@@ -514,6 +516,22 @@ function getHandler(obj, definition, prop) {
     }
 }
 
+function decorateRemoteCollection(items) {
+    const collection = Array.isArray(items) ? items : (items ? [items] : []);
+    if (!Object.prototype.hasOwnProperty.call(collection, 'resolveAll')) {
+        Object.defineProperty(collection, 'resolveAll', {
+            enumerable: false,
+            value: async function () {
+                return Promise.all(collection.map(reference => {
+                    if (reference && typeof reference.get === 'function') return reference.get();
+                    return reference;
+                }));
+            }
+        });
+    }
+    return collection;
+}
+
 function addToAssoc(simpleProp, obj, proxy, item) {
 
     if (item === null) { // do not add a null to the assoication
@@ -522,6 +540,9 @@ function addToAssoc(simpleProp, obj, proxy, item) {
 
     let myAssoc = getAssociation(obj.definition, simpleProp);
     myAssoc.parent = proxy;
+    if (myAssoc.type === 'ARemoteReference') {
+        item = toRemoteReference(item, myAssoc.service, myAssoc.remoteType);
+    }
     // Make the assignment if it is an object.
     if (Array.isArray(item) && myAssoc.cardinality === 'n') {
         return myAssoc.add({parent: obj, items: item});
@@ -529,6 +550,27 @@ function addToAssoc(simpleProp, obj, proxy, item) {
         return myAssoc.add({parent: obj, item: item});
     }
     return child;
+}
+
+function toRemoteReference(item, service, remoteType) {
+    if (item && item.definition?.name === 'ARemoteReference') return item;
+    const attrs = item?._attributes && typeof item._attributes === 'object' ? item._attributes : (item || {});
+    const rid = attrs.rid || item?.rid || attrs.id || item?.id || attrs.name || item?.name;
+    if (!rid) throw new Error(`Cannot add a remote reference without a remote id. ${item}`);
+    const Reference = AClass.getClass({name: 'ARemoteReference'});
+    const data = {
+        service: attrs.service || service,
+        type: attrs.type || remoteType || 'RemoteObject',
+        rid: String(rid),
+        displayName: attrs.displayName || item?.displayName || attrs.name || item?.name || String(rid),
+        snapshot: attrs.snapshot || item?.snapshot || {
+            id: String(rid), name: attrs.name || item?.name, type: attrs.type || item?.type,
+            concept: attrs.concept || item?.concept, body: attrs.body || item?.body,
+            description: attrs.description || item?.description, mimeType: attrs.mimeType || item?.mimeType
+        },
+        snapShotDate: attrs.snapShotDate || item?.snapShotDate || new Date()
+    };
+    return Reference ? new Reference(data) : data;
 }
 
 // This needs to handle looking at extends until there isn't one anymore.

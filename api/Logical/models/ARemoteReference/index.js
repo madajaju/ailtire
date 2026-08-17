@@ -3,7 +3,7 @@ class ARemoteReference {
     static definition = {
         name: 'ARemoteReference',
         description: 'This represents a class in the architecture',
-        unique: (obj) => { return obj.name; },
+        unique: (obj) => obj.rid || obj.name || obj.id,
         attributes: {
             service: {
                 type: 'string',
@@ -31,7 +31,7 @@ class ARemoteReference {
             }
         },
         associations: {
-        },
+        }
     }
 }
 
