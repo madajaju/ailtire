@@ -208,6 +208,7 @@ class GitHubStorage {
                         results[modelName] = await this.loadAll(cls, this.modelPaths[modelName]);
                     }
                 }
+                this.resolveAllAssociations();
                 return results;
             }
 
@@ -219,6 +220,7 @@ class GitHubStorage {
                     }
                 }
             }
+            this.resolveAllAssociations();
             return results;
         }
 
@@ -246,6 +248,7 @@ class GitHubStorage {
                 if (item) results.push(item);
             }
         }
+        this.resolveAllAssociations();
         return results;
     }
 
@@ -281,7 +284,14 @@ class GitHubStorage {
             return null;
         }
 
-        return await this.loadItem(targetClass, itemDir);
+        const loaded = await this.loadItem(targetClass, itemDir);
+        if (loaded) {
+            // A single-object load may occur outside loadAll(). Resolve against
+            // anything already registered, while leaving missing targets as
+            // persisted references until the next bulk pass.
+            this.resolveInstanceAssociations(loaded, global._instances || {});
+        }
+        return loaded;
     }
 
     async find(obj, query) {
@@ -560,16 +570,10 @@ class GitHubStorage {
                     }
                 }
             } else if (!assoc.owner && assoc.type !== 'ARemoteReference' && data[assocName]) {
-                const assocId = typeof data[assocName] === 'object'
-                    ? (data[assocName].id || data[assocName].name)
-                    : data[assocName];
-                let related = childClass?.find ? childClass.find(assocId) : null;
-                if (!related && childClass && assocId) {
-                    const placeholder = new childClass({ id: assocId, _loading: true });
-                    related = await this.load(placeholder);
-                }
-                if (related) instanceData[assocName] = ensureObjectProxy(related);
-                else if (assocId) instanceData[assocName] = assocId;
+                // Keep local references as IDs during phase one. All model files
+                // are registered before resolveAllAssociations links these values
+                // to the canonical objects in global._instances.
+                instanceData[assocName] = this.normalizeAssociationReference(data[assocName], assoc);
             } else if (!assoc.owner) {
                 // Non-owned relationships are references/queries. Do not hydrate them into
                 // _associations; ObjectProxy resolves service/via associations lazily.
@@ -687,6 +691,51 @@ class GitHubStorage {
         }
         global._instances[modelName][instance.id] = instance;
         return instance;
+    }
+
+    normalizeAssociationReference(value, assoc) {
+        const normalizeOne = (item) => {
+            if (item === null || item === undefined) return item;
+            if (typeof item !== 'object') return item;
+            return item.id || item.name || item._id || item._clsName && item._file || item;
+        };
+        if (assoc.cardinality === 1) return normalizeOne(value);
+        if (Array.isArray(value)) return value.map(normalizeOne).filter(Boolean);
+        if (typeof value === 'object') {
+            return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalizeOne(item)]));
+        }
+        return value;
+    }
+
+    resolveAllAssociations() {
+        const instances = global._instances || {};
+        for (const [modelName, modelInstances] of Object.entries(instances)) {
+            for (const instance of Object.values(modelInstances || {})) {
+                this.resolveInstanceAssociations(instance, instances);
+            }
+        }
+    }
+
+    resolveInstanceAssociations(instance, instances) {
+        const definition = getEffectiveDefinition(instance?.definition || {});
+        for (const [assocName, assoc] of Object.entries(definition.associations || {})) {
+            if (assoc.owner || assoc.type === 'ARemoteReference') continue;
+            const raw = instance._associations?.[assocName];
+            if (raw === undefined || raw === null) continue;
+            const table = instances[assoc.type] || {};
+            const resolve = (value) => {
+                if (value && typeof value === 'object' && value.definition) return value;
+                const id = typeof value === 'object' ? value.id : value;
+                return table[id] || value;
+            };
+            if (assoc.cardinality === 1) {
+                instance._associations[assocName] = resolve(raw);
+            } else if (Array.isArray(raw)) {
+                instance._associations[assocName] = raw.map(resolve);
+            } else if (typeof raw === 'object') {
+                for (const key of Object.keys(raw)) raw[key] = resolve(raw[key]);
+            }
+        }
     }
 
     getAssociationDataItems(assocData, assoc) {

@@ -14,6 +14,10 @@ module.exports = {
         // Initialize the object
 
         _initalize(obj);
+        const directGetHandler = directGetHandlers[prop];
+        if (directGetHandler && (prop === 'isProxy' || prop === 'definition' || prop[0] === '_')) {
+            return directGetHandler(obj);
+        }
         if (typeof prop === 'string' && prop[0] === '_') {
             if (Object.prototype.hasOwnProperty.call(obj, prop)) {
                 return obj[prop];
@@ -23,14 +27,6 @@ module.exports = {
             }
             return obj[prop];
         }
-        if (prop === 'isProxy') {
-            return function (...args) {
-                return true;
-            }
-        }
-        if (prop === 'definition') {
-            return obj.definition;
-        }
         if (obj._persist._notLoaded) {
             _load(obj, []);
         }
@@ -38,15 +34,6 @@ module.exports = {
         try {
             let definition = obj.definition;
 
-            if (prop === "_associations") {
-                return obj._associations;
-            }
-            if (prop === "_attributes") {
-                return obj._attributes;
-            }
-            if (prop === "_presist") {
-                return obj._persist;
-            }
             if (typeof prop === 'string' && prop[0] === '_') { // This is a private  transient attribute.
                 return obj._attributes[prop];
             }
@@ -139,43 +126,102 @@ module.exports = {
     },
 };
 
-function getHandler(obj, definition, prop) {
-    if (prop === 'name') {
-        if (obj._attributes.name) {
-            return obj._attributes.name;
-        } else {
-            //return obj._attributes.id;
-            return "";
+const directGetHandlers = Object.assign(Object.create(null), {
+    name: obj => obj._attributes.name || "",
+    className: obj => obj.definition.name,
+    isTypeOf: obj => (...args) => isTypeOf(obj, args[0].name),
+    package: obj => obj.definition.package,
+    state: obj => obj._state,
+    toPrompt: obj => () => JSON.stringify(_toJSON(obj), null, 2),
+    getDocumentation: obj => () => _getDocumentation(obj),
+    toJSON: obj => () => _toJSON(obj),
+    toJSONShallow: obj => shallowJSON(obj),
+    hasOwnProperty: obj => (...args) =>
+        obj.hasOwnProperty(args[0]) ||
+        obj._attributes.hasOwnProperty(args[0]) ||
+        obj._associations.hasOwnProperty(args[0]),
+    update: obj => (...args) => _update(obj, args[0]),
+    definition: obj => obj.definition,
+    create: (obj, definition) => function (...args) {
+        return _create(obj, definition, this, args);
+    },
+    save: (obj, definition) => function (...args) {
+        return _save(obj, definition, this, args);
+    },
+    destroy: (obj, definition) => (...args) => _destroy(obj, definition),
+    then: () => undefined,
+    load: obj => function (...args) {
+        return _load(this, args);
+    },
+    aiUpdate: obj => (...args) => _aiUpdate(obj, args[0]),
+    isProxy: () => () => true,
+    _associations: obj => obj._associations,
+    _attributes: obj => obj._attributes,
+    _presist: obj => obj._persist,
+});
+
+function _create(obj, definition, context, args) {
+    if (!obj.definition.methods) obj.definition.methods = {};
+    if (obj.definition.methods.hasOwnProperty('create')) {
+        if (hasStateNet(obj.definition)) return stateNetHandler.processEvent(context, obj, 'create', args);
+        const retval = funcHandler.run(definition.methods.create, context, args[0]);
+        AEvent.emit({event: definition.name + '.create', data: {obj: context.toJSON}});
+        obj._persist = {dirty: true};
+        return retval;
+    }
+    let myDef = obj.definition;
+    while (myDef) {
+        if (!myDef.hasOwnProperty('extends')) break;
+        const parent = AClass.getClass({name: myDef.extends});
+        myDef = parent?.definition;
+        if (myDef?.methods?.hasOwnProperty('create')) {
+            if (hasStateNet(myDef)) return stateNetHandler.processEvent(context, obj, 'create', args);
+            return funcHandler.run(myDef.methods.create, context, args[0]);
         }
     }
-    if (prop === 'className') {
-        return obj.definition.name;
-    } else if (prop === 'isTypeOf') {
-        return function (...args) {
-            return isTypeOf(obj, args[0].name);
+    if (hasStateNet(definition)) return stateNetHandler.processEvent(context, obj, 'create', args);
+    try {
+        if (!AEvent) AEvent.emit({event: definition.name + '.create', data: {obj: context.toJSON}});
+    } catch (e) {}
+    return context;
+}
+
+function _save(obj, definition, context, args) {
+    if (obj._persist && obj._persist.service) {
+        const serviceURL = _resolveServiceURL(obj._persist.service);
+        return axios.post(`${serviceURL}/${obj.definition.name}/save`, obj._attributes).then(res => res.data);
+    }
+    if (definition.methods.hasOwnProperty('save')) {
+        return funcHandler.run(definition.methods.save, context, args[0]);
+    }
+    const adaptor = global.ailtire?.config?.persist?.adaptor;
+    return adaptor ? adaptor.save(context, args[0]) : context;
+}
+
+function _destroy(obj, definition) {
+    const oid = obj._attributes.id;
+    for (const name in obj._attributes) delete obj._attributes[name];
+    for (const name in obj._associations) {
+        const assoc = obj._associations[name];
+        const dassoc = getAssociation(definition, name);
+        if (dassoc.cardinality === 1) {
+            if (dassoc.owner === true) assoc?.destroy();
+            delete obj._associations[name];
+        } else {
+            while (obj._associations[name].length) {
+                const item = obj._associations[name].pop();
+                if (dassoc.owner === true) item?.destroy();
+            }
         }
-    } else if (prop === 'package') {
-        return obj.definition.package;
-    } else if (prop === 'state') {
-        return obj._state;
-    } else if (prop === 'toPrompt') {
-        return function (...args) {
-            return JSON.stringify(_toJSON(obj), null, 2);
-        }
-    } else if (prop === 'getDocumentation') {
-        return function (...args) {
-            return _getDocumentation(obj);
-        }
-    } else if (prop === 'toJSON') {
-        return function (...args) {
-            return _toJSON(obj);
-        }
-    } else if (prop === 'toJSONShallow') {
-        return shallowJSON(obj);
-    } else if (prop === 'hasOwnProperty') {
-        return function (...args) {
-            return obj.hasOwnProperty(args[0]) || obj._attributes.hasOwnProperty(args[0]) || obj._associations.hasOwnProperty(args[0]);
-        }
+    }
+    if (global._instances?.[definition.name]) delete global._instances[definition.name][oid];
+    return true;
+}
+
+function getHandler(obj, definition, prop) {
+    const directHandler = directGetHandlers[prop];
+    if (directHandler) {
+        return directHandler(obj, definition);
     } else if (hasInRegex.test(prop)) { // Association addTo, removeFrom, and Clear
         return function (...args) {
             const simpleProp = prop.replace(hasInRegex, '').toLowerCase();
@@ -230,105 +276,9 @@ function getHandler(obj, definition, prop) {
             }
             return obj._associations[simpleProp];
         }
-    } else if (prop === 'update') {
-        return function (...args) {
-            return _update(obj, args[0]);
-        }
     }
-    // give a method to return the definition of the class
-    else if (prop === 'definition') {
-        return obj.definition;
-    } else if (prop === 'create') {
-        return function (...args) {
-            // Call the method if it exists
-
-            if (!obj.definition.methods) {
-                obj.definition.methods = {};
-            }
-            if (obj.definition.methods.hasOwnProperty('create')) {
-                if (hasStateNet(obj.definition)) {
-                    return stateNetHandler.processEvent(this, obj, prop, args);
-                } else {
-                    let retval = funcHandler.run(definition.methods.create, this, args[0]);
-                    let json = this.toJSON;
-                    AEvent.emit({event: definition.name + '.create', data: {obj: json}});
-                    obj._persist = {dirty: true};
-                    return retval;
-                }
-            } else {
-                let myDef = obj.definition;
-
-                while (myDef) {
-                    if (myDef.hasOwnProperty('extends')) {
-                        let parent = myDef.extends;
-                        let newObj = AClass.getClass({name: parent});
-                        myDef = newObj.definition;
-                        if (myDef.methods.hasOwnProperty('create')) {
-                            if (hasStateNet(myDef)) {
-                                return stateNetHandler.processEvent(this, obj, prop, args);
-                            } else {
-                                let retval = funcHandler.run(myDef.methods.create, this, args[0]);
-                                let json = this.toJSON;
-                                AEvent.emit({event: definition.name + '.create', data: {obj: json}});
-                                return retval;
-                            }
-                        }
-                    } else {
-                        myDef = null;
-                    }
-                }
-                // If the while loop exits without returning the use a default create.
-                // This is now handled in the ClassProxy. All attributes are loaded into the object before create is called.
-                // for (let name in args[0]) {
-                //     this[name] = args[0][name];
-                //  }
-
-                if (hasStateNet(definition)) {
-                    return stateNetHandler.processEvent(this, obj, prop, args);
-                } else {
-                    let json = this.toJSON;
-                    try {
-                        if (!AEvent) {
-                            AEvent.emit({event: definition.name + '.create', data: {obj: json}});
-                        }
-                    } catch (e) {
-                    }
-                    return this;
-                }
-            }
-        }
-    } else if (prop === 'destroy') { // create a destroy method to destroy the object.
-        return function (...args) {
-            // call destroy on all of the attributes
-            let oid = obj._attributes.id;
-            for (let name in obj._attributes) {
-                delete obj._attributes[name];
-            }
-            // call destroy on all of the associations
-            for (let name in obj._associations) {
-                let assoc = obj._associations[name];
-                let dassoc = getAssociation(definition, name);
-                if (dassoc.cardinality === 1) {
-                    if (dassoc.owner === true) {
-                        assoc.destroy();
-                    }
-                    delete obj._associations[name];
-                } else {
-                    // Call destroy on all of the objects in the array.
-                    while (obj._associations[name].length) {
-                        let assocItem = obj._associations[name].pop();
-                        if (dassoc.owner === true) {
-                            assocItem.destroy();
-                        }
-                    }
-                }
-            }
-            // Now remove it from the class._instances array;
-            delete global._instances[definition.name][oid];
-
-            return true;
-        }
-    } else if (obj.definition.attributes.hasOwnProperty(prop)) {
+    // Structural property and dynamic method dispatch follow below.
+    if (obj.definition.attributes.hasOwnProperty(prop)) {
         let attr = obj.definition.attributes[prop];
         if(Object.prototype.hasOwnProperty.call(obj._attributes, prop)) {
             return obj._attributes[prop];
@@ -352,50 +302,23 @@ function getHandler(obj, definition, prop) {
         }
         if (assocDef.cardinality !== 'n') {
             let retval = obj._associations[prop];
-            if (typeof retval === 'string') {
-                const childClass = AClass.getClass({name: assocDef.type});
-                if (childClass) {
-                    retval = new childClass({id: retval, _loading: true});
-                    obj._associations[prop] = retval;
-                }
-            }
-            // Could return a null.
-            if (retval) {
-                if (retval._persist?.hasOwnProperty('_notLoaded') && retval._persist._notLoaded) {
-                    const promise = _load(retval, []).then(loaded => {
-                        obj._associations[prop] = loaded; // Cache the resolved object
-                        return obj._associations[prop];
-                    });
-
-                    // Return a Proxy that transparently resolves the promise
-                    return _createTransparentProxy(promise);
-                }
-            }
+            // Local associations are resolved by the persistence adapter's
+            // second pass. Keep this synchronous and use the registry only as
+            // a compatibility fallback for objects loaded individually.
+            retval = resolveLocalAssociation(assocDef, retval);
+            obj._associations[prop] = retval;
             return retval;
         } else {
             let retval = obj._associations[prop];
-            for (let i in retval) {
-                let item = retval[i];
-                if (typeof item === 'string') {
-                    const childClass = AClass.getClass({name: assocDef.type});
-                    if (childClass) {
-                        item = new childClass({id: item, _loading: true});
-                        retval[i] = item;
-                    }
-                }
-                if (item && item._persist?.hasOwnProperty("_notLoaded") && item._persist?._notLoaded) {
-                    let promise = _load(item, []).then(loaded => {
-                        obj._associations[prop][i] = loaded; // Cache resolved item
-                        return loaded;
-                    });
-                    obj._associations[prop][i] = _createTransparentProxy(promise);
+            if (Array.isArray(retval)) {
+                retval = retval.map(item => resolveLocalAssociation(assocDef, item));
+            } else if (retval && typeof retval === 'object') {
+                for (const key of Object.keys(retval)) {
+                    retval[key] = resolveLocalAssociation(assocDef, retval[key]);
                 }
             }
-
-            // Return a Proxy for the array that resolves the promises transparently
-            return assocDef.type === 'ARemoteReference'
-                ? decorateRemoteCollection(obj._associations[prop])
-                : obj._associations[prop];
+            obj._associations[prop] = retval;
+            return retval;
         }
         // Check if the association definition is defined if so then return an empty array or null
     } else if (hasAssociation(obj.definition, prop)) {
@@ -421,40 +344,6 @@ function getHandler(obj, definition, prop) {
             }
         }
         // If there is an extends then you need to check the parent stateenet.
-    } else if (prop === 'then') {
-        return undefined;
-    } else if (prop === 'save') {
-        if (obj._persist && obj._persist.service) {
-            return async () => {
-                const serviceURL = _resolveServiceURL(obj._persist.service);
-                const url = `${serviceURL}/${obj.definition.name}/save`;
-                const response = await axios.post(url, obj._attributes);
-                return response.data;
-            };
-        }
-        if (definition.methods.hasOwnProperty('save')) {
-            return function (...args) {
-                let retval = funcHandler.run(definition.methods[prop], this, args[0]);
-                return retval;
-            }
-        } else {
-            return function (...args) {
-                if (global.ailtire.config.persist) {
-                    let adaptor = global.ailtire.config.persist.adaptor;
-                    if (adaptor) {
-                        return adaptor.save(this, args[0]);
-                    } else {
-                        return this;
-                    }
-                } else {
-                    return this;
-                }
-            }
-        }
-    } else if (prop === 'load') {
-        return function (...args) {
-            return _load(this, args);
-        }
     } else if (hasStateNet(definition)) {
         return function (...args) {
             return stateNetHandler.processEvent(this, obj, prop, args);
@@ -498,10 +387,6 @@ function getHandler(obj, definition, prop) {
                     return undefined;
                 }
             }
-        }
-    } else if (prop === "aiUpdate") {
-        return function (...args) {
-            return _aiUpdate(obj, args[0]);
         }
     } else {
         if (obj._persist && obj._persist.service) {
@@ -618,6 +503,15 @@ function hasAssociation(definition, aname) {
     } else {
         return false;
     }
+}
+
+function resolveLocalAssociation(association, value) {
+    if (value === null || value === undefined || typeof value !== 'string') {
+        return value;
+    }
+    const instances = global._instances?.[association.type];
+    if (!instances) return value;
+    return instances[value] || value;
 }
 
 function getAssociation(definition, aname) {
