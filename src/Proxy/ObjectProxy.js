@@ -287,7 +287,7 @@ function getHandler(obj, definition, prop) {
             return _loadAttribute(obj, prop);
         }
         return null;
-    } else if (Object.prototype.hasOwnProperty.call(obj._attributes, prop)) {
+    } else if (Object.prototype.hasOwnProperty.call(obj._attributes, prop) && !hasAssociation(obj.definition, prop)) {
         return obj._attributes[prop];
         // Check if the attribute definition is defined if so then return null
     } else if (obj._associations.hasOwnProperty(prop)) {
@@ -317,6 +317,9 @@ function getHandler(obj, definition, prop) {
                     retval[key] = resolveLocalAssociation(assocDef, retval[key]);
                 }
             }
+            if (assocDef.type === 'ARemoteReference') {
+                retval = decorateRemoteCollection(retval);
+            }
             obj._associations[prop] = retval;
             return retval;
         }
@@ -333,7 +336,9 @@ function getHandler(obj, definition, prop) {
             return null;
         } else {
             // return an empty array
-            return assoc.type === 'ARemoteReference' ? decorateRemoteCollection([]) : [];
+            return assoc.type === 'ARemoteReference'
+                ? decorateRemoteCollection(obj._attributes[prop] || [])
+                : (obj._attributes[prop] || []);
         }
     } else if (prop === 'toString') {
         return function (...args) {
@@ -402,7 +407,9 @@ function getHandler(obj, definition, prop) {
 }
 
 function decorateRemoteCollection(items) {
-    const collection = Array.isArray(items) ? items : (items ? [items] : []);
+    const collection = Array.isArray(items)
+        ? items
+        : (items && typeof items === 'object' ? Object.values(items) : (items ? [items] : []));
     if (!Object.prototype.hasOwnProperty.call(collection, 'resolveAll')) {
         Object.defineProperty(collection, 'resolveAll', {
             enumerable: false,

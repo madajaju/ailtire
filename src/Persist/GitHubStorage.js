@@ -4,6 +4,12 @@ const path = require('path');
 const objectProxy = require('../Proxy/ObjectProxy');
 const { GitHubStorageProvider, ExternalStorageProvider, AzureBlobStorageProvider, S3StorageProvider, MultiStorageProvider } = require('./StorageProviders');
 
+const LARGE_FILE_EXTENSIONS = new Set(['.mp4', '.mov', '.avi', '.mp3', '.wav']);
+const BINARY_FILE_EXTENSIONS = new Set([
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg',
+    '.mp4', '.mov', '.webm', '.m4v', '.avi', '.mp3', '.wav', '.m4a'
+]);
+
 class GitHubStorage {
     constructor(config) {
         this.config = config;
@@ -163,8 +169,7 @@ class GitHubStorage {
         }
 
         const ext = path.extname(fileName || '').toLowerCase();
-        const largeExtensions = ['.mp4', '.mov', '.avi', '.mp3', '.wav'];
-        if (largeExtensions.includes(ext)) {
+        if (LARGE_FILE_EXTENSIONS.has(ext)) {
             return 'external';
         }
         return null;
@@ -379,8 +384,7 @@ class GitHubStorage {
 
         // Legacy heuristic fallback.
         const ext = path.extname(fileName || '').toLowerCase();
-        const largeExtensions = ['.mp4', '.mov', '.avi', '.mp3', '.wav'];
-        if (largeExtensions.includes(ext)) {
+        if (LARGE_FILE_EXTENSIONS.has(ext)) {
             return this.externalProvider;
         }
 
@@ -417,16 +421,8 @@ class GitHubStorage {
         }
     }
 
-    async loadInstanceFromData(modelClass, data, itemDir) {
-        modelClass = this.getModelClass(modelClass.definition.name);
-        // Concrete channels declare only their channel-specific fields. Use
-        // the merged definition so inherited AbstractChannel attributes and
-        // associations are hydrated as well.
-        const definition = getEffectiveDefinition(modelClass.definition);
-        const instanceData = {};
-        const fileId = path.basename(itemDir || '').replace(/\s/g, '-');
-
-        // 1. Load attributes
+    loadAttributes(definition, data, itemDir) {
+        const attributes = {};
         for (let attrName in definition.attributes) {
             const attr = definition.attributes[attrName];
             const valueInIndex = data[attrName];
@@ -438,149 +434,145 @@ class GitHubStorage {
 
             if (isExternal) {
                 if (valueInIndex) {
-                    instanceData['_' + attrName + '_file'] = valueInIndex;
+                    attributes['_' + attrName + '_file'] = valueInIndex;
                     // Content is NOT loaded here - will be loaded on demand via loadAttribute
                 }
             } else {
                 if (data[attrName] !== undefined && data[attrName] !== null) {
-                    instanceData[attrName] = data[attrName];
+                    attributes[attrName] = data[attrName];
                 }
                 // Fallback for bio.md if type is string
                 if (attrName === 'bio' && typeof data[attrName] === 'string' && data[attrName].endsWith('.md')) {
                     const bioPath = path.join(itemDir, data[attrName]);
                     if (fs.existsSync(bioPath)) {
-                        instanceData[attrName] = fs.readFileSync(bioPath, 'utf-8');
-                        instanceData['_' + attrName + '_file'] = data[attrName];
+                        attributes[attrName] = fs.readFileSync(bioPath, 'utf-8');
+                        attributes['_' + attrName + '_file'] = data[attrName];
                     }
                 }
             }
         }
 
-        if (instanceData.id === undefined || instanceData.id === null || instanceData.id === '') {
-            instanceData.id = data.id || fileId;
+        if (attributes.id === undefined || attributes.id === null || attributes.id === '') {
+            attributes.id = data.id || path.basename(itemDir || '').replace(/\s/g, '-');
         }
+        return attributes;
+    }
 
-        // 2. Load associations
-        for (let assocName in definition.associations) {
-            const assoc = definition.associations[assocName];
-            const childClass = this.getModelClass(assoc.type);
-            if (assoc.type === 'ARemoteReference' && data[assocName]) {
-                const values = assoc.cardinality === 1
-                    ? [data[assocName]]
-                    : this.getAssociationDataItems(data[assocName], assoc);
-                const references = values.map(value => {
-                    if (!value) return null;
-                    const reference = typeof value === 'object'
-                        ? { ...value, service: value.service || assoc.service, type: value.type || assoc.remoteType }
-                        : { rid: value, service: assoc.service, type: assoc.remoteType };
-                    const remoteReference = childClass
-                        ? new childClass({ ...reference, _loading: true })
-                        : reference;
-                    if (assoc.service) {
-                        if (remoteReference?._attributes) {
-                            remoteReference._attributes.service = remoteReference._attributes.service || assoc.service;
-                        } else {
-                            remoteReference.service = remoteReference.service || assoc.service;
-                        }
-                    }
-                    return remoteReference;
-                }).filter(Boolean);
-                instanceData[assocName] = assoc.cardinality === 1 ? references[0] : references;
-            } else if (assoc.owner && assoc.composition) {
-                // Loaded from JSON
-                if(!data[assocName]) {
-                    continue;
-                }
-                const childrenData = data[assocName];
-                if (childrenData) {
-                    if (assoc.cardinality === 1) {
-                        const childId = childClass ? this.getDataFileName(childrenData) : 'item';
-                        const childDir = path.join(itemDir, assocName, childId);
-                        const child = childClass ? await this.loadInstanceFromData(childClass, childrenData, childDir) : childrenData;
-                        if (child !== null && child !== undefined) {
-                            instanceData[assocName] = child;
-                        }
-                    } else {
-                        // Support both array and map (backward compatibility)
-                        const dataArray = Array.isArray(childrenData) ? childrenData : Object.entries(childrenData).map(([key, val]) => {
-                            if (typeof val === 'string' && assoc.type === 'SocialHandle') {
-                                return { stype: key, name: val };
-                            }
-                            return val;
-                        });
-                        const seenChildIds = new Set();
-                        const uniqueDataArray = dataArray.filter(childData => {
-                            if (childData === null || childData === undefined) return false;
-                            const childId = this.getDataFileName(childData);
-                            if (seenChildIds.has(childId)) return false;
-                            seenChildIds.add(childId);
-                            return true;
-                        });
-                        instanceData[assocName] = [];
-                        for (const childData of uniqueDataArray) {
-                            if (!childClass) {
-                                instanceData[assocName].push(childData);
-                                continue;
-                            }
-                            const childId = this.getDataFileName(childData);
-                            const childDir = path.join(itemDir, assocName, childId);
-                            const child = await this.loadInstanceFromData(childClass, childData, childDir);
-                            if (child !== null && child !== undefined) {
-                                instanceData[assocName].push(child);
-                            }
-                        }
-                    }
-                }
-            } else if (assoc.owner && !assoc.composition) {
-                // Loaded from subdirectory
-                const assocDir = path.join(itemDir, assocName);
-                let children = [];
-                if (fs.existsSync(assocDir)) {
-                    const entries = fs.readdirSync(assocDir, { withFileTypes: true });
-                    for (const entry of entries) {
-                        if (entry.isDirectory()) {
-                            const childDir = path.join(assocDir, entry.name);
-                            const child = childClass ? await this.loadItem(childClass, childDir) : null;
-                            if (child) children.push(child);
-                        }
-                    }
-                }
+    async loadAssociations(definition, data, itemDir) {
+        const associations = {};
+        const loadRemoteReference = (value, assoc) => {
+            if (value === undefined || value === null) return null;
+            if (value?.definition?.name === 'ARemoteReference') return value;
 
-                if (children.length === 0 && data[assocName]) {
-                    const legacyChildren = this.getAssociationDataItems(data[assocName], assoc);
-                    for (const childData of legacyChildren) {
-                        if (!childClass) {
-                            children.push(childData);
-                            continue;
-                        }
-                        const childId = this.getDataFileName(childData);
-                        const childDir = path.join(assocDir, childId);
-                        const child = await this.loadInstanceFromData(childClass, childData, childDir);
-                        if (child !== null && child !== undefined) {
-                            children.push(child);
-                        }
-                    }
-                }
+            const source = value && typeof value === 'object' ? value : { rid: value };
+            const rid = String(source.rid || source.id || source.name || '');
+            const reference = {
+                rid,
+                type: assoc.remoteType,
+                remoteType: assoc.remoteType,
+                service: assoc.service,
+                displayName: assoc.name,
+            };
+            if (!reference.rid) return null;
+            return new ARemoteReference({ ...reference, _loading: true });
+        };
 
-                if (children.length > 0) {
-                    if (assoc.cardinality === 1) {
-                        instanceData[assocName] = children[0];
-                    } else {
-                        instanceData[assocName] = children;
-                    }
+        // Only owned associations are hydrated here;
+        // non-owned associations remain as persisted references for the final
+        // resolution pass once every model has been loaded.
+        for (const [assocName, assoc] of Object.entries(definition.associations || {})) {
+            const value = data[assocName];
+            if (assoc.type === 'ARemoteReference') {
+                if (assoc.cardinality === 1) {
+                    const reference = loadRemoteReference(value, assoc);
+                    if (reference) associations[assocName] = reference;
+                } else if (Array.isArray(value)) {
+                    associations[assocName] = value.map(item => loadRemoteReference(item, assoc)).filter(Boolean);
+                } else if (value && typeof value === 'object') {
+                    associations[assocName] = Object.fromEntries(
+                        Object.entries(value)
+                            .map(([key, item]) => [key, loadRemoteReference(item, assoc)])
+                            .filter(([, item]) => item)
+                    );
                 }
-            } else if (!assoc.owner && assoc.type !== 'ARemoteReference' && data[assocName]) {
-                // Keep local references as IDs during phase one. All model files
-                // are registered before resolveAllAssociations links these values
-                // to the canonical objects in global._instances.
-                instanceData[assocName] = this.normalizeAssociationReference(data[assocName], assoc);
-            } else if (!assoc.owner) {
-                // Non-owned relationships are references/queries. Do not hydrate them into
-                // _associations; ObjectProxy resolves service/via associations lazily.
                 continue;
             }
-        }
+            if (!assoc.owner) {
+                if (value !== undefined && value !== null) associations[assocName] = value;
+                continue;
+            }
 
+            const childClass = this.getModelClass(assoc.type);
+            const assocDir = path.join(itemDir, assocName);
+            const loadChild = async (childData, childDir) => {
+                if (childData === undefined || childData === null) return null;
+                return childClass
+                    ? this.loadInstanceFromData(childClass, childData, childDir)
+                    : childData;
+            };
+
+            if (assoc.cardinality === 1) {
+                if (assoc.composition) {
+                    const childId = childClass ? this.getDataFileName(value) : 'item';
+                    const child = await loadChild(value, path.join(assocDir, childId));
+                    if (child !== null) associations[assocName] = child;
+                } else if (fs.existsSync(assocDir)) {
+                    const entry = fs.readdirSync(assocDir, { withFileTypes: true }).find(entry => entry.isDirectory());
+                    if (entry) associations[assocName] = await this.loadItem(childClass, path.join(assocDir, entry.name));
+                }
+                continue;
+            }
+
+            const source = assoc.composition ? value : null;
+            const entries = source
+                ? (Array.isArray(source) ? source.map((child, index) => [index, child]) : Object.entries(source))
+                : (fs.existsSync(assocDir)
+                    ? fs.readdirSync(assocDir, { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => [entry.name, null])
+                    : []);
+            const loaded = assoc.uniq ? {} : [];
+            for (const [key, childData] of entries) {
+                const childId = childData ? this.getDataFileName(childData) : key;
+                const child = assoc.composition
+                    ? await loadChild(childData, path.join(assocDir, childId))
+                    : await this.loadItem(childClass, path.join(assocDir, childId));
+                if (child === null || child === undefined) continue;
+                if (!assoc.uniq) {
+                    loaded.push(child);
+                    continue;
+                }
+
+                const uniqueKey = typeof assoc.uniq === 'function'
+                    ? assoc.uniq(child)
+                    : child.id;
+                loaded[String(uniqueKey ?? childData?.id ?? childId)] = child;
+            }
+            if (Object.keys(loaded).length || loaded.length) associations[assocName] = loaded;
+        }
+        return associations;
+    }
+
+    async loadInstanceFromData(modelClass, data, itemDir) {
+        modelClass = this.getModelClass(modelClass.definition.name);
+        // Concrete channels declare only their channel-specific fields. Use
+        // the merged definition so inherited AbstractChannel attributes and
+        // associations are hydrated as well.
+        const definition = getEffectiveDefinition(modelClass.definition);
+        const instanceData = {
+            ...this.loadAttributes(definition, data, itemDir),
+            ...(await this.loadAssociations(definition, data, itemDir))
+        };
+
+        // Associations are loaded separately from attributes. Do not pass
+        // them through the constructor: association initialization may merge
+        // or otherwise transform values that are already hydrated.
+        const loadedAssociations = {};
+        for (const associationName of Object.keys(definition.associations || {})) {
+            if (Object.prototype.hasOwnProperty.call(instanceData, associationName)) {
+                loadedAssociations[associationName] = instanceData[associationName];
+                delete instanceData[associationName];
+            }
+        }
+        // Items that are stored as external files are not passed through the constructor.
         const fileAttributes = {};
         for (let attrName in definition.attributes) {
             const fieldName = '_' + attrName + '_file';
@@ -595,11 +587,13 @@ class GitHubStorage {
         // property, so do not inspect prototype to recover the constructor.
         // The supplied class/proxy is itself constructable.
         const modelCtor = modelClass;
+        
         // The ClassProxy assigns constructor arguments (including composed
         // associations) and then normally invokes create(), which assigns
         // those associations a second time. Mark this as hydration so the
         // constructor skips the create lifecycle while loading persisted data.
         let instance = new modelCtor({ ...instanceData, _loading: true });
+        
         // Some model registries expose the raw constructor rather than the
         // ClassProxy. Keep the persistence registry consistent by wrapping
         // raw hydrated instances before they are returned or cached.
@@ -615,69 +609,22 @@ class GitHubStorage {
         if (!instance.definition) {
             instance.definition = modelCtor.definition || modelClass.definition;
         }
+        
         Object.defineProperty(instance, 'definition', {
             value: definition,
             writable: true,
             configurable: true,
             enumerable: true
         });
+        // set the state from the file
         if (data && Object.prototype.hasOwnProperty.call(data, '_state')) {
             instance._state = data._state;
         } else if (instance._state === undefined || instance._state === null || instance._state === '') {
             instance._state = 'Init';
         }
-        const loadedAssociations = {};
-        for (const associationName of Object.keys(definition.associations || {})) {
-            if (Object.prototype.hasOwnProperty.call(instanceData, associationName)) {
-                loadedAssociations[associationName] = instanceData[associationName];
-            }
-        }
-        // Association values belong in _associations, never in _attributes.
-        // Keeping a local non-owned association such as Campaign.brand here
-        // would make ObjectProxy return the persisted ID string directly.
-        for (const associationName of Object.keys(definition.associations || {})) {
-            delete instanceData[associationName];
-        }
-        // `instance` is normally an ObjectProxy. Assigning `_attributes` or
-        // `_associations` through that proxy writes a private field into the
-        // attribute bag instead of replacing the actual backing objects.
-        // Mutate the existing bags so associations remain real associations.
-        const hydratedAttributes = instance._attributes;
-        for (const key of Object.keys(hydratedAttributes)) {
-            delete hydratedAttributes[key];
-        }
-        Object.assign(hydratedAttributes, instanceData);
-        const hydratedAssociations = instance._associations || {};
-        if (!instance._associations) {
-            Object.defineProperty(instance, '_associations', {
-                value: hydratedAssociations,
-                writable: true,
-                configurable: true,
-                enumerable: false
-            });
-        }
-        for (const key of Object.keys(hydratedAssociations)) {
-            delete hydratedAssociations[key];
-        }
-        for (const [associationName, associationValue] of Object.entries(loadedAssociations)) {
-            hydratedAssociations[associationName] = associationValue?._proxy || associationValue;
-        }
-        for (let key in instanceData) {
-            // The proxied constructor already hydrates associations from the
-            // constructor arguments. Assigning them again here causes owned
-            // composed collections (for example Campaign.ctas and
-            // Campaign.phases) to be appended a second time.
-            if (definition.associations && Object.prototype.hasOwnProperty.call(definition.associations, key)) {
-                continue;
-            }
-            if (instanceData[key] !== undefined && instanceData[key] !== null) {
-                try {
-                    instance[key] = instanceData[key];
-                } catch (e) {
-                    // Ignore proxy set errors for missing attributes
-                }
-            }
-        }
+        // ClassProxy/ObjectProxy have already hydrated the attributes passed
+        // to the constructor. Only install associations here, once.
+        Object.assign(instance._associations || (instance._associations = {}), loadedAssociations);
         this.setStorageDir(instance, itemDir);
         for (let attrName in fileAttributes) {
             this.setAttributeFile(instance, attrName, fileAttributes[attrName]);
@@ -691,20 +638,6 @@ class GitHubStorage {
         }
         global._instances[modelName][instance.id] = instance;
         return instance;
-    }
-
-    normalizeAssociationReference(value, assoc) {
-        const normalizeOne = (item) => {
-            if (item === null || item === undefined) return item;
-            if (typeof item !== 'object') return item;
-            return item.id || item.name || item._id || item._clsName && item._file || item;
-        };
-        if (assoc.cardinality === 1) return normalizeOne(value);
-        if (Array.isArray(value)) return value.map(normalizeOne).filter(Boolean);
-        if (typeof value === 'object') {
-            return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalizeOne(item)]));
-        }
-        return value;
     }
 
     resolveAllAssociations() {
@@ -722,11 +655,13 @@ class GitHubStorage {
             if (assoc.owner || assoc.type === 'ARemoteReference') continue;
             const raw = instance._associations?.[assocName];
             if (raw === undefined || raw === null) continue;
-            const table = instances[assoc.type] || {};
+            const table = instances[assoc.type];
             const resolve = (value) => {
                 if (value && typeof value === 'object' && value.definition) return value;
                 const id = typeof value === 'object' ? value.id : value;
-                return table[id] || value;
+                if (!id || !table || typeof table !== 'object') return value;
+                if (typeof id !== 'string' && typeof id !== 'number') return value;
+                return table[String(id)] || value;
             };
             if (assoc.cardinality === 1) {
                 instance._associations[assocName] = resolve(raw);
@@ -761,7 +696,10 @@ class GitHubStorage {
 
     getDataFileName(data) {
         if (data && typeof data === 'object') {
-            return String(data.id || data.name || "unknown").replace(/\s/g, '-');
+            const attributes = data._attributes && typeof data._attributes === 'object'
+                ? data._attributes
+                : {};
+            return String(data.id || data.name || attributes.id || attributes.name || "unknown").replace(/\s/g, '-');
         }
         return "unknown";
     }
@@ -913,11 +851,7 @@ class GitHubStorage {
 
     isBinaryFile(fileName) {
         const ext = path.extname(fileName || '').toLowerCase();
-        return new Set([
-            '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg',
-            '.mp4', '.mov', '.webm', '.m4v', '.avi',
-            '.mp3', '.wav', '.m4a'
-        ]).has(ext);
+        return BINARY_FILE_EXTENSIONS.has(ext);
     }
 
     looksBase64(content) {
