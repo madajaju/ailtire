@@ -6,7 +6,7 @@ const {execSync} = require('child_process');
 
 class AService {
     constructor(opts) {
-        this.name = opts.name;
+        this.name = String(opts.name || '').toLowerCase();
         this.type = opts.type;
         this.image = opts.image;
         this.volumes = opts.volumes;

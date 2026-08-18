@@ -727,15 +727,13 @@ async function _load(obj, args) {
     if (cls.definition.methods.hasOwnProperty('load')) {
 
         let retval = await funcHandler.run(cls.definition.methods['load'], obj, args[0]);
-        retval._state = obj._state;
-        return retval;
+        return _hydrateLazyTarget(obj, retval);
     } else if (global.ailtire.config.persist) {
         const adaptor = global.ailtire.config.persist.adaptor;
         if (adaptor) {
             try {
                 let retval = await adaptor.load(obj, args[0]);
-                retval._state = obj._state;
-                return retval;
+                return _hydrateLazyTarget(obj, retval);
             } catch (error) {
                 console.error("Error in adaptor.load:", error);
                 return null; // Handle errors appropriately
@@ -743,6 +741,30 @@ async function _load(obj, args) {
         }
     }
     return null; // Fallback if no load method or adaptor exists
+}
+
+function _hydrateLazyTarget(target, loaded) {
+    if (!loaded) return null;
+
+    const loadedProxy = loaded._proxy || loaded;
+    if (loadedProxy === target) {
+        target._persist = {...(target._persist || {}), _notLoaded: false};
+        return loadedProxy;
+    }
+
+    // `target` is the raw object behind the ObjectProxy handler. Assigning
+    // these fields directly updates the existing proxy identity rather than
+    // replacing the association with another raw object.
+    if (loaded._attributes) target._attributes = loaded._attributes;
+    if (loaded._associations) target._associations = loaded._associations;
+    if (loaded.definition) target.definition = loaded.definition;
+    if (loaded._state !== undefined) target._state = loaded._state;
+    target._persist = {
+        ...(loaded._persist || target._persist || {}),
+        _notLoaded: false
+    };
+
+    return loadedProxy;
 }
 
 function _update(obj, inputs) {

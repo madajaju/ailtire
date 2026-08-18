@@ -409,7 +409,10 @@ class GitHubStorage {
 
     async loadInstanceFromData(modelClass, data, itemDir) {
         modelClass = this.getModelClass(modelClass.definition.name);
-        const definition = modelClass.definition;
+        // Concrete channels declare only their channel-specific fields. Use
+        // the merged definition so inherited AbstractChannel attributes and
+        // associations are hydrated as well.
+        const definition = getEffectiveDefinition(modelClass.definition);
         const instanceData = {};
         const fileId = path.basename(itemDir || '').replace(/\s/g, '-');
 
@@ -565,7 +568,7 @@ class GitHubStorage {
                     const placeholder = new childClass({ id: assocId, _loading: true });
                     related = await this.load(placeholder);
                 }
-                if (related) instanceData[assocName] = related;
+                if (related) instanceData[assocName] = ensureObjectProxy(related);
                 else if (assocId) instanceData[assocName] = assocId;
             } else if (!assoc.owner) {
                 // Non-owned relationships are references/queries. Do not hydrate them into
@@ -608,6 +611,12 @@ class GitHubStorage {
         if (!instance.definition) {
             instance.definition = modelCtor.definition || modelClass.definition;
         }
+        Object.defineProperty(instance, 'definition', {
+            value: definition,
+            writable: true,
+            configurable: true,
+            enumerable: true
+        });
         if (data && Object.prototype.hasOwnProperty.call(data, '_state')) {
             instance._state = data._state;
         } else if (instance._state === undefined || instance._state === null || instance._state === '') {
@@ -625,10 +634,29 @@ class GitHubStorage {
         for (const associationName of Object.keys(definition.associations || {})) {
             delete instanceData[associationName];
         }
-        instance._attributes = instanceData;
-        if (!instance._associations) instance._associations = {};
+        // `instance` is normally an ObjectProxy. Assigning `_attributes` or
+        // `_associations` through that proxy writes a private field into the
+        // attribute bag instead of replacing the actual backing objects.
+        // Mutate the existing bags so associations remain real associations.
+        const hydratedAttributes = instance._attributes;
+        for (const key of Object.keys(hydratedAttributes)) {
+            delete hydratedAttributes[key];
+        }
+        Object.assign(hydratedAttributes, instanceData);
+        const hydratedAssociations = instance._associations || {};
+        if (!instance._associations) {
+            Object.defineProperty(instance, '_associations', {
+                value: hydratedAssociations,
+                writable: true,
+                configurable: true,
+                enumerable: false
+            });
+        }
+        for (const key of Object.keys(hydratedAssociations)) {
+            delete hydratedAssociations[key];
+        }
         for (const [associationName, associationValue] of Object.entries(loadedAssociations)) {
-            instance._associations[associationName] = associationValue;
+            hydratedAssociations[associationName] = associationValue?._proxy || associationValue;
         }
         for (let key in instanceData) {
             // The proxied constructor already hydrates associations from the
@@ -1259,6 +1287,35 @@ function associationReferenceId(value) {
         ? value._attributes
         : value;
     return attrs.id || value.id || attrs.rid || value.rid || attrs.name || value.name || null;
+}
+
+function getEffectiveDefinition(definition) {
+    const chain = [];
+    let current = definition;
+    while (current) {
+        chain.unshift(current);
+        if (!current.extends) break;
+        const parent = AClass.getClass({ name: current.extends });
+        current = parent?.definition || null;
+    }
+    return {
+        ...definition,
+        attributes: Object.assign({}, ...chain.map((entry) => entry.attributes || {})),
+        associations: Object.assign({}, ...chain.map((entry) => entry.associations || {}))
+    };
+}
+
+function ensureObjectProxy(value) {
+    if (!value || typeof value !== 'object') return value;
+    if (value._proxy && typeof value._proxy === 'object') {
+        return value._proxy;
+    }
+    try {
+        if (typeof value.isProxy === 'function' && value.isProxy()) return value;
+    } catch (e) {
+        // Apply the persistence proxy below.
+    }
+    return new Proxy(value, objectProxy);
 }
 
 function attachBackLinks(parent) {

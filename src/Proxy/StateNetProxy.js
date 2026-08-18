@@ -132,7 +132,7 @@ function _processTransition(statenet, currentState, transition, event, proxy, ar
     // This is the transistion action and event.
     let transistionRetVal = null;
     _executeAction(transition.action, proxy);
-    if(proxy.definition.methods.hasOwnProperty(event)) {
+    if(_findMethod(proxy.definition, event)) {
         transistionRetVal =  _runMethod(proxy, event, args);
     }
 
@@ -149,9 +149,25 @@ function _processTransition(statenet, currentState, transition, event, proxy, ar
 }
 
 function _runMethod(proxy, event, arg) {
-    if (proxy.definition.methods.hasOwnProperty(event)) {
-        return funcHandler.run(proxy.definition.methods[event], proxy, arg);
+    const method = _findMethod(proxy.definition, event);
+    if (method) {
+        return funcHandler.run(method, proxy, arg);
     }
+}
+
+// Resolve methods using normal override semantics: the concrete model wins,
+// then each superclass is searched until the inherited method is found.
+function _findMethod(definition, methodName) {
+    let current = definition;
+    while (current) {
+        if (current.methods && Object.prototype.hasOwnProperty.call(current.methods, methodName)) {
+            return current.methods[methodName];
+        }
+        if (!current.extends) break;
+        const parent = AClass.getClass({ name: current.extends });
+        current = parent?.definition || null;
+    }
+    return null;
 }
 
 // Get the statenet of the parent model.
