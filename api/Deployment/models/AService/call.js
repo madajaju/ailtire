@@ -80,14 +80,30 @@ const _invoke = async (service, actionName, opts) => {
             return response.data;
         } catch (e) {
             console.error(`Attempt ${attempts}/${retry} failed for POST ${url}:`, e.message);
-            if(attempts > retry) {
-                service.launchContainer();
+            if (!isRetryableRequestError(e) || attempts >= retry) {
+                throw e;
             }
+
+            service.launchContainer();
             await new Promise(res => setTimeout(res, 1000)); // Delay 1 second
         }
     }
     throw new Error(`Failed to POST ${url} after ${retry} attempts.`);
 }
+
+function isRetryableRequestError(error) {
+    // Network errors do not have an HTTP response, so retry them.
+    if (!error?.response) {
+        return true;
+    }
+
+    const status = error.response.status;
+
+    // Retry timeouts, rate limits, and server errors. Client errors such as
+    // 400, 401, 403, and 404 should be returned immediately.
+    return status === 408 || status === 429 || status >= 500;
+}
+
 const _findInterface = (service, actionName) => {
     // Find the service.interface[path] that is a subset of the actionName
     for(let path in service.interface) {
