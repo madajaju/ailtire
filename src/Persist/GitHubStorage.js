@@ -2,6 +2,7 @@ const fs = require('fs');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const objectProxy = require('../Proxy/ObjectProxy');
+const AClass = require('../Server/AClass');
 const { GitHubStorageProvider, ExternalStorageProvider, AzureBlobStorageProvider, S3StorageProvider, MultiStorageProvider } = require('./StorageProviders');
 
 const LARGE_FILE_EXTENSIONS = new Set(['.mp4', '.mov', '.avi', '.mp3', '.wav']);
@@ -23,6 +24,7 @@ class GitHubStorage {
             : path.resolve(this.localDir || this.clonePath || '.', 'external_storage');
         this.modelPaths = {};
         this.modelClasses = {};
+        this.loadedModelNames = new Set();
         this.providers = [];
         this.providerMap = {};
         this.blobStorageConfig = this.normalizeBlobStorageConfig(config.blobStorage || config.blobStorageConfig || config.blobs || {});
@@ -204,6 +206,8 @@ class GitHubStorage {
 
     async loadAll(modelClass, subDir) {
         if (!modelClass) {
+
+            console.log(`Loading all classes:`);
             const results = {};
             const registered = Object.keys(this.modelPaths);
             if (registered.length > 0) {
@@ -217,6 +221,7 @@ class GitHubStorage {
                 return results;
             }
 
+            /*
             if (global.classes) {
                 for (const modelName of Object.keys(global.classes)) {
                     const cls = this.getModelClass(modelName);
@@ -227,7 +232,10 @@ class GitHubStorage {
             }
             this.resolveAllAssociations();
             return results;
+            
+             */
         }
+        console.log(`Loading all instances for model class: ${modelClass.name}`);
 
         const resolvedClass = this.resolveModelClass(modelClass);
         const modelName = this.resolveModelName(resolvedClass);
@@ -239,6 +247,7 @@ class GitHubStorage {
 
         if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isDirectory()) {
             console.error(`${modelName} directory does not exist:`, fullPath);
+            this.loadedModelNames.add(modelName);
             return [];
         }
 
@@ -253,7 +262,6 @@ class GitHubStorage {
                 if (item) results.push(item);
             }
         }
-        this.resolveAllAssociations();
         return results;
     }
 
@@ -593,6 +601,20 @@ class GitHubStorage {
         // those associations a second time. Mark this as hydration so the
         // constructor skips the create lifecycle while loading persisted data.
         let instance = new modelCtor({ ...instanceData, _loading: true });
+
+        // ClassProxy validates constructor assignments against the concrete
+        // class definition.  That definition may not expose inherited
+        // attributes, even though `definition` above was merged for
+        // persistence.  Restore all loaded attributes directly so parent
+        // fields (for example AbstractChannel.accountID/accountInfo) are not
+        // lost during construction.
+        if (instance._attributes && instanceData) {
+            for (const [attrName, value] of Object.entries(instanceData)) {
+                if (!attrName.startsWith('_')) {
+                    instance._attributes[attrName] = value;
+                }
+            }
+        }
         
         // Some model registries expose the raw constructor rather than the
         // ClassProxy. Keep the persistence registry consistent by wrapping
@@ -641,6 +663,7 @@ class GitHubStorage {
     }
 
     resolveAllAssociations() {
+        
         const instances = global._instances || {};
         for (const [modelName, modelInstances] of Object.entries(instances)) {
             for (const instance of Object.values(modelInstances || {})) {
@@ -658,10 +681,15 @@ class GitHubStorage {
             const table = instances[assoc.type];
             const resolve = (value) => {
                 if (value && typeof value === 'object' && value.definition) return value;
-                const id = typeof value === 'object' ? value.id : value;
-                if (!id || !table || typeof table !== 'object') return value;
-                if (typeof id !== 'string' && typeof id !== 'number') return value;
-                return table[String(id)] || value;
+                const id = typeof value === 'object' ? (value.id || value.name) : value;
+                if (id === undefined || id === null) return value;
+                if (table?.[String(id)]) return table[String(id)];
+                const inheritedInstances = AClass.getInstances(assoc.type);
+                if(Object.keys(inheritedInstances).length > 0) {
+                    let retval = inheritedInstances?.[String(id)] || value;
+                    return retval;
+                }
+                return value;
             };
             if (assoc.cardinality === 1) {
                 instance._associations[assocName] = resolve(raw);
@@ -1278,7 +1306,7 @@ function getEffectiveDefinition(definition) {
     while (current) {
         chain.unshift(current);
         if (!current.extends) break;
-        const parent = AClass.getClass({ name: current.extends });
+        const parent = AClass.getClass(current.extends);
         current = parent?.definition || null;
     }
     return {

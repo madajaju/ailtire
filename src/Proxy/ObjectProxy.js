@@ -513,12 +513,14 @@ function hasAssociation(definition, aname) {
 }
 
 function resolveLocalAssociation(association, value) {
-    if (value === null || value === undefined || typeof value !== 'string') {
+    if (value === null || value === undefined) {
         return value;
     }
-    const instances = global._instances?.[association.type];
-    if (!instances) return value;
-    return instances[value] || value;
+    if(typeof value === 'string') {
+        const instances = global._instances?.[association.type];
+        if (instances?.[value]) return instances[value];
+    }
+    return value;
 }
 
 function getAssociation(definition, aname) {
