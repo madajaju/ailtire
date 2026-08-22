@@ -87,12 +87,13 @@ module.exports = {
                 console.error("Cannot add multiple items to a single association");
                 return false;
             }
+            const item = resolveAssociationInstance(obj.type, inputs.item);
             let associationType = global.classes[obj.type];
             try {
-                if (inputs.item.isTypeOf({name: associationType.definition.name})) {
-                    parent._associations[obj.name] = inputs.item;
+                if (item && item.isTypeOf({name: associationType.definition.name})) {
+                    parent._associations[obj.name] = item;
                     parent._persist = {dirty: true};
-                    return parent_associations[obj.name];
+                    return parent._associations[obj.name];
                 } else {
                     console.error("Assignment is the wrong type: ", obj.type, " expected, recieved ", inputs.item.definition.name);
                     return obj.item;
@@ -126,3 +127,26 @@ module.exports = {
     }
 };
 
+function resolveAssociationInstance(type, value) {
+    if (value === undefined || value === null) return value;
+    const typeName = typeof type === 'string'
+        ? type
+        : type?.name || type?._attributes?.name || type?.definition?.name;
+    if (!typeName) return value;
+    let id;
+    if (typeof value === 'string' || typeof value === 'number') {
+        id = String(value);
+    } else if (typeof value === 'object' || typeof value === 'function') {
+        id = value.id || value._attributes?.id || value.name || value._attributes?.name;
+    }
+    if (id === undefined || id === null || id === '') return value;
+    id = typeof id === 'string' || typeof id === 'number' ? String(id) : null;
+    if (!id) return value;
+    const direct = global._instances?.[typeName]?.[id];
+    if (direct) return direct;
+    for (const childName of global.classes?.[typeName]?.definition?.subClasses || []) {
+        const child = global._instances?.[childName]?.[id];
+        if (child) return child;
+    }
+    return value;
+}

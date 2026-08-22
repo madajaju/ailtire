@@ -207,7 +207,8 @@ function _handleExitActions(stateObj, proxy) {
 
 function _handleEntryActions(statenet, stateObj, proxy) {
     if(!stateObj) {
-       throw new Error("Invalid State transition. Trying to move to a state that does not exist.");
+       // throw new Error("Invalid State transition. Trying to move to a state that does not exist.");
+        console.error("Invalid State transition. Trying to move to a state that does not exist.", stateObj );
     }
     if (stateObj.hasOwnProperty('actions') && stateObj.actions.hasOwnProperty('entry')) {
         for (let aname in stateObj.actions.entry) {
