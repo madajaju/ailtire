@@ -1,4 +1,4 @@
-FROM docker:latest
+FROM docker:29.2.0-dind-alpine3.23
 
 WORKDIR /usr/src/app
 
