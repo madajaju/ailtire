@@ -8,6 +8,30 @@ const path = require("path");
 const fs = require("fs");
 const axios = require('axios');
 
+// Return the definition visible to an instance, including inherited fields.
+// Child definitions override parent definitions with the same name.
+function getDefinition(definition) {
+    if (!definition) return {attributes: {}, associations: {}};
+    const chain = [];
+    const visited = new Set();
+    let current = definition;
+    while (current && !visited.has(current.name)) {
+        visited.add(current.name);
+        chain.unshift(current);
+        if (!current.extends) break;
+        const parentClass = (typeof AClass !== 'undefined' && AClass.getClass)
+            ? (AClass.getClass({name: current.extends}) || AClass.getClass(current.extends))
+            : null;
+        const parent = parentClass || (typeof global !== 'undefined' ? global[current.extends] : null);
+        current = parent?.definition || null;
+    }
+    return {
+        ...definition,
+        attributes: Object.assign({}, ...chain.map(item => item.attributes || {})),
+        associations: Object.assign({}, ...chain.map(item => item.associations || {}))
+    };
+}
+
 module.exports = {
     get: (obj, prop) => {
         // Check and set _attributes and _associations
@@ -59,17 +83,18 @@ module.exports = {
             console.error("Missing \"definition\" property value for ", obj);
             return false;
         }
-        if (obj.definition.hasOwnProperty('attributes')) {
-            if (obj.definition.attributes.hasOwnProperty(prop)) {
+        const effectiveDefinition = getDefinition(obj.definition);
+        if (effectiveDefinition.hasOwnProperty('attributes')) {
+            if (effectiveDefinition.attributes.hasOwnProperty(prop)) {
                 // Check for attributes first
-                if (typeof value === obj.definition.attributes[prop].type) {
+                if (typeof value === effectiveDefinition.attributes[prop].type) {
                     obj._attributes[prop] = value;
                     obj._persist = {dirty: true};
-                } else if (typeof value === 'object' && obj.definition.attributes[prop].type === 'json') {
+                } else if (typeof value === 'object' && effectiveDefinition.attributes[prop].type === 'json') {
                     obj._attributes[prop] = value;
                     obj._persist = {dirty: true};
                 } else {
-                    // console.error("Data Type Mismatch: ", prop, " wants a ", obj.definition.attributes[prop], " but got ", typeof value);
+                    // console.error("Data Type Mismatch: ", prop, " wants a ", getDefinition(obj.definition).attributes[prop], " but got ", typeof value);
                     obj._attributes[prop] = value;
                     obj._persist = {dirty: true};
                     return false;
@@ -80,10 +105,10 @@ module.exports = {
         if (!obj.hasOwnProperty('_associations')) {
             obj._associations = {};
         }
-        if (obj.definition.hasOwnProperty('associations')) {
-            if (hasAssociation(obj.definition, prop)) {
+        if (effectiveDefinition.hasOwnProperty('associations')) {
+            if (hasAssociation(effectiveDefinition, prop)) {
                 // Check for associations
-                let myAssoc = getAssociation(obj.definition, prop);
+                let myAssoc = getAssociation(effectiveDefinition, prop);
                 // Make the assignment if it is an object.
                 if (myAssoc.cardinality === 'n') {
                     return myAssoc.add({parent: obj, items: value});
@@ -278,8 +303,8 @@ function getHandler(obj, definition, prop) {
         }
     }
     // Structural property and dynamic method dispatch follow below.
-    if (obj.definition.attributes.hasOwnProperty(prop)) {
-        let attr = obj.definition.attributes[prop];
+    if (getDefinition(obj.definition).attributes.hasOwnProperty(prop)) {
+        let attr = getDefinition(obj.definition).attributes[prop];
         if(Object.prototype.hasOwnProperty.call(obj._attributes, prop)) {
             return obj._attributes[prop];
         }
@@ -436,12 +461,25 @@ function addToAssoc(simpleProp, obj, proxy, item) {
         item = toRemoteReference(item, myAssoc.service, myAssoc.remoteType);
     }
     // Make the assignment if it is an object.
-    if (Array.isArray(item) && myAssoc.cardinality === 'n') {
-        return myAssoc.add({parent: obj, items: item});
-    } else {
-        return myAssoc.add({parent: obj, item: item});
+    const items = Array.isArray(item) && myAssoc.cardinality === 'n' ? item : [item];
+    const retval = Array.isArray(item) && myAssoc.cardinality === 'n'
+        ? myAssoc.add({parent: obj, items: item})
+        : myAssoc.add({parent: obj, item: item});
+    if (myAssoc.owner) {
+        for (const child of items) {
+            if (!child || typeof child !== 'object' || !child.definition) continue;
+            Object.defineProperty(child, '_owner', {
+                configurable: true, enumerable: false, writable: true,
+                value: {parent: proxy, association: simpleProp, composition: !!myAssoc.composition}
+            });
+            if (typeof child.save === 'function') {
+                Promise.resolve(child.save()).catch(error => {
+                    console.error(`Unable to save owned association ${simpleProp}:`, error.message);
+                });
+            }
+        }
     }
-    return child;
+    return retval;
 }
 
 function toRemoteReference(item, service, remoteType) {
@@ -449,7 +487,6 @@ function toRemoteReference(item, service, remoteType) {
     const attrs = item?._attributes && typeof item._attributes === 'object' ? item._attributes : (item || {});
     const rid = attrs.rid || item?.rid || attrs.id || item?.id || attrs.name || item?.name;
     if (!rid) throw new Error(`Cannot add a remote reference without a remote id. ${item}`);
-    const Reference = AClass.getClass({name: 'ARemoteReference'});
     const data = {
         service: attrs.service || service,
         type: attrs.type || remoteType || 'RemoteObject',
@@ -462,7 +499,7 @@ function toRemoteReference(item, service, remoteType) {
         },
         snapShotDate: attrs.snapShotDate || item?.snapShotDate || new Date()
     };
-    return Reference ? new Reference(data) : data;
+    return new ARemoteReference(data);
 }
 
 // This needs to handle looking at extends until there isn't one anymore.
@@ -502,14 +539,8 @@ function hasStateNet(definition) {
 }
 
 function hasAssociation(definition, aname) {
-    if (definition.associations.hasOwnProperty(aname)) {
-        return true;
-    } else if (definition.hasOwnProperty('extends')) {
-        let parent = AClass.getClass({name: definition.extends});
-        return hasAssociation(parent.definition, aname);
-    } else {
-        return false;
-    }
+    const effectiveDefinition = getDefinition(definition);
+    return Object.prototype.hasOwnProperty.call(effectiveDefinition.associations || {}, aname);
 }
 
 function resolveLocalAssociation(association, value) {
@@ -524,23 +555,21 @@ function resolveLocalAssociation(association, value) {
 }
 
 function getAssociation(definition, aname) {
-    if (definition.associations.hasOwnProperty(aname)) {
-        let assoc = definition.associations[aname];
+    const effectiveDefinition = getDefinition(definition);
+    if (Object.prototype.hasOwnProperty.call(effectiveDefinition.associations || {}, aname)) {
+        let assoc = effectiveDefinition.associations[aname];
         if (assoc) {
             try {
                 if (assoc.isProxy()) {
                     return assoc;
                 }
             } catch (e) {
-                definition.associations[aname] = new AAssociation(assoc);
-                definition.associations[aname].name = aname;
-                return definition.associations[aname];
+                effectiveDefinition.associations[aname] = new AAssociation(assoc);
+                effectiveDefinition.associations[aname].name = aname;
+                return effectiveDefinition.associations[aname];
             }
         }
         return null
-    } else if (definition.hasOwnProperty('extends')) {
-        let parent = AClass.getClass({name: definition.extends});
-        return getAssociation(parent.definition, aname);
     } else {
         console.log("Could not find association:", aname);
         return null;
@@ -550,7 +579,7 @@ function getAssociation(definition, aname) {
 function shallowJSON(obj) {
     let newAttributes = {id: obj._attributes.id, state: obj._state};
     for (let aname in obj._attributes) {
-        if (obj.definition.attributes.hasOwnProperty(aname)) {
+        if (getDefinition(obj.definition).attributes.hasOwnProperty(aname)) {
             // THis should check if the attribute is an object or function not the definition.
             if (typeof obj._attributes[aname] !== 'object' && typeof obj._attributes[aname] !== 'function') {
                 newAttributes[aname] = obj._attributes[aname];
@@ -805,7 +834,7 @@ async function _aiUpdate(obj, inputs) {
     let userPrompt = inputs.prompt ? inputs.prompt : '';
 
     for (let field of fields) {
-        if (obj.definition.attributes.hasOwnProperty(field) || field === "documentation") {
+        if (getDefinition(obj.definition).attributes.hasOwnProperty(field) || field === "documentation") {
             let messages = [];
             messages.push({
                 role: 'system',
@@ -824,9 +853,9 @@ async function _aiUpdate(obj, inputs) {
             message.push({role: 'user', content: userPrompt});
             let response = await AIHelper.ask(messages);
             obj[field] = response;
-        } else if (obj.definition.associations.hasOwnProperty(field)) {
+        } else if (getDefinition(obj.definition).associations.hasOwnProperty(field)) {
 
-            let assocDef = obj.definition.associations[field];
+            let assocDef = getDefinition(obj.definition).associations[field];
             const many = assocDef.cardinality === 'n';
             let assocClass = AClass.getClass({name: assocDef.type});
             let assocFormat = assocClass.schema();
@@ -972,3 +1001,4 @@ function _wrapRemoteObject(data, type, service, depth = 1) {
     const handler = require('./ObjectProxy');
     return new Proxy(obj, handler);
 }
+

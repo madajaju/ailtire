@@ -272,6 +272,7 @@ module.exports = {
         } else {
             proxy = global._instances[target.name][obj._attributes.id];
         }
+        _registerInstanceInParents(obj.definition, obj._attributes.id, proxy);
         try {
         if (!args[0].hasOwnProperty('_loading')) {
             proxy.create(args[0]);
@@ -343,6 +344,22 @@ function _findObjectInMemory(obj, name, args) {
             }
         }
         return null;
+    }
+}
+
+function _registerInstanceInParents(definition, id, proxy) {
+    const visited = new Set();
+    let current = definition;
+    while (current?.extends && !visited.has(current.extends)) {
+        visited.add(current.extends);
+        const parentClass = global.classes?.[current.extends];
+        const parentDefinition = parentClass?.definition;
+        if (!parentDefinition) break;
+        if (!global._instances[parentDefinition.name]) {
+            global._instances[parentDefinition.name] = {};
+        }
+        global._instances[parentDefinition.name][id] = proxy;
+        current = parentDefinition;
     }
 }
 

@@ -561,6 +561,11 @@ class GitHubStorage {
 
     async loadInstanceFromData(modelClass, data, itemDir) {
         modelClass = this.getModelClass(modelClass.definition.name);
+        const persistedType = data?.ptype || data?.atype;
+        if (persistedType) {
+            const persistedClass = this.getModelClass(persistedType);
+            if (persistedClass) modelClass = persistedClass;
+        }
         // Concrete channels declare only their channel-specific fields. Use
         // the merged definition so inherited AbstractChannel attributes and
         // associations are hydrated as well.
@@ -895,7 +900,7 @@ class GitHubStorage {
     }
 
     serialize(instance) {
-        const definition = instance.definition;
+        const definition = getEffectiveDefinition(instance.definition);
         if (!definition) return instance; // Fallback for plain objects
 
         const data = {
@@ -970,20 +975,27 @@ class GitHubStorage {
     async save(instance, subDir) {
         const definition = instance.definition;
         const modelName = definition.name;
-        const storedDir = this.getStorageDir(instance) || instance?._persist?.directory || null;
-        let itemDir = null;
-
-        if (storedDir) {
-            itemDir = path.isAbsolute(storedDir)
-                ? storedDir
-                : path.resolve(this.clonePath, storedDir);
-        } else {
-            if (!this.modelPaths[modelName]) {
-                this.registerModel(modelName, subDir || this.getSubDir(modelName));
+        const owner = instance?._owner;
+        if (owner?.parent && owner.parent !== instance && !instance?._persist?._savingAsComposition) {
+            if (owner.composition) {
+                owner.parent._persist = owner.parent._persist || {};
+                owner.parent._persist._savingAsComposition = true;
+                try {
+                    return await owner.parent.save();
+                } finally {
+                    delete owner.parent._persist._savingAsComposition;
+                }
             }
-            const dir = subDir || this.modelPaths[modelName] || this.getSubDir(modelName);
-            const id = this.getInstanceFileName(instance);
-            itemDir = path.resolve(this.clonePath, dir, id);
+        }
+        const ownership = this.resolveOwnership(instance);
+        if (!ownership) return;
+
+        let itemDir;
+        if (ownership.root === instance && !owner) {
+            const dir = subDir || this.modelPaths[modelName];
+            itemDir = path.resolve(this.clonePath, dir, this.getInstanceFileName(instance));
+        } else {
+            itemDir = ownership.directory;
         }
 
         await this.saveInstanceToDir(instance, itemDir);
@@ -991,6 +1003,38 @@ class GitHubStorage {
         // The local checkout is updated immediately; Git operations are
         // batched to reduce commit/push frequency.
         this.queuePush(`Update ${modelName}: ${instance.name}`);
+    }
+
+    resolveOwnership(instance) {
+        const chain = [];
+        const visited = new Set();
+        let current = instance;
+        while (current) {
+            if (visited.has(current)) {
+                console.error(`GitHubStorage: ownership cycle found while saving ${instance?.definition?.name}:${instance?.id}`);
+                return null;
+            }
+            visited.add(current);
+            const modelName = current.definition?.name;
+            if (modelName && Object.prototype.hasOwnProperty.call(this.modelPaths, modelName)) {
+                let directory = path.resolve(this.clonePath, this.modelPaths[modelName], this.getInstanceFileName(current));
+                for (let index = chain.length - 1; index >= 0; index--) {
+                    const link = chain[index];
+                    if (link.composition) {
+                        console.error(`GitHubStorage: composed object ${instance?.definition?.name}:${instance?.id} must be saved through its root ${modelName}:${current?.id}`);
+                        return null;
+                    }
+                    directory = path.join(directory, link.association, this.getInstanceFileName(link.child));
+                }
+                return {root: current, directory};
+            }
+            const link = current._owner;
+            if (!link?.parent) break;
+            chain.push({association: link.association, composition: !!link.composition, child: current});
+            current = link.parent;
+        }
+        console.error(`GitHubStorage: root could not be found for ${instance?.definition?.name}:${instance?.id}. Configure its root owner in storageConfig.modelPaths.`);
+        return null;
     }
 
     queuePush(message) {
@@ -1032,7 +1076,7 @@ class GitHubStorage {
     }
 
     async serializeForSave(instance, itemDir, options = {}) {
-        const definition = instance.definition;
+        const definition = getEffectiveDefinition(instance.definition);
         if (!definition) return instance;
 
         const customStorage = options.skipStorageHook ? null : await this.callStorageHook(instance, itemDir);
@@ -1044,7 +1088,8 @@ class GitHubStorage {
         }
 
         const data = {
-            id: this.getInstanceFileName(instance)
+            id: this.getInstanceFileName(instance),
+            ptype: definition.name
         };
 
         // 1. Attributes
@@ -1059,6 +1104,13 @@ class GitHubStorage {
             } else {
                 data[attrName] = instance[attrName];
             }
+        }
+
+        // Preserve populated inherited attributes even when a runtime class
+        // definition does not expose its full extends chain.
+        for (const [attrName, value] of Object.entries(instance._attributes || {})) {
+            if (attrName.startsWith('_') || Object.prototype.hasOwnProperty.call(data, attrName)) continue;
+            data[attrName] = value;
         }
 
         // Handle attributes that should be stored via providers
@@ -1110,7 +1162,13 @@ class GitHubStorage {
             const value = instance[assocName];
             if (!value) continue;
 
-            if (assoc.owner && assoc.composition) {
+            if (assoc.type === 'ARemoteReference') {
+                const items = assoc.cardinality === 1
+                    ? [value]
+                    : (Array.isArray(value) ? value : Object.values(value));
+                const references = items.map(item => serializeRemoteReference(item, assoc.service)).filter(Boolean);
+                data[assocName] = assoc.cardinality === 1 ? references[0] : references;
+            } else if (assoc.owner && assoc.composition) {
                 const assocDir = path.join(itemDir, assocName);
                 const items = assoc.cardinality === 1
                     ? [value]
@@ -1155,7 +1213,9 @@ class GitHubStorage {
                         };
                     } else {
                         const items = Array.isArray(value) ? value : Object.values(value);
-                        data[assocName] = items.map(item => item.id || item.name || item);
+                        data[assocName] = assoc.type === 'ARemoteReference'
+                            ? items.map(item => serializeRemoteReference(item, assoc.service)).filter(Boolean)
+                            : items.map(item => item.id || item.name || item);
                     }
                 }
             }
@@ -1279,14 +1339,7 @@ function serializeRemoteReference(item, associationService) {
     const attrs = item._attributes && typeof item._attributes === 'object' ? item._attributes : item;
     const rid = attrs.rid || item.rid || attrs.id || item.id || attrs.name || item.name;
     if (!rid) return null;
-    return {
-        service: attrs.service || item.service || associationService,
-        type: attrs.type || item.type,
-        rid: String(rid),
-        displayName: attrs.displayName || item.displayName,
-        snapshot: attrs.snapshot || item.snapshot,
-        snapShotDate: attrs.snapShotDate || item.snapShotDate
-    };
+    return String(rid);
 }
 
 // Persist non-owned cardinality-one associations by identity, including
@@ -1306,7 +1359,7 @@ function getEffectiveDefinition(definition) {
     while (current) {
         chain.unshift(current);
         if (!current.extends) break;
-        const parent = AClass.getClass(current.extends);
+        const parent = AClass.getClass(current.extends) || global[current.extends];
         current = parent?.definition || null;
     }
     return {
