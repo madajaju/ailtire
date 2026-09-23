@@ -7,7 +7,6 @@ const multer  = require('multer');
 const fs = require('fs');
 // const redis = require('socket.io-redis');
 const bodyParser = require("body-parser");
-const upload = multer({dest: '.uploads/'});
 const ASocketIOAdaptor = require('../Comms/ASocketIOAdaptor');
 
 const BootStrap = require('../../src/BootStrap');
@@ -15,14 +14,25 @@ const BootStrap = require('../../src/BootStrap');
 const {McpServer} = require('@modelcontextprotocol/sdk/server/mcp.js');
 const {StreamableHTTPServerTransport} = require("@modelcontextprotocol/sdk/server/streamableHttp.js");
 
-global.upload = upload;
 global.ailtire = global.ailtire || {};
 _instances = global._instances || {};
 
 const htmlGenerator = require('../Documentation/html');
 const Renderer = require('../Documentation/Renderer');
 let ailtireBaseDir = path.resolve(__dirname, '../..');
-ailtire = global.ailtire || { config: { baseDir: ailtireBaseDir }};
+global.ailtire.config = global.ailtire.config || {baseDir: ailtireBaseDir};
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, callback) => {
+            const uploadDir = path.resolve(
+                global.ailtire.config?.baseDir || ailtireBaseDir,
+                '.uploads'
+            );
+            fs.mkdir(uploadDir, {recursive: true}, error => callback(error, uploadDir));
+        }
+    })
+});
+global.upload = upload;
 
 // Here we are configuring express to use body-parser as middle-ware.
 
@@ -137,7 +147,7 @@ function _loadApplicationTarget(config) {
 // If the working directory is the same as the ailtire then do not load the application.
     if(ailtireBaseDir !== global.ailtire.baseDir) {
         AApplication.load({dir: config.baseDir});
-        ailtire.baseDir = ailtireBaseDir;
+        global.ailtire.baseDir = ailtireBaseDir;
     } else {
         AApplication.load({dir: global.ailtire.baseDir});
         console.log("Skipping loading");

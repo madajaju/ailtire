@@ -1,0 +1,1 @@
+module.exports = {friendlyName: 'control', static: true, inputs: {id: {type: 'string', required: true}, action: {type: 'string', required: true}}, fn: function (inputs) { const run = AWorkflowExecution.find(inputs.id); if (!run) throw new Error(`Workflow execution not found: ${inputs.id}`); return run.control({action: inputs.action}); }};

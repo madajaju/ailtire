@@ -1,0 +1,1 @@
+module.exports = {friendlyName: 'progress', static: true, inputs: {id: {type: 'string', required: true}}, fn: function (inputs) { const run = AWorkflowExecution.find(inputs.id); if (!run) throw new Error(`Workflow execution not found: ${inputs.id}`); return {progress: run.progress()}; }};
