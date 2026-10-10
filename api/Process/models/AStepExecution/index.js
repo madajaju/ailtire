@@ -16,7 +16,7 @@ class AStepExecution {
         },
         associations: {
             workflow: {type: 'AWorkflowExecution', cardinality: 1, owner: false, composition: false},
-            stepDefinition: {type: 'AActivity', cardinality: 1, owner: false, composition: false},
+            stepDefinition: {type: 'AStepDefinition', cardinality: 1, owner: false, composition: false},
             AHumanRequest: {type: 'AHumanRequest', cardinality: 1, owner: true, composition: true, via: 'step'}
         },
         statenet: {

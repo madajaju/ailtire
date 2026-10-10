@@ -1,18 +1,22 @@
 module.exports = {
     friendlyName: 'AWorkflowExecution/start', static: true,
     inputs: {
-        workflowName: {type: 'string', required: true},
-        workflowVersion: {type: 'string', required: true},
+        workflowId: {type: 'string', required: false},
+        workflowName: {type: 'string', required: false},
+        workflowVersion: {type: 'string', required: false},
         inputs: {type: 'json'},
         correlationId: {type: 'string'}
     },
     outputs: {execution: {type: 'json'}}, exits: {json: obj => obj},
     fn: async function (inputs) {
-        const definition = AWorkflowDefinition.find(`${inputs.workflowName}:${inputs.workflowVersion}`);
-        if (!definition) throw new Error(`Workflow definition not found: ${inputs.workflowName}:${inputs.workflowVersion}`);
-        const id = `${inputs.workflowName}:${inputs.workflowVersion}:${Date.now()}`;
+        const definitionId = inputs.workflowId || `${inputs.workflowName}:${inputs.workflowVersion}`;
+        const definition = AWorkflowDefinition.find(definitionId);
+        if (!definition) throw new Error(`Workflow definition not found: ${definitionId}`);
+        const workflowVersion = inputs.workflowVersion || definition.version;
+        const id = `${definition.id}:${Date.now()}`;
         const run = new AWorkflowExecution({id});
-        run.workflowVersion = inputs.workflowVersion;
+        run.workflowId = definition.id;
+        run.workflowVersion = workflowVersion;
         run.correlationId = inputs.correlationId;
         run.rootRunId = id;
         run.inputs = inputs.inputs || {};
@@ -46,6 +50,7 @@ module.exports = {
             await step.save();
         }
         await run.save();
+        if (run.executeReady) await run.executeReady();
         return {execution: {...(run._attributes || {}), id: run.id}};
     }
 };

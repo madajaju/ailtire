@@ -36,7 +36,9 @@ module.exports = {
                     if (!global.AHumanRequest) throw new Error('AHumanRequest is not available');
                     const requestId = `${obj.id}:${step.name}:${Date.now()}`;
                     const request = new global.AHumanRequest({id: requestId});
-                    request.baseDir = path.join(process.cwd(), 'podcasts', 'ahumanrequest', request.id);
+                    const stateRoot = obj.inputs?.workspaceRoot || obj.context?.workspaceRoot || process.cwd();
+                    const requestDirectory = request.id.replace(/[<>:"/\\|?*]/g, '_');
+                    request.baseDir = path.join(stateRoot, '.taic', 'tasks', requestDirectory);
                     fs.mkdirSync(request.baseDir, {recursive: true});
                     request.prompt = definition.humanRequest?.prompt || definition.description || `Complete ${step.name}`;
                     request.form = definition.humanRequest?.form || definition.inputs || {};
@@ -50,6 +52,16 @@ module.exports = {
                     obj.wait();
                     if (!obj.requests) obj.requests = {};
                     obj.requests[request.id] = request;
+                    fs.writeFileSync(path.join(request.baseDir, 'task.json'), JSON.stringify({
+                        id: request.id,
+                        prompt: request.prompt,
+                        form: request.form,
+                        assignee: request.assignee,
+                        requestedAt: request.requestedAt,
+                        workflowExecutionId: obj.id,
+                        step: step.name,
+                        state: 'Open'
+                    }, null, 2));
                     await request.save();
                     continue;
                 }
@@ -76,12 +88,7 @@ module.exports = {
                         ? await runner(definition.agent || definition.ref, inputs, context)
                         : await runner.run(definition.agent || definition.ref, inputs, context);
                 } else {
-                    try {
-                        result = definition.ref ? await AService.call({actionName: definition.ref, opts: inputs}) : {};
-                    }
-                    catch(e) {
-                        console.error(e);
-                    }
+                    result = definition.ref ? await AService.call({actionName: definition.ref.toLowerCase(), opts: inputs}) : {};
                 }
                 step.outputs = result?.outputs || result || {};
                 obj.context = obj.context || {};
@@ -145,6 +152,9 @@ module.exports = {
             }
         }
         await obj.save();
+        if (typeof global.ailtire?.workflowStateWriter === 'function') {
+            await global.ailtire.workflowStateWriter(obj);
+        }
         return {completed};
     }
 };

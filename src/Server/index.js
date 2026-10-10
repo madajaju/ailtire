@@ -167,7 +167,9 @@ function _loadMicroserviceTarget(config, target) {
     for(let i in packageEntries) {
         let entry = packageEntries[i];
         let packageDir = _resolvePackageDir(config.baseDir, entry.path || entry.dir || entry);
-        let prefix = entry.prefix || manifest.prefix;
+        let prefix = Object.prototype.hasOwnProperty.call(entry, 'prefix')
+            ? entry.prefix
+            : (manifest.prefix || '');
         let pkg = APackage.load({dir: packageDir, prefix: prefix});
         let packageKey = pkg.name.replace(/\s/g, '');
         loadedPackages[packageKey] = pkg;

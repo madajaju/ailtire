@@ -3,6 +3,7 @@ class AWorkflowExecution {
         name: 'AWorkflowExecution',
         description: 'Durable execution of an immutable workflow definition version.',
         attributes: {
+            workflowId: {type: 'string'},
             workflowVersion: {type: 'string', required: true},
             correlationId: {type: 'string'},
             causationId: {type: 'string'},

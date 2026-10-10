@@ -72,11 +72,15 @@ class AOpenAI extends AIAdaptor {
         if (!this.client) {
             throw new Error("OpenAI client is not initialized. Call init() first.");
         }
-        const response = await this.client.images.generate({
+        const request = {
             model: opts.model || 'gpt-image-2',
             prompt: opts.prompt,
             size: opts.size || "1024x1024",
-        });
+        };
+        if (Array.isArray(opts.images) && opts.images.length) {
+            request.images = opts.images;
+        }
+        const response = await this.client.images.generate(request);
 
         const imageData = response.data?.[0];
         if (imageData?.url) {

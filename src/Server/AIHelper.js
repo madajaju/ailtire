@@ -42,7 +42,7 @@ class AIHelper {
         return _askForCode(messages);
     }
 
-    static async askForImage(messages) {
+    static async askForImage(messages, referenceImages = []) {
         if(!global.ai) {
             let aiAdaptor = global.ailtire.ai.adaptor;
             if(aiAdaptor) {
@@ -60,7 +60,7 @@ class AIHelper {
                 }
             }
         }
-        return await _askForImage(messages);
+        return await _askForImage(messages, referenceImages);
     }
 
     static async chat(userText, session) {
@@ -179,16 +179,23 @@ async function _ask(messages) {
     return "";
 }
 
-async function _askForImage(messages) {
+async function _askForImage(messages, referenceImages = []) {
     if(!global.ai) {
         return "";
     }
     try {
         const prompt = _messagesToPrompt(messages);
-        return await global.ai.generateImage({
+        const options = {
             prompt: prompt,
             model: 'gpt-image-2'
-        });
+        };
+        const images = Array.isArray(referenceImages)
+            ? referenceImages
+                .filter((image) => typeof image === 'string' && image.trim())
+                .map((image) => image.trim())
+            : [];
+        if (images.length) options.images = images;
+        return await global.ai.generateImage(options);
     }
     catch(e) {
         console.error("Calling OpenAI Image Error:", e.message);

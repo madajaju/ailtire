@@ -7,6 +7,7 @@ class AStepDefinition {
             name: {type: 'string', required: true},
             type: {type: 'string', required: true},
             ref: {type: 'string'},
+            workflow: {type: 'json', description: 'Child workflow reference and version for workflow steps.'},
             agent: {type: 'json', description: 'Agent capability and execution metadata for type="agent" steps.'},
             policy: {type: 'json', description: 'Execution policy for the step or agent.'},
             description: {type: 'string'},

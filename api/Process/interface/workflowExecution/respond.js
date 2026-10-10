@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 module.exports = {
     friendlyName: 'AWorkflowExecution/respond',
     description: 'Submit a human response and release the waiting workflow step.',
@@ -35,6 +38,29 @@ module.exports = {
         }
         await response.save();
         await request.save();
+        if (request.baseDir) {
+            fs.writeFileSync(path.join(request.baseDir, 'response.json'), JSON.stringify({
+                requestId: request.id,
+                values: inputs.values,
+                responder: inputs.responder,
+                respondedAt: response.respondedAt,
+                state: 'Completed'
+            }, null, 2));
+            fs.writeFileSync(path.join(request.baseDir, 'task.json'), JSON.stringify({
+                id: request.id,
+                prompt: request.prompt,
+                form: request.form,
+                assignee: request.assignee,
+                requestedAt: request.requestedAt,
+                respondedAt: request.respondedAt,
+                workflowExecutionId: workflow?.id,
+                step: step?.name,
+                state: 'Completed'
+            }, null, 2));
+        }
+        if (typeof global.ailtire?.workflowStateWriter === 'function' && workflow) {
+            await global.ailtire.workflowStateWriter(workflow);
+        }
         return {response: {...(response._attributes || {}), id: response.id}};
     }
 };
