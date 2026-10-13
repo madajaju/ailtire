@@ -477,7 +477,7 @@ function _updateRESTRoutes(server, path, action) {
     console.log('Adding route', path);
     if(path.includes('/upload')) {
         server.post('*' + path, async (req, res) => {
-            req.url = req.url.replace(config.urlPrefix, '');
+            req.url = req.url.replace(ailtire.config.urlPrefix, '');
             await upload(action, req.query, {req: req, res: res});
         });
     } else {
